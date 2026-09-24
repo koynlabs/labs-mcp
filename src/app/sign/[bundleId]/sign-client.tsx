@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { VersionedTransaction } from "@solana/web3.js";
+import Wordmark from "@/components/Wordmark";
 
 type PendingTx = {
   index: number;
@@ -122,6 +123,7 @@ export function SignClient({ bundleId }: { bundleId: string }) {
   if (!bundle) {
     return (
       <main className="wrap">
+        <Wordmark />
         <p>{note ?? "Loading…"}</p>
       </main>
     );
@@ -132,6 +134,7 @@ export function SignClient({ bundleId }: { bundleId: string }) {
 
   return (
     <main className="wrap">
+      <Wordmark />
       <h1>
         Launch {bundle.name} ({bundle.symbol})
       </h1>

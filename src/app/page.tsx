@@ -1,9 +1,10 @@
+import Wordmark from "@/components/Wordmark";
 import { FEE_SOL } from "@/lib/config";
 
 export default function Home() {
   return (
     <main className="wrap">
-      <h1>labs</h1>
+      <Wordmark />
       <p className="muted">
         Launch a token on pump.fun or StonkFun by asking your assistant.
       </p>

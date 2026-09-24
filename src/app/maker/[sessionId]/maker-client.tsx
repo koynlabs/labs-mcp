@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Keypair, VersionedTransaction } from "@solana/web3.js";
 import bs58 from "bs58";
+import Wordmark from "@/components/Wordmark";
 
 type Session = {
   id: string;
@@ -124,6 +125,7 @@ export function MakerClient({ sessionId }: { sessionId: string }) {
   if (!session) {
     return (
       <main className="wrap">
+        <Wordmark />
         <p>{note ?? "Loading…"}</p>
       </main>
     );
@@ -131,6 +133,7 @@ export function MakerClient({ sessionId }: { sessionId: string }) {
 
   return (
     <main className="wrap">
+      <Wordmark />
       <h1>Two-sided quoting</h1>
       <p className="muted">
         {session.venue === "pump" ? "pump.fun" : "StonkFun"} · mint {session.mint}
