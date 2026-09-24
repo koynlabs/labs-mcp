@@ -139,3 +139,10 @@ levercoin marketing site.
   launch-time pricing response.
 - PumpPortal rejects a bundle if it dislikes any one wallet and does not say
   which, so `launch_token` lists the buyers back in that error.
+
+## License
+
+[MIT](LICENSE). The code is public so you can verify that a launch is signed by
+your wallet and that the server never holds that key. Secrets (`LABS_TREASURY`,
+`LABS_PINATA_JWT`, `LABS_SESSION_SECRET`, Redis) stay in the deployment env and
+are not in this repo.
