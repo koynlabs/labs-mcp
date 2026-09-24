@@ -1,0 +1,36 @@
+{
+  "name": "labs-mcp",
+  "version": "1.0.0",
+  "private": true,
+  "description": "MCP server that launches tokens on pump.fun and StonkFun, and runs disclosed two-sided quoters. The user's wallet signs everything.",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "typecheck": "tsc --noEmit",
+    "workflow": "workflow web"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/server": "^2.1.0",
+    "@raydium-io/raydium-sdk-v2": "^0.2.73-alpha",
+    "@solana/spl-token": "^0.4.15",
+    "@solana/web3.js": "^1.99.0",
+    "@upstash/redis": "^1.39.0",
+    "bn.js": "^5.2.5",
+    "bs58": "^6.0.0",
+    "mcp-handler": "^2.2.0",
+    "next": "^16.3.6",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "tweetnacl": "^1.0.3",
+    "workflow": "^4.8.9",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@types/bn.js": "^5.2.0",
+    "@types/node": "^26.6.2",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "typescript": "^5.9.3"
+  }
+}
