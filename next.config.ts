@@ -1,8 +1,6 @@
 import { withWorkflow } from "workflow/next";
 import type { NextConfig } from "next";
 
-const nextConfig: NextConfig = {
-  serverExternalPackages: ["@raydium-io/raydium-sdk-v2"],
-};
+const nextConfig: NextConfig = {};
 
 export default withWorkflow(nextConfig);
