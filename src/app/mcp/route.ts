@@ -1,4 +1,5 @@
 import { createMcpHandler } from "mcp-handler";
+import { FEE_SOL } from "@/lib/config";
 import { registerTools } from "@/lib/mcp/tools";
 
 /**
@@ -16,7 +17,7 @@ const handler = createMcpHandler(
       "labs launches tokens on pump.fun and StonkFun and runs disclosed",
       "two-sided quoters. Every transaction is signed by the user's own wallet",
       "in a browser; this server never holds a wallet key. Each launch and each",
-      "maker session costs 0.1 SOL, paid inside the same bundle.",
+      `maker session costs ${FEE_SOL} SOL, paid inside the same bundle.`,
       "",
       "After calling launch_token or start_maker, give the user the returned URL",
       "and tell them which wallets have to sign. Poll launch_status or",

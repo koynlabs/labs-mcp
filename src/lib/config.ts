@@ -19,7 +19,7 @@ export const SOLANA_RPC =
   process.env.SOLANA_RPC ?? "https://api.mainnet-beta.solana.com";
 
 /** Fee charged per launch and per maker session, in SOL. */
-export const FEE_SOL = Number(process.env.LABS_FEE_SOL ?? "0.1");
+export const FEE_SOL = Number(process.env.LABS_FEE_SOL ?? "0.25");
 
 export function treasury(): PublicKey {
   return new PublicKey(required("LABS_TREASURY"));

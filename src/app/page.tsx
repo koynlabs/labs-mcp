@@ -56,15 +56,6 @@ export default function Home() {
         generate in your browser if you start a maker session, and that one is
         capped and expires.
       </p>
-
-      <h2>What it will not do</h2>
-      <p className="muted">
-        No volume generation, no wash trading, no spreading one operator&apos;s
-        activity across wallets to look like a crowd, no proxy rotation, no
-        automated comments or fake profiles. The maker is a single public address
-        that quotes a spread and trades only when price crosses it. If you want
-        the other thing, this is the wrong tool.
-      </p>
     </main>
   );
 }

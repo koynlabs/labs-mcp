@@ -5,7 +5,7 @@ const memory = new Map<string, { count: number; resetAt: number }>();
 /**
  * Unpaid tool calls still cost the server a metadata upload and an RPC round
  * trip, so building a launch is limited per creator wallet. Payment is the
- * 0.1 SOL instruction; this only stops someone spinning up bundles for free.
+ * fee instruction; this only stops someone spinning up bundles for free.
  */
 export async function allow(
   key: string,

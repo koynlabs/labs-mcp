@@ -3,7 +3,7 @@
 An MCP server that launches tokens on pump.fun and StonkFun, and runs a
 disclosed two-sided quoter. Connect it to Claude, ChatGPT or Grok and ask for a
 launch; it builds the transactions and hands back a link where your own wallet
-signs them. 0.1 SOL per launch, paid inside the same bundle. No subscription.
+signs them. 0.25 SOL per launch, paid inside the same bundle. No subscription.
 
 This replaces the old `labs` CLI, which held wallet secret keys in
 `.config/wallets.json` and signed locally. Nothing here holds a wallet key.
@@ -40,7 +40,7 @@ bundle that pays the fee, so there is nothing to provision per user.
 
 | # | Transaction |
 | --- | --- |
-| 0 | 0.1 SOL fee to the treasury |
+| 0 | 0.25 SOL fee to the treasury |
 | 1 | Create the token, plus the creator's own opening buy |
 | 2–4 | One buy per additional wallet the creator controls |
 
@@ -104,14 +104,6 @@ The maker approves a session in the browser. A throwaway quoting key is generate
 there, the wallet signs a plain-text approval naming the exact mint, spread and
 SOL cap, and only that key reaches the server, encrypted with `LABS_SESSION_SECRET`.
 It expires, and `stop_maker` discards it early.
-
-### What this is not
-
-There is no volume generation, no wash trading, no splitting one operator's
-activity across wallets to look like separate people, no proxy rotation, and no
-automated comments or profiles. None of that was ported from the old CLI, and the
-maker is deliberately a single public address that only trades when price leaves
-its band. If that is what you need, this is the wrong tool.
 
 ## Running it
 
