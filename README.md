@@ -1,27 +1,91 @@
-# labs
+<p align="center">
+  <a href="https://www.levercoin.lol">
+    <img src="docs/assets/levercoin.svg" alt="LEVERCOIN" width="720" />
+  </a>
+</p>
 
-An MCP server that launches tokens on pump.fun and StonkFun, and runs a
-disclosed two-sided quoter. Connect it to Claude, ChatGPT or Grok and ask for a
-launch; it builds the transactions and hands back a link where your own wallet
-signs them. 0.25 SOL per launch, paid inside the same bundle, or nothing at all
-if the paying wallet already holds that much value in $LEVERCOIN. No
-subscription.
+<p align="center">
+  <strong>Launch a token from Claude, ChatGPT or Grok.</strong><br />
+  Your wallet signs every transaction. The server never holds the key.
+</p>
 
-This replaces the old `labs` CLI, which held wallet secret keys in
-`.config/wallets.json` and signed locally. Nothing here holds a wallet key.
+<p align="center">
+  <a href="https://labs.levercoin.lol/mcp"><img src="https://img.shields.io/badge/MCP-labs.levercoin.lol%2Fmcp-111111?style=flat-square&labelColor=070708" alt="MCP" /></a>
+  <a href="https://www.levercoin.lol"><img src="https://img.shields.io/badge/%24LEVERCOIN-hold%20to%20launch%20free-111111?style=flat-square&labelColor=070708" alt="$LEVERCOIN" /></a>
+  <a href="https://solana.com"><img src="https://img.shields.io/badge/chain-Solana-9945FF?style=flat-square&labelColor=070708" alt="Solana" /></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-111111?style=flat-square&labelColor=070708" alt="MIT" /></a>
+</p>
 
-## Connect
+<p align="center">
+  <a href="https://www.levercoin.lol">Website</a>
+  ·
+  <a href="https://labs.levercoin.lol">labs</a>
+  ·
+  <a href="https://labs.levercoin.lol/mcp">MCP</a>
+  ·
+  <a href="https://x.com/LeverCoinonsol">X</a>
+  ·
+  <a href="https://t.me/LeverCoinonsol">Telegram</a>
+  ·
+  <a href="https://www.stonkfun.xyz/token/GJx6KxLzEeB5cQh7Bmo85M2N6s6bVM63VEUjT2tfe6mg">Buy on StonkFun</a>
+</p>
+
+---
+
+<p align="center">
+  <a href="https://www.levercoin.lol/tapes/levercoin-3.mp4">
+    <img src="docs/assets/levercoin-poster.jpg" alt="Play the $LEVERCOIN tape" width="720" />
+  </a>
+</p>
+
+<p align="center">
+  <a href="https://www.levercoin.lol/tapes/levercoin-3.mp4">▶ Watch the tape</a>
+  &nbsp;·&nbsp;
+  <a href="https://labs.levercoin.lol/demo/">▶ Play the Grok bot Rive</a>
+</p>
+
+<p align="center">
+  <a href="https://labs.levercoin.lol">
+    <img src="docs/assets/labs.svg" alt="labs" width="360" />
+  </a>
+</p>
+
+## Why people use it
+
+| | |
+| --- | --- |
+| 🔑 **Your keys stay yours** | Every create, buy and fee is built unsigned. You sign in Phantom. labs cannot move the funds. |
+| ⚡ **One atomic bundle** | Create + opening buys + the fee land together on Jito, or none of it does. |
+| 🪙 **0.25 SOL, or hold $LEVERCOIN** | Pay the fee in the same bundle, or hold 0.25 SOL worth of $LEVERCOIN and pay nothing. The tokens never leave the wallet. |
+| 🤖 **Talk to it** | No dashboard to learn. Ask your assistant for a launch. It hands back a signing link. |
+| 🕳️ **No subscription** | Nothing to provision per user. The creator's signature is the authorisation. |
+
+## Connect in 30 seconds
 
 ```
 https://labs.levercoin.lol/mcp
 ```
 
-Streamable HTTP, no API key. A launch is authorised by the creator signing a
-bundle that pays the fee, so there is nothing to provision per user.
+Streamable HTTP. No API key.
 
-- **Claude** — Settings, Connectors, Add custom connector.
-- **ChatGPT** — Settings, Connectors, Advanced, Add.
-- **Grok** — add it as a custom MCP server.
+- **Claude** — Settings → Connectors → Add custom connector
+- **ChatGPT** — Settings → Connectors → Advanced → Add
+- **Grok** — add it as a custom MCP server
+
+Then: *“Launch a token on pump.fun called …”*
+
+## Buy $LEVERCOIN, launch for free
+
+Hold 0.25 SOL worth of [$LEVERCOIN](https://www.stonkfun.xyz/token/GJx6KxLzEeB5cQh7Bmo85M2N6s6bVM63VEUjT2tfe6mg) in the wallet that would have paid, and labs drops the fee transaction. It reads the balance. It does not transfer the tokens. Keep holding until the launch lands — submit checks the same amount again.
+
+| | |
+| --- | --- |
+| 🌐 Site | [levercoin.lol](https://www.levercoin.lol) |
+| 🧪 labs | [labs.levercoin.lol](https://labs.levercoin.lol) |
+| 💬 X | [@LeverCoinonsol](https://x.com/LeverCoinonsol) |
+| ✈️ Telegram | [t.me/LeverCoinonsol](https://t.me/LeverCoinonsol) |
+| 📈 Buy | [StonkFun](https://www.stonkfun.xyz/token/GJx6KxLzEeB5cQh7Bmo85M2N6s6bVM63VEUjT2tfe6mg) |
+| 🧾 Mint | `GJx6KxLzEeB5cQh7Bmo85M2N6s6bVM63VEUjT2tfe6mg` |
 
 ## Tools
 
@@ -42,13 +106,14 @@ bundle that pays the fee, so there is nothing to provision per user.
 
 | # | Transaction |
 | --- | --- |
-| 0 | 0.25 SOL fee to the treasury |
+| 0 | 0.25 SOL fee to the treasury *(omitted when the wallet holds enough $LEVERCOIN)* |
 | 1 | Create the token, plus the creator's own opening buy |
 | 2–4 | One buy per additional wallet the creator controls |
 
 They go out as a single Jito bundle, which lands all-or-none. That is what makes
-the fee unavoidable: the launch cannot reach the chain without it. It is also why
-only three extra buyers fit — a Jito bundle holds five transactions.
+the SOL fee unavoidable when it is present: the launch cannot reach the chain
+without it. It is also why only three extra buyers fit — a Jito bundle holds
+five transactions.
 
 The fee is its own transaction rather than an instruction appended to the create.
 Both venues hand back an already-compiled transaction, and injecting an
@@ -64,8 +129,8 @@ signer can refuse, but cannot rewrite what they were given.
 Set `LEVER_MINT` and the fee becomes a hold rather than a payment. When the
 wallet that would have paid already owns `LABS_FEE_SOL` worth of that mint,
 transaction 0 is left out and the bundle is one shorter. The tokens are never
-transferred: labs reads the balance across both token programs and prices it
-against SOL in USD.
+transferred: labs reads the associated token accounts and prices them against
+SOL in USD.
 
 The required token amount is written onto the stored launch, and submit re-reads
 the balance against that same number instead of repricing. A wallet cannot
@@ -137,6 +202,9 @@ without it because each workflow step resumes in a new invocation.
 
 Deploy to Vercel as its own project with its own env; it shares nothing with the
 levercoin marketing site.
+
+The Grok bot Rive lives at [`public/demo`](public/demo) and is served at
+[`/demo`](https://labs.levercoin.lol/demo/) after deploy.
 
 ## Known limits
 

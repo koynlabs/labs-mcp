@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 112" role="img">
+  <rect width="100%" height="100%" fill="#070708"/>
+  <g transform="skewX(-10)" fill="#f4f4f5" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace" font-size="11" font-weight="600">
+    <text x="32" y="24" xml:space="preserve">_      ________      ________ _____   _____ ____ _____ _   _ </text>
+    <text x="32" y="38" xml:space="preserve">| |    |  ____\ \    / /  ____|  __ \ / ____/ __ \_   _| \ | |</text>
+    <text x="32" y="52" xml:space="preserve">| |    | |__   \ \  / /| |__  | |__) | |   | |  | || | |  \| |</text>
+    <text x="32" y="66" xml:space="preserve">| |    |  __|   \ \/ / |  __| |  _  /| |   | |  | || | | . ` |</text>
+    <text x="32" y="80" xml:space="preserve">| |____| |____   \  /  | |____| | \ \| |___| |__| || |_| |\  |</text>
+    <text x="32" y="94" xml:space="preserve">|______|______|   \/   |______|_|  \_\\_____\____/_____|_| \_|</text>
+  </g>
+</svg>

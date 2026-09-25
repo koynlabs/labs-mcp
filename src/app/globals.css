@@ -166,6 +166,15 @@ pre {
   font-size: 0.9rem;
 }
 
+.rive {
+  display: block;
+  width: 100%;
+  height: auto;
+  margin: 1.25rem 0;
+  background: #0a0a0b;
+  border: 1px solid var(--line);
+}
+
 .ok {
   color: var(--ok);
 }
