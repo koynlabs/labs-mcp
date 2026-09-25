@@ -20,6 +20,11 @@ export type LaunchInput = {
   quoteMint?: string;
   /** A metadata JSON URI the caller has already pinned somewhere. */
   metadataUri?: string;
+  /**
+   * Set when the creator's $LEVERCOIN hold covers the fee. The builders then
+   * leave the fee transaction out of the bundle entirely.
+   */
+  feeWaived?: boolean;
 };
 
 export type BuiltLaunch = {

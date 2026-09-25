@@ -3,6 +3,7 @@ import bs58 from "bs58";
 import { PublicKey, SystemProgram } from "@solana/web3.js";
 import { BUNDLE_TTL_SECONDS, FEE_SOL, PUMP, SITE_URL, treasury } from "../config";
 import { assertPaysTreasury } from "../fee";
+import { feeWaiverFor, stillHolds } from "../lever";
 import { connection, decodeTx, verifySignedTx } from "../solana";
 import { getBundle, put } from "../store";
 import type { LaunchBundle } from "../types";
@@ -45,10 +46,13 @@ export async function createLaunch(input: LaunchInput): Promise<LaunchBundle> {
     ...input.buyers.map((buyer) => buyer.publicKey),
   ]);
 
+  // Holding $LEVERCOIN waives the fee rather than paying it in the token, so
+  // the bundle simply carries no fee transaction.
+  const feeWaiver = await feeWaiverFor(input.creator);
   const built: BuiltLaunch =
     input.venue === "pump"
-      ? await buildPumpLaunch(input)
-      : await buildStonksLaunch(input);
+      ? await buildPumpLaunch({ ...input, feeWaived: Boolean(feeWaiver) })
+      : await buildStonksLaunch({ ...input, feeWaived: Boolean(feeWaiver) });
 
   const bundle: LaunchBundle = {
     id: randomUUID(),
@@ -61,7 +65,8 @@ export async function createLaunch(input: LaunchInput): Promise<LaunchBundle> {
     metadataUri: built.metadataUri,
     metadataHost: built.metadataHost,
     buyers: built.buyers,
-    feeSol: FEE_SOL,
+    feeSol: feeWaiver ? 0 : FEE_SOL,
+    feeWaiver: feeWaiver ?? undefined,
     treasury: treasury().toBase58(),
     txs: built.txs,
     signed: {},
@@ -117,8 +122,14 @@ export async function submitLaunch(id: string): Promise<LaunchBundle> {
   }
 
   const fee = bundle.txs.find((tx) => tx.role === "fee");
-  if (!fee) throw new Error("this launch carries no fee transaction");
-  assertPaysTreasury(fee);
+  if (bundle.feeWaiver) {
+    // The hold is re-read here rather than trusted from build time, so a wallet
+    // cannot qualify for the waiver and then sell before the launch lands.
+    await stillHolds(bundle.feeWaiver);
+  } else {
+    if (!fee) throw new Error("this launch carries no fee transaction");
+    assertPaysTreasury(fee);
+  }
 
   const ordered = [...bundle.txs].sort((a, b) => a.index - b.index);
   const encoded = ordered.map((pending) => {

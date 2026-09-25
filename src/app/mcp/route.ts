@@ -1,6 +1,7 @@
 import { createMcpHandler } from "mcp-handler";
 import { FEE_SOL } from "@/lib/config";
 import { registerTools } from "@/lib/mcp/tools";
+import { HOLD_WAIVES_FEE } from "@/lib/site";
 
 /**
  * The MCP endpoint, served at /mcp over Streamable HTTP. Claude, ChatGPT and
@@ -18,6 +19,14 @@ const handler = createMcpHandler(
       "two-sided quoters. Every transaction is signed by the user's own wallet",
       "in a browser; this server never holds a wallet key. Each launch and each",
       `maker session costs ${FEE_SOL} SOL, paid inside the same bundle.`,
+      ...(HOLD_WAIVES_FEE
+        ? [
+            `There is no fee at all when the paying wallet already holds ${FEE_SOL} SOL`,
+            "worth of $LEVERCOIN. labs reads that balance and drops the fee",
+            "transaction. The $LEVERCOIN is never transferred or spent, and the",
+            "wallet has to still hold it when the launch is submitted.",
+          ]
+        : []),
       "",
       "After calling launch_token or start_maker, give the user the returned URL",
       "and tell them which wallets have to sign. Poll launch_status or",

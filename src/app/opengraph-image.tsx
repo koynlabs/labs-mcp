@@ -1,5 +1,6 @@
 import { ImageResponse } from "next/og";
 import { FEE_SOL } from "@/lib/config";
+import { HOLD_WAIVES_FEE } from "@/lib/site";
 
 export const alt = "labs";
 export const size = { width: 1200, height: 630 };
@@ -52,7 +53,9 @@ export default function OpenGraphImage() {
               color: "#d4d4d8",
             }}
           >
-            {`Launch on pump.fun or StonkFun. ${FEE_SOL} SOL. Your wallet signs.`}
+            {HOLD_WAIVES_FEE
+              ? `Launch on pump.fun or StonkFun. ${FEE_SOL} SOL, or free holding $LEVERCOIN.`
+              : `Launch on pump.fun or StonkFun. ${FEE_SOL} SOL. Your wallet signs.`}
           </div>
         </div>
         <div

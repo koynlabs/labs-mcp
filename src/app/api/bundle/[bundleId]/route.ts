@@ -22,6 +22,7 @@ export async function GET(
     name: bundle.name,
     symbol: bundle.symbol,
     feeSol: bundle.feeSol,
+    feeWaiver: bundle.feeWaiver,
     treasury: bundle.treasury,
     jitoBundleId: bundle.jitoBundleId,
     error: bundle.error,

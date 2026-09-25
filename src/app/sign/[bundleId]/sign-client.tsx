@@ -21,6 +21,7 @@ type Bundle = {
   name: string;
   symbol: string;
   feeSol: number;
+  feeWaiver?: { requiredTokens: number; feeSolWaived: number };
   treasury: string;
   jitoBundleId?: string;
   error?: string;
@@ -144,8 +145,12 @@ export function SignClient({ bundleId }: { bundleId: string }) {
 
       <p>
         These transactions land together as one atomic bundle: the token is
-        created, your wallets buy, and the {bundle.feeSol} SOL labs fee is paid.
-        If any part fails, none of it happens.
+        created, your wallets buy
+        {bundle.feeWaiver
+          ? ". There is no labs fee, because this wallet holds the " +
+            `${bundle.feeWaiver.requiredTokens.toLocaleString()} $LEVERCOIN that covers it`
+          : `, and the ${bundle.feeSol} SOL labs fee is paid`}
+        . If any part fails, none of it happens.
       </p>
 
       <ol className="txs">
@@ -161,7 +166,16 @@ export function SignClient({ bundleId }: { bundleId: string }) {
       </ol>
 
       <p className="muted">
-        Fee goes to <code>{bundle.treasury}</code>.
+        {bundle.feeWaiver ? (
+          <>
+            Keep holding that $LEVERCOIN until the launch lands. Selling below it
+            first means paying {bundle.feeWaiver.feeSolWaived} SOL instead.
+          </>
+        ) : (
+          <>
+            Fee goes to <code>{bundle.treasury}</code>.
+          </>
+        )}
       </p>
 
       {bundle.status === "submitted" ? (

@@ -26,6 +26,18 @@ export function treasury(): PublicKey {
 }
 
 /**
+ * Holding this much $LEVERCOIN waives the SOL fee. Unset means every launch and
+ * every maker session pays in SOL.
+ */
+export const LEVER_MINT = process.env.LEVER_MINT?.trim() || undefined;
+
+/** USD prices for the waiver, so the hold can be compared against the fee. */
+export const JUPITER_PRICE_API =
+  process.env.LABS_JUPITER_PRICE_API ?? "https://lite-api.jup.ag/price/v3";
+
+export const WSOL_MINT = "So11111111111111111111111111111111111111112";
+
+/**
  * A Jito bundle holds at most 5 transactions. One is the create, one is the
  * fee, so three wallets can buy inside the launch bundle.
  */

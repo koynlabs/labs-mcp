@@ -312,16 +312,17 @@ export async function buildStonksLaunch(
   const createTx = new VersionedTransaction(createMessage);
   createTx.sign([mintKeypair]);
 
-  const txs: PendingTx[] = [
-    await buildFeeTx(input.creator, 0),
-    {
-      index: 1,
-      role: "create",
-      signer: input.creator,
-      tx: encodeTx(createTx),
-      sol: input.creatorBuySol,
-    },
-  ];
+  const txs: PendingTx[] = input.feeWaived
+    ? []
+    : [await buildFeeTx(input.creator, 0)];
+
+  txs.push({
+    index: txs.length,
+    role: "create",
+    signer: input.creator,
+    tx: encodeTx(createTx),
+    sol: input.creatorBuySol,
+  });
 
   buyers.forEach((buyer) => {
     const owner = new PublicKey(buyer.publicKey);

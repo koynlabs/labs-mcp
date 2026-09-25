@@ -1,5 +1,6 @@
 import Wordmark from "@/components/Wordmark";
 import { FEE_SOL } from "@/lib/config";
+import { HOLD_WAIVES_FEE } from "@/lib/site";
 
 export default function Home() {
   return (
@@ -16,6 +17,19 @@ export default function Home() {
         It hands back a link where your wallet signs. {FEE_SOL} SOL per launch,
         paid inside the same bundle. Nothing else, no subscription.
       </p>
+
+      {HOLD_WAIVES_FEE ? (
+        <>
+          <h2>Or hold $LEVERCOIN and pay nothing</h2>
+          <p>
+            Hold {FEE_SOL} SOL worth of $LEVERCOIN in the wallet that would have
+            paid, and the fee is dropped from the bundle. You are not spending
+            the $LEVERCOIN and labs cannot touch it: it reads the balance, and
+            the tokens stay where they are. Keep holding until the launch lands,
+            because the balance is read again on submit.
+          </p>
+        </>
+      ) : null}
 
       <h2>Connect</h2>
       <pre>https://labs.levercoin.lol/mcp</pre>

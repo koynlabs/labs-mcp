@@ -80,9 +80,11 @@ export async function buildPumpLaunch(
   }
 
   // The fee transaction leads the bundle so the treasury is paid in the same
-  // atomic unit as the launch.
-  const fee = await buildFeeTx(input.creator, 0);
-  const txs: PendingTx[] = [fee];
+  // atomic unit as the launch. A waived fee leaves the bundle a transaction
+  // shorter, which is only ever more room under Jito's limit of five.
+  const txs: PendingTx[] = input.feeWaived
+    ? []
+    : [await buildFeeTx(input.creator, 0)];
 
   encoded.forEach((raw, position) => {
     const tx = VersionedTransaction.deserialize(bs58.decode(raw));

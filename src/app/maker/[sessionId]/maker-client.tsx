@@ -5,28 +5,27 @@ import { Keypair, VersionedTransaction } from "@solana/web3.js";
 import bs58 from "bs58";
 import Wordmark from "@/components/Wordmark";
 
+/** Whatever `GET /api/maker/[sessionId]` returns: `publicView` plus the fee. */
 type Session = {
-  id: string;
+  sessionId: string;
   status: string;
   venue: string;
   mint: string;
   maker: string;
   spreadBps: number;
   quoteSol: number;
-  maxSol: number;
-  maxToken: number;
   refreshSeconds: number;
-  expiresAt: number;
-  solSpent: number;
-  tokenHeld: number;
+  caps: { maxSol: number; maxToken: number };
+  inventory: { solSpent: number; tokenHeld: number };
+  expiresAt: string;
   lastBid?: number;
   lastAsk?: number;
-  lastFillAt?: number;
-  fills: number;
+  lastQuotedAt?: string;
   error?: string;
   feeSol?: number;
   treasury?: string;
   feeTx?: string;
+  feeWaiver?: { requiredTokens: number; heldTokens: number };
   approvalMessage?: string;
 };
 
@@ -66,7 +65,7 @@ export function MakerClient({ sessionId }: { sessionId: string }) {
   }, [load]);
 
   const approve = async () => {
-    if (!session?.feeTx) return;
+    if (!session) return;
     setBusy(true);
     setNote(null);
     try {
@@ -95,10 +94,16 @@ export function MakerClient({ sessionId }: { sessionId: string }) {
         "utf8",
       );
 
-      const feeTx = VersionedTransaction.deserialize(
-        Uint8Array.from(atob(session.feeTx), (char) => char.charCodeAt(0)),
-      );
-      const signedFee = await provider.signTransaction(feeTx);
+      // No fee transaction exists when the maker's $LEVERCOIN hold covers it,
+      // so the approval signature is the only thing the wallet is asked for.
+      let signedFeeTx: string | undefined;
+      if (session.feeTx) {
+        const feeTx = VersionedTransaction.deserialize(
+          Uint8Array.from(atob(session.feeTx), (char) => char.charCodeAt(0)),
+        );
+        const signedFee = await provider.signTransaction(feeTx);
+        signedFeeTx = btoa(String.fromCharCode(...signedFee.serialize()));
+      }
 
       const response = await fetch(`/api/maker/${sessionId}`, {
         method: "POST",
@@ -107,7 +112,7 @@ export function MakerClient({ sessionId }: { sessionId: string }) {
           sessionPublicKey: quoting.publicKey.toBase58(),
           sessionSecretKey: bs58.encode(quoting.secretKey),
           approvalSignature: bs58.encode(signature),
-          signedFeeTx: btoa(String.fromCharCode(...signedFee.serialize())),
+          signedFeeTx,
         }),
       });
       const result = await response.json();
@@ -148,8 +153,8 @@ export function MakerClient({ sessionId }: { sessionId: string }) {
 
       <ul className="caps">
         <li>Quote size: {session.quoteSol} SOL</li>
-        <li>Will never spend more than {session.maxSol} SOL</li>
-        <li>Will never hold more than {session.maxToken} tokens</li>
+        <li>Will never spend more than {session.caps.maxSol} SOL</li>
+        <li>Will never hold more than {session.caps.maxToken} tokens</li>
         <li>Re-quotes at most every {session.refreshSeconds}s</li>
         <li>Stops at {new Date(session.expiresAt).toLocaleString()}</li>
       </ul>
@@ -160,13 +165,15 @@ export function MakerClient({ sessionId }: { sessionId: string }) {
         all unless the price leaves the band.
       </p>
 
-      {session.status === "pending" ? (
+      {session.status === "awaiting_approval" ? (
         <>
           <p>
-            Approving creates a throwaway quoting key in this browser, hands it
-            to the server, and pays {session.feeSol} SOL to{" "}
-            <code>{session.treasury}</code>. That key can only place these
-            quotes, up to these caps, until expiry.
+            Approving creates a throwaway quoting key in this browser and hands
+            it to the server.{" "}
+            {session.feeWaiver
+              ? `No fee: this wallet holds the ${session.feeWaiver.requiredTokens.toLocaleString()} $LEVERCOIN that covers it, and keeps holding it.`
+              : `It also pays ${session.feeSol} SOL to ${session.treasury}.`}{" "}
+            That key can only place these quotes, up to these caps, until expiry.
           </p>
           <button onClick={approve} disabled={busy}>
             {busy ? "Approving…" : "Approve and start quoting"}
@@ -174,14 +181,13 @@ export function MakerClient({ sessionId }: { sessionId: string }) {
         </>
       ) : (
         <>
-          <p className={session.status === "active" ? "ok" : ""}>
+          <p className={session.status === "running" ? "ok" : ""}>
             Status: {session.status}
             {session.error ? ` — ${session.error}` : ""}
           </p>
           <ul className="caps">
-            <li>Spent: {session.solSpent.toFixed(4)} SOL</li>
-            <li>Holding: {session.tokenHeld.toFixed(4)} tokens</li>
-            <li>Fills: {session.fills}</li>
+            <li>Spent: {session.inventory.solSpent.toFixed(4)} SOL</li>
+            <li>Holding: {session.inventory.tokenHeld.toFixed(4)} tokens</li>
             {session.lastBid ? (
               <li>
                 Last quote: bid {session.lastBid.toPrecision(6)} / ask{" "}

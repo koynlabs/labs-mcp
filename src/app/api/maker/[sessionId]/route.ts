@@ -30,6 +30,7 @@ export async function GET(
     feeSol: session.feeSol,
     treasury: session.treasury,
     feeTx: session.txs[0]?.tx,
+    feeWaiver: session.feeWaiver,
     approvalMessage: approvalMessage(session, proposed),
   });
 }
@@ -59,11 +60,11 @@ export async function POST(
 
   const { sessionPublicKey, sessionSecretKey, approvalSignature, signedFeeTx } =
     body;
-  if (!sessionPublicKey || !sessionSecretKey || !approvalSignature || !signedFeeTx) {
+  if (!sessionPublicKey || !sessionSecretKey || !approvalSignature) {
     return Response.json(
       {
         error:
-          "sessionPublicKey, sessionSecretKey, approvalSignature and signedFeeTx are all required",
+          "sessionPublicKey, sessionSecretKey and approvalSignature are all required",
       },
       { status: 400 },
     );
@@ -79,16 +80,18 @@ export async function POST(
     });
 
     // The session fee is a single transaction, so it goes straight to the RPC
-    // rather than through a bundle.
-    const tx = decodeTx(signedFeeTx);
-    const raw =
-      "serialize" in tx
-        ? tx.serialize({ requireAllSignatures: false, verifySignatures: false })
-        : tx;
-    const feeSignature = await connection().sendRawTransaction(
-      raw as Uint8Array,
-      { maxRetries: 3 },
-    );
+    // rather than through a bundle. A waived fee has nothing to broadcast.
+    let feeSignature: string | undefined;
+    if (!session.feeWaiver && signedFeeTx) {
+      const tx = decodeTx(signedFeeTx);
+      const raw =
+        "serialize" in tx
+          ? tx.serialize({ requireAllSignatures: false, verifySignatures: false })
+          : tx;
+      feeSignature = await connection().sendRawTransaction(raw as Uint8Array, {
+        maxRetries: 3,
+      });
+    }
 
     try {
       session.runId = await startMakerRun(sessionId);

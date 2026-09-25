@@ -3,7 +3,9 @@
 An MCP server that launches tokens on pump.fun and StonkFun, and runs a
 disclosed two-sided quoter. Connect it to Claude, ChatGPT or Grok and ask for a
 launch; it builds the transactions and hands back a link where your own wallet
-signs them. 0.25 SOL per launch, paid inside the same bundle. No subscription.
+signs them. 0.25 SOL per launch, paid inside the same bundle, or nothing at all
+if the paying wallet already holds that much value in $LEVERCOIN. No
+subscription.
 
 This replaces the old `labs` CLI, which held wallet secret keys in
 `.config/wallets.json` and signed locally. Nothing here holds a wallet key.
@@ -56,6 +58,20 @@ You open `/sign/<bundleId>`, connect each wallet in turn, and sign. The server
 re-verifies every signature against the exact message it handed out, re-reads the
 fee transaction to confirm it still pays the treasury, and only then submits. A
 signer can refuse, but cannot rewrite what they were given.
+
+### Holding $LEVERCOIN instead of paying
+
+Set `LEVER_MINT` and the fee becomes a hold rather than a payment. When the
+wallet that would have paid already owns `LABS_FEE_SOL` worth of that mint,
+transaction 0 is left out and the bundle is one shorter. The tokens are never
+transferred: labs reads the balance across both token programs and prices it
+against SOL in USD.
+
+The required token amount is written onto the stored launch, and submit re-reads
+the balance against that same number instead of repricing. A wallet cannot
+qualify and then sell before the launch lands, and a price move during the
+15-minute signing window cannot raise the bar after the fact. Selling below it
+rejects the submit, and building again charges SOL.
 
 ### The two venues
 
