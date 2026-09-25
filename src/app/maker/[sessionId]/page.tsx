@@ -1,6 +1,9 @@
 import { MakerClient } from "./maker-client";
 
-export const metadata = { title: "Approve quoting · labs" };
+export const metadata = {
+  title: "Approve quoting",
+  robots: { index: false, follow: false },
+};
 
 export default async function Page({
   params,
