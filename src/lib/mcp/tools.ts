@@ -275,7 +275,7 @@ export function registerTools(server: McpServer): void {
         }
         if (!isPersistent()) {
           return failure(
-            "Maker sessions need a Redis store. Set KV_REST_API_URL and KV_REST_API_TOKEN.",
+            "Maker sessions need a Redis store. Set REDIS_URL.",
           );
         }
         if (!(await allow(`maker:${args.maker}`, 3, 600))) {

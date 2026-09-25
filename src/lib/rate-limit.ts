@@ -1,4 +1,4 @@
-import { Redis } from "@upstash/redis";
+import { withRedis } from "./redis";
 
 const memory = new Map<string, { count: number; resetAt: number }>();
 
@@ -12,16 +12,12 @@ export async function allow(
   limit: number,
   windowSeconds: number,
 ): Promise<boolean> {
-  const url = process.env.KV_REST_API_URL ?? process.env.UPSTASH_REDIS_REST_URL;
-  const token =
-    process.env.KV_REST_API_TOKEN ?? process.env.UPSTASH_REDIS_REST_TOKEN;
-
-  if (url && token) {
-    const redis = new Redis({ url, token });
-    const count = await redis.incr(`rl:${key}`);
-    if (count === 1) await redis.expire(`rl:${key}`, windowSeconds);
-    return count <= limit;
-  }
+  const count = await withRedis(async (redis) => {
+    const next = await redis.incr(`rl:${key}`);
+    if (next === 1) await redis.expire(`rl:${key}`, windowSeconds);
+    return next;
+  });
+  if (count !== "missing") return count <= limit;
 
   const now = Date.now();
   const hit = memory.get(key);

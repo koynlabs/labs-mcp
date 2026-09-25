@@ -1,4 +1,4 @@
-import { Redis } from "@upstash/redis";
+import { redisConfigured, withRedis } from "./redis";
 import type { LaunchBundle, MakerSession } from "./types";
 
 /**
@@ -11,25 +11,17 @@ type Row = LaunchBundle | MakerSession;
 const memory = new Map<string, { value: unknown; expiresAt: number }>();
 
 /**
- * Built per call rather than memoised at module scope, because a workflow step
- * resumes in a fresh invocation and must not reuse a client captured earlier.
+ * A fresh client per call. A workflow step resumes in a new invocation and
+ * must not reuse a connection captured earlier.
  */
-function client(): Redis | null {
-  const url = process.env.KV_REST_API_URL ?? process.env.UPSTASH_REDIS_REST_URL;
-  const token =
-    process.env.KV_REST_API_TOKEN ?? process.env.UPSTASH_REDIS_REST_TOKEN;
-  if (!url || !token) return null;
-  return new Redis({ url, token });
-}
-
 export async function put(row: Row, ttlSeconds: number): Promise<void> {
   const key = `${row.kind}:${row.id}`;
-  const db = client();
-  if (db) {
-    await db.set(key, JSON.stringify(row), { ex: ttlSeconds });
-    return;
+  const stored = await withRedis((db) =>
+    db.set(key, JSON.stringify(row), ttlSeconds),
+  );
+  if (stored === "missing") {
+    memory.set(key, { value: row, expiresAt: Date.now() + ttlSeconds * 1000 });
   }
-  memory.set(key, { value: row, expiresAt: Date.now() + ttlSeconds * 1000 });
 }
 
 async function read<T extends Row>(
@@ -37,11 +29,10 @@ async function read<T extends Row>(
   id: string,
 ): Promise<T | null> {
   const key = `${kind}:${id}`;
-  const db = client();
-  if (db) {
-    const raw = await db.get<string>(key);
+  const raw = await withRedis((db) => db.get(key));
+  if (raw !== "missing") {
     if (!raw) return null;
-    return (typeof raw === "string" ? JSON.parse(raw) : raw) as T;
+    return JSON.parse(raw) as T;
   }
   const hit = memory.get(key);
   if (!hit) return null;
@@ -61,7 +52,7 @@ export function getSession(id: string) {
 }
 
 export function isPersistent(): boolean {
-  return client() !== null;
+  return redisConfigured();
 }
 
 /**
@@ -73,11 +64,10 @@ export async function putMetadata(
   id: string,
   value: Record<string, unknown>,
 ): Promise<void> {
-  const db = client();
-  if (db) {
-    await db.set(`metadata:${id}`, JSON.stringify(value));
-    return;
-  }
+  const stored = await withRedis((db) =>
+    db.set(`metadata:${id}`, JSON.stringify(value)),
+  );
+  if (stored !== "missing") return;
   memory.set(`metadata:${id}`, {
     value,
     expiresAt: Number.MAX_SAFE_INTEGER,
@@ -87,11 +77,10 @@ export async function putMetadata(
 export async function getMetadata(
   id: string,
 ): Promise<Record<string, unknown> | null> {
-  const db = client();
-  if (db) {
-    const raw = await db.get<string>(`metadata:${id}`);
+  const raw = await withRedis((db) => db.get(`metadata:${id}`));
+  if (raw !== "missing") {
     if (!raw) return null;
-    return typeof raw === "string" ? JSON.parse(raw) : raw;
+    return JSON.parse(raw) as Record<string, unknown>;
   }
   const hit = memory.get(`metadata:${id}`);
   return (hit?.value as Record<string, unknown>) ?? null;
