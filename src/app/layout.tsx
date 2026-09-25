@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { IBM_Plex_Mono } from "next/font/google";
+import CrtBackground from "@/components/CrtBackground";
 import "./globals.css";
 
 const ibmPlexMono = IBM_Plex_Mono({
@@ -22,6 +23,7 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${ibmPlexMono.variable} h-full antialiased`}>
       <body>
+        <CrtBackground />
         {children}
         <div className="crt-scanlines" aria-hidden="true" />
       </body>

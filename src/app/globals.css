@@ -48,7 +48,39 @@ body {
   background: radial-gradient(ellipse at center, transparent 50%, rgb(0 0 0 / 0.28) 100%);
 }
 
+.crt-bg {
+  pointer-events: none;
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+}
+
+.crt-bg-dots {
+  position: absolute;
+  inset: 0;
+  opacity: 0.3;
+  background-image: radial-gradient(circle at 1px 1px, rgba(200, 200, 200, 0.18) 1px, transparent 0);
+  background-size: 14px 14px;
+}
+
+.crt-bg-term {
+  position: absolute;
+  inset: 0;
+  opacity: 0.22;
+}
+
+.faulty-terminal,
+.faulty-terminal canvas {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
 .wrap {
+  position: relative;
+  z-index: 1;
   max-width: 44rem;
   margin: 0 auto;
   padding: 4rem 1.5rem 6rem;
