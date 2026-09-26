@@ -237,6 +237,18 @@ button:disabled {
   letter-spacing: 0.04em;
 }
 
+.state.ok {
+  color: var(--ok);
+}
+
+.state.bad {
+  color: var(--bad);
+}
+
+.state a {
+  color: inherit;
+}
+
 .tools {
   list-style: none;
   padding: 0;
@@ -252,6 +264,31 @@ button:disabled {
   font-size: 0.75rem;
 }
 
-.revision a {
+.revision a,
+.strip a {
   color: inherit;
+}
+
+.strip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0 0 1.5rem;
+  color: var(--muted);
+  font-size: 0.75rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.strip .dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--ok);
+  box-shadow: 0 0 6px var(--ok);
+}
+
+.strip .sep {
+  opacity: 0.4;
 }

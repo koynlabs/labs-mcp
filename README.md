@@ -10,12 +10,29 @@
 </p>
 
 <p align="center">
+  <a href="https://labs.levercoin.lol/status"><img src="https://img.shields.io/endpoint?url=https%3A%2F%2Flabs.levercoin.lol%2Fapi%2Fstatus%2Fbadge%3Ffield%3Dstatus&style=flat-square&labelColor=070708" alt="status" /></a>
+  <a href="https://labs.levercoin.lol/status"><img src="https://img.shields.io/endpoint?url=https%3A%2F%2Flabs.levercoin.lol%2Fapi%2Fstatus%2Fbadge%3Ffield%3Dversion&style=flat-square&labelColor=070708" alt="live version" /></a>
+  <a href="https://labs.levercoin.lol/status"><img src="https://img.shields.io/endpoint?url=https%3A%2F%2Flabs.levercoin.lol%2Fapi%2Fstatus%2Fbadge%3Ffield%3Ddeployed&style=flat-square&labelColor=070708" alt="deployed commit" /></a>
+  <a href="https://github.com/koynlabs/labs-mcp/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/koynlabs/labs-mcp/ci.yml?branch=main&style=flat-square&label=ci&labelColor=070708" alt="CI" /></a>
+</p>
+
+<p align="center">
   <a href="https://labs.levercoin.lol/mcp"><img src="https://img.shields.io/badge/MCP-labs.levercoin.lol%2Fmcp-111111?style=flat-square&labelColor=070708" alt="MCP" /></a>
   <a href="https://github.com/koynlabs/labs-mcp/commits/main"><img src="https://img.shields.io/github/last-commit/koynlabs/labs-mcp/main?style=flat-square&label=main&labelColor=070708&color=111111" alt="main commit" /></a>
   <a href="https://github.com/koynlabs/labs-mcp/deployments/Production"><img src="https://img.shields.io/github/deployments/koynlabs/labs-mcp/Production?style=flat-square&label=vercel&labelColor=070708&color=111111" alt="Vercel production" /></a>
   <a href="https://www.levercoin.lol"><img src="https://img.shields.io/badge/%24LEVERCOIN-hold%20to%20launch%20free-111111?style=flat-square&labelColor=070708" alt="$LEVERCOIN" /></a>
   <a href="https://solana.com"><img src="https://img.shields.io/badge/chain-Solana-9945FF?style=flat-square&labelColor=070708" alt="Solana" /></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-111111?style=flat-square&labelColor=070708" alt="MIT" /></a>
+</p>
+
+<p align="center">
+  <sub>
+    Production is <code>main</code>, deployed by Vercel. The top row reads
+    <a href="https://labs.levercoin.lol/api/status">labs.levercoin.lol/api/status</a>,
+    so the commit it shows is the one answering requests right now — match it to
+    <a href="https://labs.levercoin.lol/mcp"><code>serverInfo.version</code></a>
+    and to a commit in this repo.
+  </sub>
 </p>
 
 <p align="center">
@@ -205,10 +222,29 @@ without it because each workflow step resumes in a new invocation.
 Deploy to Vercel as its own project with its own env; it shares nothing with the
 levercoin marketing site.
 
-Production is `main` only. PRs run `typecheck` and `next build`. The live MCP
-`serverInfo.version` is `1.0.0+<shortsha>` and the homepage footer links that
-SHA to this repo, so you can check that [labs.levercoin.lol](https://labs.levercoin.lol)
-is the same commit as GitHub.
+## Checking what is live
+
+Production is `main` only, and `main` takes pull requests: direct pushes are
+rejected, and every PR runs `typecheck` and `next build`.
+
+Three surfaces report the same commit, so nobody has to trust the badges:
+
+| Where | What it says |
+| --- | --- |
+| [`/status`](https://labs.levercoin.lol/status) | version, commit, tool count, whether Redis is backing launches, whether the quoter is on |
+| [`/api/status`](https://labs.levercoin.lol/api/status) | the same values as JSON, `no-store` |
+| [`/mcp`](https://labs.levercoin.lol/mcp) | `serverInfo.version` is `1.0.0+<shortsha>` on `initialize` |
+
+```bash
+curl -s https://labs.levercoin.lol/api/status | jq '{version, sha, store}'
+```
+
+Take the `sha` and open `https://github.com/koynlabs/labs-mcp/commit/<sha>`. If
+it resolves to a commit on `main`, the deployment is this source.
+
+Status is read from the running process — the build's commit and the env it
+booted with. It is deliberately not an HTTP probe of `/mcp`: that would pay a
+cold start on the heaviest route in the app every time a badge refreshed.
 
 The Grok bot Rive lives at [`public/demo`](public/demo) and is served at
 [`/demo`](https://labs.levercoin.lol/demo/) after deploy.
