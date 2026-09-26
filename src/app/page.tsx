@@ -1,5 +1,10 @@
 import Wordmark from "@/components/Wordmark";
 import { FEE_SOL } from "@/lib/config";
+import {
+  GITHUB_COMMIT_URL,
+  GITHUB_REPO_URL,
+  GIT_SHA_SHORT,
+} from "@/lib/revision";
 import { HOLD_WAIVES_FEE } from "@/lib/site";
 
 export default function Home() {
@@ -69,6 +74,21 @@ export default function Home() {
         wallet. The only key it ever holds is the throwaway quoting key you
         generate in your browser if you start a maker session, and that one is
         capped and expires.
+      </p>
+
+      <p className="revision muted">
+        {GIT_SHA_SHORT ? (
+          <>
+            this deploy is{" "}
+            <a href={GITHUB_COMMIT_URL}>{GIT_SHA_SHORT}</a> on{" "}
+            <a href={GITHUB_REPO_URL}>github.com/koynlabs/labs-mcp</a>
+          </>
+        ) : (
+          <>
+            source{" "}
+            <a href={GITHUB_REPO_URL}>github.com/koynlabs/labs-mcp</a>
+          </>
+        )}
       </p>
     </main>
   );

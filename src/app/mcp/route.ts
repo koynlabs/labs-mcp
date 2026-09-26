@@ -1,6 +1,7 @@
 import { createMcpHandler } from "mcp-handler";
 import { FEE_SOL } from "@/lib/config";
 import { registerTools } from "@/lib/mcp/tools";
+import { APP_VERSION } from "@/lib/revision";
 import { HOLD_WAIVES_FEE } from "@/lib/site";
 
 /**
@@ -13,7 +14,7 @@ const handler = createMcpHandler(
     registerTools(server);
   },
   {
-    serverInfo: { name: "labs", version: "1.0.0" },
+    serverInfo: { name: "labs", version: APP_VERSION },
     instructions: [
       "labs launches tokens on pump.fun and StonkFun and runs disclosed",
       "two-sided quoters. Every transaction is signed by the user's own wallet",
@@ -39,6 +40,35 @@ const handler = createMcpHandler(
   },
 );
 
+/**
+ * GET and DELETE are the 2025-era session operations, and a stateless server
+ * has no session to stream from or tear down, so the protocol answers both
+ * with 405. Answering them here rather than through the handler keeps the
+ * `Allow` header on the refusal and out of the automatic OPTIONS reply, so the
+ * one method this endpoint really serves is the only one it advertises.
+ */
+const ALLOW = "OPTIONS, POST";
+
+function methodNotAllowed() {
+  return Response.json(
+    {
+      jsonrpc: "2.0",
+      error: { code: -32000, message: "Method not allowed." },
+      id: null,
+    },
+    { status: 405, headers: { allow: ALLOW } },
+  );
+}
+
+function allowedMethods() {
+  return new Response(null, { status: 204, headers: { allow: ALLOW } });
+}
+
 export const maxDuration = 60;
 
-export { handler as GET, handler as POST, handler as DELETE };
+export {
+  handler as POST,
+  methodNotAllowed as GET,
+  methodNotAllowed as DELETE,
+  allowedMethods as OPTIONS,
+};

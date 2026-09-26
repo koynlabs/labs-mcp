@@ -246,3 +246,12 @@ button:disabled {
   padding: 0.35rem 0;
   font-size: 0.9rem;
 }
+
+.revision {
+  margin-top: 3rem;
+  font-size: 0.75rem;
+}
+
+.revision a {
+  color: inherit;
+}

@@ -11,6 +11,8 @@
 
 <p align="center">
   <a href="https://labs.levercoin.lol/mcp"><img src="https://img.shields.io/badge/MCP-labs.levercoin.lol%2Fmcp-111111?style=flat-square&labelColor=070708" alt="MCP" /></a>
+  <a href="https://github.com/koynlabs/labs-mcp/commits/main"><img src="https://img.shields.io/github/last-commit/koynlabs/labs-mcp/main?style=flat-square&label=main&labelColor=070708&color=111111" alt="main commit" /></a>
+  <a href="https://github.com/koynlabs/labs-mcp/deployments/Production"><img src="https://img.shields.io/github/deployments/koynlabs/labs-mcp/Production?style=flat-square&label=vercel&labelColor=070708&color=111111" alt="Vercel production" /></a>
   <a href="https://www.levercoin.lol"><img src="https://img.shields.io/badge/%24LEVERCOIN-hold%20to%20launch%20free-111111?style=flat-square&labelColor=070708" alt="$LEVERCOIN" /></a>
   <a href="https://solana.com"><img src="https://img.shields.io/badge/chain-Solana-9945FF?style=flat-square&labelColor=070708" alt="Solana" /></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-111111?style=flat-square&labelColor=070708" alt="MIT" /></a>
@@ -202,6 +204,11 @@ without it because each workflow step resumes in a new invocation.
 
 Deploy to Vercel as its own project with its own env; it shares nothing with the
 levercoin marketing site.
+
+Production is `main` only. PRs run `typecheck` and `next build`. The live MCP
+`serverInfo.version` is `1.0.0+<shortsha>` and the homepage footer links that
+SHA to this repo, so you can check that [labs.levercoin.lol](https://labs.levercoin.lol)
+is the same commit as GitHub.
 
 The Grok bot Rive lives at [`public/demo`](public/demo) and is served at
 [`/demo`](https://labs.levercoin.lol/demo/) after deploy.
