@@ -99,7 +99,7 @@ export async function attachSignature(
   const check = verifySignedTx(signedBase64, pending.tx, pending.signer);
   if (!check.ok) throw new Error(check.reason);
 
-  bundle.signed[String(index)] = signedBase64;
+  bundle.signed[String(pending.index)] = signedBase64;
   await put(bundle, BUNDLE_TTL_SECONDS);
   return bundle;
 }
