@@ -1,6 +1,8 @@
+import Link from "next/link";
 import Wordmark from "@/components/Wordmark";
 import { FEE_SOL } from "@/lib/config";
 import {
+  APP_VERSION,
   GITHUB_COMMIT_URL,
   GITHUB_REPO_URL,
   GIT_SHA_SHORT,
@@ -11,6 +13,24 @@ export default function Home() {
   return (
     <main className="wrap">
       <Wordmark />
+
+      {/* Build-time values only: this page is prerendered, and reading request
+          state or a store here would silently make it dynamic. */}
+      <p className="strip">
+        <span className="dot" aria-hidden="true" />
+        <span className="ok">live</span>
+        <span className="sep">·</span>
+        <span>{APP_VERSION}</span>
+        {GIT_SHA_SHORT ? (
+          <>
+            <span className="sep">·</span>
+            <a href={GITHUB_COMMIT_URL}>{GIT_SHA_SHORT}</a>
+          </>
+        ) : null}
+        <span className="sep">·</span>
+        <Link href="/status">status</Link>
+      </p>
+
       <p className="muted">
         Launch a token on pump.fun or StonkFun by asking your assistant.
       </p>
@@ -77,18 +97,7 @@ export default function Home() {
       </p>
 
       <p className="revision muted">
-        {GIT_SHA_SHORT ? (
-          <>
-            this deploy is{" "}
-            <a href={GITHUB_COMMIT_URL}>{GIT_SHA_SHORT}</a> on{" "}
-            <a href={GITHUB_REPO_URL}>github.com/koynlabs/labs-mcp</a>
-          </>
-        ) : (
-          <>
-            source{" "}
-            <a href={GITHUB_REPO_URL}>github.com/koynlabs/labs-mcp</a>
-          </>
-        )}
+        source <a href={GITHUB_REPO_URL}>github.com/koynlabs/labs-mcp</a>
       </p>
     </main>
   );
