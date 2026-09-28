@@ -17,6 +17,14 @@ export const TOOL_NAMES = [
   "start_maker",
   "maker_status",
   "stop_maker",
+  "trade_board",
+  "perp_markets",
+  "perp_positions",
+  "trade_swap",
+  "trade_order",
+  "perp_open",
+  "perp_close",
+  "perp_exit",
 ] as const;
 
 export type Status = {

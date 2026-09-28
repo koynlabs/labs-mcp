@@ -118,6 +118,14 @@ Hold 0.25 SOL worth of [$LEVERCOIN](https://www.stonkfun.xyz/token/GJx6KxLzEeB5c
 | `start_maker` | Opens a two-sided quoting session |
 | `maker_status` | Position, last bid and ask, fills, time left |
 | `stop_maker` | Ends a session, needs the maker wallet's signature |
+| `trade_board` | StonkFun listings, with sort, search, page, and pair category |
+| `perp_markets` | SOL, ETH, and BTC mark and 24h change |
+| `perp_positions` | A wallet's open perps and working limits |
+| `trade_swap` | Market buy or sell of a mint against SOL, returns a signing link |
+| `trade_order` | Limit, stop, take-profit/stop, or DCA, returns a signing link |
+| `perp_open` | Long or short SOL, ETH, or BTC, returns a signing link |
+| `perp_close` | Closes one perp position back to USDC |
+| `perp_exit` | Sets or cancels a take profit, stop, or limit |
 
 ## How a launch works
 

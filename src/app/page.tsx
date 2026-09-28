@@ -85,6 +85,15 @@ export default function Home() {
           <code>stop_maker</code> — a disclosed two-sided quoter on one mint from
           one wallet
         </li>
+        <li>
+          <code>trade_board</code>, <code>trade_swap</code>, <code>trade_order</code>{" "}
+          — the StonkFun board, a market swap, or a limit, stop, take-profit/stop,
+          or DCA
+        </li>
+        <li>
+          <code>perp_markets</code>, <code>perp_positions</code>, <code>perp_open</code>,{" "}
+          <code>perp_close</code>, <code>perp_exit</code> — SOL, ETH, and BTC perps
+        </li>
       </ul>
 
       <h2>Your keys stay yours</h2>

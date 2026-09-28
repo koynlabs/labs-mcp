@@ -37,6 +37,21 @@ export const JUPITER_PRICE_API =
 
 export const WSOL_MINT = "So11111111111111111111111111111111111111112";
 
+/** Optional. Jupiter still answers without it; a key raises the rate limit. */
+export const JUPITER_API_KEY = process.env.JUPITER_API_KEY?.trim() || undefined;
+
+export const JUPITER_SWAP = (
+  process.env.JUPITER_SWAP_URL ?? "https://api.jup.ag/swap/v2"
+).replace(/\/$/, "");
+
+export const JUPITER_TRIGGER = (
+  process.env.JUPITER_TRIGGER_URL ?? "https://api.jup.ag/trigger/v2"
+).replace(/\/$/, "");
+
+export const JUPITER_PERPS = (
+  process.env.JUPITER_PERPS_URL ?? "https://perps-api.jup.ag/v1"
+).replace(/\/$/, "");
+
 /**
  * A Jito bundle holds at most 5 transactions. One is the create, one is the
  * fee, so three wallets can buy inside the launch bundle.

@@ -95,3 +95,66 @@ export type MakerSession = {
   error?: string;
   createdAt: number;
 };
+
+export type PerpAsset = "SOL" | "ETH" | "BTC";
+export type PerpSide = "long" | "short";
+
+type TradeDraftBase = {
+  wallet: string;
+  summary: string;
+};
+
+/** An order an agent asked for, before it is stored. */
+export type TradeDraft =
+  | (TradeDraftBase & {
+      action: "swap";
+      inputMint: string;
+      outputMint: string;
+      amount: string;
+    })
+  | (TradeDraftBase & {
+      action: "order";
+      mode: "limit" | "stop" | "bracket" | "dca";
+      inputMint: string;
+      outputMint: string;
+      tokenMint: string;
+      amount: string;
+      expiresAt: number;
+      triggerPriceUsd?: number;
+      triggerCondition?: "above" | "below";
+      trailingBps?: number;
+      tpPriceUsd?: number;
+      slPriceUsd?: number;
+      orderCount?: number;
+      intervalSeconds?: number;
+    })
+  | (TradeDraftBase & {
+      action: "perp-open";
+      asset: PerpAsset;
+      side: PerpSide;
+      mode: "market" | "limit";
+      usdcRaw: string;
+      leverage: string;
+      triggerPrice?: string;
+      tpPrice?: string;
+      slPrice?: string;
+    })
+  | (TradeDraftBase & {
+      action: "perp-close";
+      positionPubkey: string;
+    })
+  | (TradeDraftBase & {
+      action: "perp-exit";
+      op: "set" | "cancel-tpsl" | "cancel-limit";
+      positionPubkey?: string;
+      requestPubkey?: string;
+      tpPrice?: string;
+      slPrice?: string;
+    });
+
+/** The same order, kept until the bundle TTL. The sign page builds the transaction later. */
+export type TradeIntent = TradeDraft & {
+  id: string;
+  kind: "trade";
+  createdAt: number;
+};

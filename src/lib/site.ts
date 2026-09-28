@@ -41,4 +41,8 @@ export const FAQ = [
     q: "Which venues can labs launch on?",
     a: "pump.fun and StonkFun. Up to three extra wallets you control can buy in the same bundle as the create.",
   },
+  {
+    q: "Can labs trade, or only launch?",
+    a: "It can also market-swap a StonkFun mint, place a limit, stop, take-profit/stop, or DCA through Jupiter, and open or close SOL, ETH, and BTC perps. Each one returns a link where your wallet signs. Those trades do not add the 0.25 SOL launch fee.",
+  },
 ] as const;
