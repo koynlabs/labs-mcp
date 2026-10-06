@@ -131,8 +131,11 @@ then submits. A signer can refuse, but cannot rewrite what they were given.
 
 ### The two venues
 
-**pump.fun** goes through [PumpPortal's](https://pumpportal.fun/creation)
-`trade-local`, which returns a compiled create and one compiled buy per wallet.
+**pump.fun** is built in-process with the official [`@pump-fun/pump-sdk`](https://www.npmjs.com/package/@pump-fun/pump-sdk).
+The create is a `create_v2` (Token-2022) with every account written into the
+transaction, including the program event authority, so a wallet can simulate it.
+The creator's opening buy rides in that same transaction when it fits; otherwise
+it becomes the next transaction in the bundle. Each extra wallet gets its own buy.
 
 **StonkFun** has no launch endpoint — `paidLaunchesEnabled` is off, and
 `launchLabEnabled` is on. So labs builds the Raydium LaunchLab
@@ -228,8 +231,9 @@ The Grok bot Rive lives at [`public/demo`](public/demo) and is served at
 - The quoter supports pump.fun only. StonkFun quoting is refused rather than
   guessed at, because an existing LaunchLab pool's state is not in the
   launch-time pricing response.
-- PumpPortal rejects a bundle if it dislikes any one wallet and does not say
-  which, so `launch_token` lists the buyers back in that error.
+- A launch is refused before you sign if the create transaction fails simulation.
+  Buys that follow the create in the same bundle spend a mint that does not
+  exist yet, so they cannot be simulated on their own.
 
 ## License
 
