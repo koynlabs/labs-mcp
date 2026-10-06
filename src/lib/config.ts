@@ -1,11 +1,3 @@
-import { PublicKey } from "@solana/web3.js";
-
-function required(name: string): string {
-  const value = process.env[name];
-  if (!value) throw new Error(`${name} is not set`);
-  return value;
-}
-
 export const SITE_URL = (
   process.env.LABS_SITE_URL ?? "https://labs.levercoin.lol"
 ).replace(/\/$/, "");
@@ -18,28 +10,26 @@ export function baseUrl(): string {
 export const SOLANA_RPC =
   process.env.SOLANA_RPC ?? "https://api.mainnet-beta.solana.com";
 
-/** Fee charged per launch and per maker session, in SOL. */
-export const FEE_SOL = Number(process.env.LABS_FEE_SOL ?? "0.25");
-
-export function treasury(): PublicKey {
-  return new PublicKey(required("LABS_TREASURY"));
-}
-
-/**
- * Holding this much $LEVERCOIN waives the SOL fee. Unset means every launch and
- * every maker session pays in SOL.
- */
-export const LEVER_MINT = process.env.LEVER_MINT?.trim() || undefined;
-
-/** USD prices for the waiver, so the hold can be compared against the fee. */
-export const JUPITER_PRICE_API =
-  process.env.LABS_JUPITER_PRICE_API ?? "https://lite-api.jup.ag/price/v3";
-
 export const WSOL_MINT = "So11111111111111111111111111111111111111112";
 
+/** Optional. Jupiter still answers without it; a key raises the rate limit. */
+export const JUPITER_API_KEY = process.env.JUPITER_API_KEY?.trim() || undefined;
+
+export const JUPITER_SWAP = (
+  process.env.JUPITER_SWAP_URL ?? "https://api.jup.ag/swap/v2"
+).replace(/\/$/, "");
+
+export const JUPITER_TRIGGER = (
+  process.env.JUPITER_TRIGGER_URL ?? "https://api.jup.ag/trigger/v2"
+).replace(/\/$/, "");
+
+export const JUPITER_PERPS = (
+  process.env.JUPITER_PERPS_URL ?? "https://perps-api.jup.ag/v1"
+).replace(/\/$/, "");
+
 /**
- * A Jito bundle holds at most 5 transactions. One is the create, one is the
- * fee, so three wallets can buy inside the launch bundle.
+ * Extra wallets that may buy in the same bundle as the create. A Jito bundle
+ * holds five transactions, and this stays at three.
  */
 export const MAX_BUYERS = 3;
 

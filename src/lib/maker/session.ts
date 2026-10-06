@@ -8,10 +8,7 @@ import {
 import { Keypair, PublicKey } from "@solana/web3.js";
 import bs58 from "bs58";
 import nacl from "tweetnacl";
-import { FEE_SOL, MAKER, SITE_URL, treasury } from "../config";
-import { buildFeeTx } from "../fee";
-import { feeWaiverFor, stillHolds } from "../lever";
-import { verifySignedTx } from "../solana";
+import { MAKER, SITE_URL } from "../config";
 import { getSession, put } from "../store";
 import type { MakerSession, Venue } from "../types";
 
@@ -119,20 +116,14 @@ export async function createSession(
     throw new Error("quoteSol cannot be larger than maxSol.");
   }
 
-  // A maker holding $LEVERCOIN approves the session without paying the fee, so
-  // there is nothing for them to sign beyond the approval itself.
-  const feeWaiver = await feeWaiverFor(request.maker);
-
   const expiresAt = Date.now() + request.durationHours * 3600 * 1000;
   const session: MakerSession = {
     id: randomUUID(),
     kind: "maker",
     ...request,
     expiresAt,
-    feeSol: feeWaiver ? 0 : FEE_SOL,
-    feeWaiver: feeWaiver ?? undefined,
-    treasury: treasury().toBase58(),
-    txs: feeWaiver ? [] : [await buildFeeTx(request.maker, 0)],
+    feeSol: 0,
+    txs: [],
     signed: {},
     status: "awaiting_approval",
     solSpent: 0,
@@ -153,16 +144,13 @@ function ttlFor(session: MakerSession): number {
 
 /**
  * Turns an approved session on: the maker's signature over the approval text is
- * checked against the exact parameters stored here, and the fee transaction is
- * verified the same way a launch is.
+ * checked against the exact parameters stored here.
  */
 export async function activateSession(input: {
   id: string;
   sessionPublicKey: string;
   sessionSecretKey: string;
   approvalSignature: string;
-  /** Absent when the maker's $LEVERCOIN hold waived the fee. */
-  signedFeeTx?: string;
 }): Promise<MakerSession> {
   const session = await getSession(input.id);
   if (!session) throw new Error("that maker session has expired or does not exist");
@@ -185,16 +173,6 @@ export async function activateSession(input: {
   const keypair = Keypair.fromSecretKey(bs58.decode(input.sessionSecretKey));
   if (keypair.publicKey.toBase58() !== input.sessionPublicKey) {
     throw new Error("the session key does not match the approved public key");
-  }
-
-  if (session.feeWaiver) {
-    await stillHolds(session.feeWaiver);
-  } else {
-    const fee = session.txs[0];
-    if (!input.signedFeeTx) throw new Error("the fee transaction is not signed");
-    const check = verifySignedTx(input.signedFeeTx, fee.tx, fee.signer);
-    if (!check.ok) throw new Error(check.reason);
-    session.signed["0"] = input.signedFeeTx;
   }
 
   session.sessionPublicKey = input.sessionPublicKey;

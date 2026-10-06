@@ -1,6 +1,5 @@
 import { activateSession, approvalMessage, publicView, saveSession } from "@/lib/maker/session";
 import { startMakerRun } from "@/lib/mcp/tools";
-import { connection, decodeTx } from "@/lib/solana";
 import { getSession } from "@/lib/store";
 import { Keypair } from "@solana/web3.js";
 
@@ -28,17 +27,13 @@ export async function GET(
   return Response.json({
     ...publicView(session),
     feeSol: session.feeSol,
-    treasury: session.treasury,
-    feeTx: session.txs[0]?.tx,
-    feeWaiver: session.feeWaiver,
     approvalMessage: approvalMessage(session, proposed),
   });
 }
 
 /**
  * Activates the session: verifies the maker's approval over the exact caps,
- * stores the quoting key encrypted, pays the fee, then starts the durable
- * quote loop.
+ * stores the quoting key encrypted, then starts the durable quote loop.
  */
 export async function POST(
   request: Request,
@@ -50,7 +45,6 @@ export async function POST(
     sessionPublicKey?: string;
     sessionSecretKey?: string;
     approvalSignature?: string;
-    signedFeeTx?: string;
   };
   try {
     body = await request.json();
@@ -58,8 +52,7 @@ export async function POST(
     return Response.json({ error: "invalid_json" }, { status: 400 });
   }
 
-  const { sessionPublicKey, sessionSecretKey, approvalSignature, signedFeeTx } =
-    body;
+  const { sessionPublicKey, sessionSecretKey, approvalSignature } = body;
   if (!sessionPublicKey || !sessionSecretKey || !approvalSignature) {
     return Response.json(
       {
@@ -76,22 +69,7 @@ export async function POST(
       sessionPublicKey,
       sessionSecretKey,
       approvalSignature,
-      signedFeeTx,
     });
-
-    // The session fee is a single transaction, so it goes straight to the RPC
-    // rather than through a bundle. A waived fee has nothing to broadcast.
-    let feeSignature: string | undefined;
-    if (!session.feeWaiver && signedFeeTx) {
-      const tx = decodeTx(signedFeeTx);
-      const raw =
-        "serialize" in tx
-          ? tx.serialize({ requireAllSignatures: false, verifySignatures: false })
-          : tx;
-      feeSignature = await connection().sendRawTransaction(raw as Uint8Array, {
-        maxRetries: 3,
-      });
-    }
 
     try {
       session.runId = await startMakerRun(sessionId);
@@ -102,7 +80,7 @@ export async function POST(
     }
     await saveSession(session);
 
-    return Response.json({ ...publicView(session), feeSignature });
+    return Response.json(publicView(session));
   } catch (error) {
     return Response.json(
       { error: error instanceof Error ? error.message : String(error) },

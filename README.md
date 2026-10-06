@@ -20,7 +20,6 @@
   <a href="https://labs.levercoin.lol/mcp"><img src="https://img.shields.io/badge/MCP-labs.levercoin.lol%2Fmcp-111111?style=flat-square&labelColor=070708" alt="MCP" /></a>
   <a href="https://github.com/koynlabs/labs-mcp/commits/main"><img src="https://img.shields.io/github/last-commit/koynlabs/labs-mcp/main?style=flat-square&label=main&labelColor=070708&color=111111" alt="main commit" /></a>
   <a href="https://github.com/koynlabs/labs-mcp/deployments/Production"><img src="https://img.shields.io/github/deployments/koynlabs/labs-mcp/Production?style=flat-square&label=vercel&labelColor=070708&color=111111" alt="Vercel production" /></a>
-  <a href="https://www.levercoin.lol"><img src="https://img.shields.io/badge/%24LEVERCOIN-hold%20to%20launch%20free-111111?style=flat-square&labelColor=070708" alt="$LEVERCOIN" /></a>
   <a href="https://solana.com"><img src="https://img.shields.io/badge/chain-Solana-9945FF?style=flat-square&labelColor=070708" alt="Solana" /></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-111111?style=flat-square&labelColor=070708" alt="MIT" /></a>
 </p>
@@ -73,9 +72,9 @@
 
 | | |
 | --- | --- |
-| 🔑 **Your keys stay yours** | Every create, buy and fee is built unsigned. You sign in Phantom. labs cannot move the funds. |
-| ⚡ **One atomic bundle** | Create + opening buys + the fee land together on Jito, or none of it does. |
-| 🪙 **0.25 SOL, or hold $LEVERCOIN** | Pay the fee in the same bundle, or hold 0.25 SOL worth of $LEVERCOIN and pay nothing. The tokens never leave the wallet. |
+| 🔑 **Your keys stay yours** | Every create and buy is built unsigned. You sign in Phantom. labs cannot move the funds. |
+| ⚡ **One atomic bundle** | The create and the opening buys land together on Jito, or none of it does. |
+| 🪙 **No launch fee** | labs does not add a treasury payment. You pay the network, and any buy you include. |
 | 🤖 **Talk to it** | No dashboard to learn. Ask your assistant for a launch. It hands back a signing link. |
 | 🕳️ **No subscription** | Nothing to provision per user. The creator's signature is the authorisation. |
 
@@ -93,19 +92,6 @@ Streamable HTTP. No API key.
 
 Then: *“Launch a token on pump.fun called …”*
 
-## Buy $LEVERCOIN, launch for free
-
-Hold 0.25 SOL worth of [$LEVERCOIN](https://www.stonkfun.xyz/token/GJx6KxLzEeB5cQh7Bmo85M2N6s6bVM63VEUjT2tfe6mg) in the wallet that would have paid, and labs drops the fee transaction. It reads the balance. It does not transfer the tokens. Keep holding until the launch lands — submit checks the same amount again.
-
-| | |
-| --- | --- |
-| 🌐 Site | [levercoin.lol](https://www.levercoin.lol) |
-| 🧪 labs | [labs.levercoin.lol](https://labs.levercoin.lol) |
-| 💬 X | [@LeverCoinonsol](https://x.com/LeverCoinonsol) |
-| ✈️ Telegram | [t.me/LeverCoinonsol](https://t.me/LeverCoinonsol) |
-| 📈 Buy | [StonkFun](https://www.stonkfun.xyz/token/GJx6KxLzEeB5cQh7Bmo85M2N6s6bVM63VEUjT2tfe6mg) |
-| 🧾 Mint | `GJx6KxLzEeB5cQh7Bmo85M2N6s6bVM63VEUjT2tfe6mg` |
-
 ## Tools
 
 | Tool | What it does |
@@ -118,44 +104,30 @@ Hold 0.25 SOL worth of [$LEVERCOIN](https://www.stonkfun.xyz/token/GJx6KxLzEeB5c
 | `start_maker` | Opens a two-sided quoting session |
 | `maker_status` | Position, last bid and ask, fills, time left |
 | `stop_maker` | Ends a session, needs the maker wallet's signature |
+| `trade_board` | StonkFun listings, with sort, search, page, and pair category |
+| `perp_markets` | SOL, ETH, and BTC mark and 24h change |
+| `perp_positions` | A wallet's open perps and working limits |
+| `trade_swap` | Market buy or sell of a mint against SOL, returns a signing link |
+| `trade_order` | Limit, stop, take-profit/stop, or DCA, returns a signing link |
+| `perp_open` | Long or short SOL, ETH, or BTC, returns a signing link |
+| `perp_close` | Closes one perp position back to USDC |
+| `perp_exit` | Sets or cancels a take profit, stop, or limit |
 
 ## How a launch works
 
-`launch_token` builds up to five transactions and stores them unsigned:
+`launch_token` builds the create and up to three extra buys, and stores them unsigned:
 
 | # | Transaction |
 | --- | --- |
-| 0 | 0.25 SOL fee to the treasury *(omitted when the wallet holds enough $LEVERCOIN)* |
-| 1 | Create the token, plus the creator's own opening buy |
-| 2–4 | One buy per additional wallet the creator controls |
+| 0 | Create the token, plus the creator's own opening buy |
+| 1–3 | One buy per additional wallet the creator controls |
 
-They go out as a single Jito bundle, which lands all-or-none. That is what makes
-the SOL fee unavoidable when it is present: the launch cannot reach the chain
-without it. It is also why only three extra buyers fit — a Jito bundle holds
-five transactions.
-
-The fee is its own transaction rather than an instruction appended to the create.
-Both venues hand back an already-compiled transaction, and injecting an
-instruction would mean re-deriving its address lookup tables.
+They go out as a single Jito bundle, which lands all-or-none. A Jito bundle holds
+five transactions, and launches stay capped at three extra buyers.
 
 You open `/sign/<bundleId>`, connect each wallet in turn, and sign. The server
-re-verifies every signature against the exact message it handed out, re-reads the
-fee transaction to confirm it still pays the treasury, and only then submits. A
-signer can refuse, but cannot rewrite what they were given.
-
-### Holding $LEVERCOIN instead of paying
-
-Set `LEVER_MINT` and the fee becomes a hold rather than a payment. When the
-wallet that would have paid already owns `LABS_FEE_SOL` worth of that mint,
-transaction 0 is left out and the bundle is one shorter. The tokens are never
-transferred: labs reads the associated token accounts and prices them against
-SOL in USD.
-
-The required token amount is written onto the stored launch, and submit re-reads
-the balance against that same number instead of repricing. A wallet cannot
-qualify and then sell before the launch lands, and a price move during the
-15-minute signing window cannot raise the bar after the fact. Selling below it
-rejects the submit, and building again charges SOL.
+re-verifies every signature against the exact message it handed out, and only
+then submits. A signer can refuse, but cannot rewrite what they were given.
 
 ### The two venues
 
@@ -209,7 +181,7 @@ It expires, and `stop_maker` discards it early.
 
 ```bash
 npm install
-cp .env.example .env.local   # LABS_TREASURY is required
+cp .env.example .env.local
 npm run dev
 npx workflow web             # inspect quoter runs
 ```
@@ -251,7 +223,7 @@ The Grok bot Rive lives at [`public/demo`](public/demo) and is served at
 
 ## Known limits
 
-- Three extra buyer wallets per launch, from the five-transaction Jito limit.
+- Three extra buyer wallets per launch.
 - StonkFun launches are standard mode only.
 - The quoter supports pump.fun only. StonkFun quoting is refused rather than
   guessed at, because an existing LaunchLab pool's state is not in the
@@ -262,6 +234,6 @@ The Grok bot Rive lives at [`public/demo`](public/demo) and is served at
 ## License
 
 [MIT](LICENSE). The code is public so you can verify that a launch is signed by
-your wallet and that the server never holds that key. Secrets (`LABS_TREASURY`,
-`LABS_PINATA_JWT`, `LABS_SESSION_SECRET`, Redis) stay in the deployment env and
+your wallet and that the server never holds that key. Secrets (`LABS_PINATA_JWT`,
+`LABS_SESSION_SECRET`, Redis) stay in the deployment env and
 are not in this repo.

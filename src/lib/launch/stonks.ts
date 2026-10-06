@@ -29,7 +29,6 @@ import {
 import BN from "bn.js";
 import { MAX_BUYERS, STONKS } from "../config";
 import { resolveMetadata } from "./metadata";
-import { buildFeeTx } from "../fee";
 import { connection, encodeTx } from "../solana";
 import type { PendingTx } from "../types";
 import type { BuiltLaunch, LaunchInput } from "./input";
@@ -312,17 +311,15 @@ export async function buildStonksLaunch(
   const createTx = new VersionedTransaction(createMessage);
   createTx.sign([mintKeypair]);
 
-  const txs: PendingTx[] = input.feeWaived
-    ? []
-    : [await buildFeeTx(input.creator, 0)];
-
-  txs.push({
-    index: txs.length,
-    role: "create",
-    signer: input.creator,
-    tx: encodeTx(createTx),
-    sol: input.creatorBuySol,
-  });
+  const txs: PendingTx[] = [
+    {
+      index: 0,
+      role: "create",
+      signer: input.creator,
+      tx: encodeTx(createTx),
+      sol: input.creatorBuySol,
+    },
+  ];
 
   buyers.forEach((buyer) => {
     const owner = new PublicKey(buyer.publicKey);

@@ -22,8 +22,6 @@ export async function GET(
     name: bundle.name,
     symbol: bundle.symbol,
     feeSol: bundle.feeSol,
-    feeWaiver: bundle.feeWaiver,
-    treasury: bundle.treasury,
     jitoBundleId: bundle.jitoBundleId,
     error: bundle.error,
     txs: bundle.txs.map((tx) => ({
@@ -39,8 +37,7 @@ export async function GET(
 
 /**
  * Takes one signed transaction. Once nothing is outstanding the bundle is
- * submitted here, so the browser cannot choose to skip the fee by submitting
- * a subset itself.
+ * submitted here, so the browser cannot submit a subset itself.
  */
 export async function POST(
   request: Request,

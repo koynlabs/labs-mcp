@@ -1,5 +1,5 @@
-import { FEE_SOL, SITE_URL } from "@/lib/config";
-import { FAQ, HOLD_WAIVES_FEE, SITE } from "@/lib/site";
+import { SITE_URL } from "@/lib/config";
+import { FAQ, SITE } from "@/lib/site";
 
 export default function JsonLd() {
   const graph = {
@@ -23,11 +23,9 @@ export default function JsonLd() {
         description: SITE.description,
         offers: {
           "@type": "Offer",
-          price: String(FEE_SOL),
+          price: "0",
           priceCurrency: "SOL",
-          description: HOLD_WAIVES_FEE
-            ? `Per launch, paid inside the same bundle. Waived entirely when the paying wallet holds ${FEE_SOL} SOL worth of $LEVERCOIN. No subscription.`
-            : "Per launch. Paid inside the same bundle. No subscription.",
+          description: "No launch fee. No subscription.",
         },
       },
       {

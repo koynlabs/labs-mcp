@@ -1,6 +1,6 @@
 # Security
 
-labs never asks for a wallet private key. Report anything that would let the server move funds, serve a different binary than [github.com/koynlabs/labs-mcp](https://github.com/koynlabs/labs-mcp), or leak `LABS_TREASURY`, `LABS_PINATA_JWT`, `LABS_SESSION_SECRET`, or Redis credentials.
+labs never asks for a wallet private key. Report anything that would let the server move funds, serve a different binary than [github.com/koynlabs/labs-mcp](https://github.com/koynlabs/labs-mcp), or leak `LABS_PINATA_JWT`, `LABS_SESSION_SECRET`, or Redis credentials.
 
 Email **dev@levercoin.lol**. Do not open a public issue for those.
 

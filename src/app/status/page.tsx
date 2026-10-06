@@ -61,10 +61,7 @@ export default function StatusPage() {
         </li>
         <li>
           fee
-          <span className="state">
-            {status.feeSol} SOL
-            {status.feeWaiver === "levercoin" ? " · waived on hold" : ""}
-          </span>
+          <span className="state">none</span>
         </li>
       </ul>
 
