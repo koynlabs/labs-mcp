@@ -65,7 +65,7 @@ function signatureFor(
 /**
  * A returned transaction is only accepted when its message is byte-identical to
  * the one handed out and the expected wallet actually signed that message. This
- * is what stops the sign page from redirecting funds or dropping the fee.
+ * is what stops the sign page from redirecting funds or dropping a transaction.
  */
 export function verifySignedTx(
   signedBase64: string,

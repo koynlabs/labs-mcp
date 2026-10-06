@@ -3,9 +3,8 @@ import { withRedis } from "./redis";
 const memory = new Map<string, { count: number; resetAt: number }>();
 
 /**
- * Unpaid tool calls still cost the server a metadata upload and an RPC round
- * trip, so building a launch is limited per creator wallet. Payment is the
- * fee instruction; this only stops someone spinning up bundles for free.
+ * Building a launch costs the server a metadata upload and an RPC round trip,
+ * so it is limited per creator wallet.
  */
 export async function allow(
   key: string,

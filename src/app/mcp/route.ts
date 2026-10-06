@@ -1,13 +1,11 @@
 import { createMcpHandler } from "mcp-handler";
-import { FEE_SOL } from "@/lib/config";
 import { registerTools } from "@/lib/mcp/tools";
 import { APP_VERSION } from "@/lib/revision";
-import { HOLD_WAIVES_FEE } from "@/lib/site";
 
 /**
  * The MCP endpoint, served at /mcp over Streamable HTTP. Claude, ChatGPT and
  * Grok all connect to the same URL. There is no API key: a launch is authorised
- * by the creator's own signature on a bundle that pays the fee.
+ * by the creator's own signature on the bundle.
  */
 const handler = createMcpHandler(
   (server) => {
@@ -18,16 +16,8 @@ const handler = createMcpHandler(
     instructions: [
       "labs launches tokens on pump.fun and StonkFun and runs disclosed",
       "two-sided quoters. Every transaction is signed by the user's own wallet",
-      "in a browser; this server never holds a wallet key. Each launch and each",
-      `maker session costs ${FEE_SOL} SOL, paid inside the same bundle.`,
-      ...(HOLD_WAIVES_FEE
-        ? [
-            `There is no fee at all when the paying wallet already holds ${FEE_SOL} SOL`,
-            "worth of $LEVERCOIN. labs reads that balance and drops the fee",
-            "transaction. The $LEVERCOIN is never transferred or spent, and the",
-            "wallet has to still hold it when the launch is submitted.",
-          ]
-        : []),
+      "in a browser; this server never holds a wallet key. A launch and a maker",
+      "session have no labs fee.",
       "",
       "After calling launch_token or start_maker, give the user the returned URL",
       "and tell them which wallets have to sign. Poll launch_status or",
@@ -35,8 +25,7 @@ const handler = createMcpHandler(
       "",
       "trade_swap, trade_order, perp_open, perp_close, and perp_exit also return a",
       "signUrl. Give the user that link. The wallet named in the tool call has to",
-      "sign it. Those trades do not add the launch fee. Reads (trade_board,",
-      "perp_markets, perp_positions) need no signature.",
+      "sign it. Reads (trade_board, perp_markets, perp_positions) need no signature.",
       "",
       "This server does not generate trading volume, post comments or profiles,",
       "rotate proxies, or split activity across wallets to look like separate",

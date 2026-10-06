@@ -100,7 +100,7 @@ export function registerTradeTools(server: McpServer): void {
     {
       title: "Market swap",
       description:
-        "Market buy or sell of a StonkFun mint against SOL. Returns a link. The wallet signs there. labs does not take a key and does not add its launch fee.",
+        "Market buy or sell of a StonkFun mint against SOL. Returns a link. The wallet signs there. labs does not take a key.",
       inputSchema: z.object({
         wallet: publicKey,
         mint: publicKey.describe("the token, not SOL"),
@@ -141,7 +141,7 @@ export function registerTradeTools(server: McpServer): void {
     {
       title: "Limit, stop, take profit, or DCA",
       description:
-        "Places a Jupiter Trigger order on a StonkFun mint against SOL: limit, stop (price or a 0.5–90% trail), take-profit/stop as one OCO, or DCA. The link signs Jupiter's challenge, then the deposit. Funds sit in a Jupiter vault until fill or cancel. labs does not store the session and does not add its launch fee.",
+        "Places a Jupiter Trigger order on a StonkFun mint against SOL: limit, stop (price or a 0.5–90% trail), take-profit/stop as one OCO, or DCA. The link signs Jupiter's challenge, then the deposit. Funds sit in a Jupiter vault until fill or cancel. labs does not store the session.",
       inputSchema: z.object({
         wallet: publicKey,
         mint: publicKey,
@@ -234,7 +234,7 @@ export function registerTradeTools(server: McpServer): void {
     {
       title: "Open a perp",
       description:
-        "Long or short SOL, ETH, or BTC on Jupiter perps with USDC margin. Market, or a limit at a trigger. A market open can include both a take profit and a stop. Leverage is 1.1x to 50x. Returns a signing link. labs does not add its launch fee.",
+        "Long or short SOL, ETH, or BTC on Jupiter perps with USDC margin. Market, or a limit at a trigger. A market open can include both a take profit and a stop. Leverage is 1.1x to 50x. Returns a signing link.",
       inputSchema: z.object({
         wallet: publicKey,
         asset: z.enum(["SOL", "ETH", "BTC"]),

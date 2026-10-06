@@ -147,7 +147,7 @@ export function TradeClient({ id }: { id: string }) {
       <h1>Sign this trade</h1>
       <p>{intent.summary}</p>
       <p className="muted">
-        Jupiter’s own fees still apply. labs does not add its launch fee, and it never sees this wallet’s key.
+        Jupiter’s own fees still apply. labs never sees this wallet’s key.
       </p>
       <p>
         Wallet <code>{intent.wallet}</code>

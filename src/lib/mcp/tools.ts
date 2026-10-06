@@ -1,7 +1,7 @@
 import type { McpServer } from "@modelcontextprotocol/server";
 import { z } from "zod";
 import { start } from "workflow/api";
-import { FEE_SOL, MAKER, MAKER_ENABLED, MAX_BUYERS } from "../config";
+import { MAKER, MAKER_ENABLED, MAX_BUYERS } from "../config";
 import { createLaunch, outstanding, signUrl } from "../launch/bundle";
 import { launchablePairs } from "../launch/stonks";
 import { solBalance, tokenInfo } from "../market";
@@ -12,7 +12,6 @@ import {
   saveSession,
 } from "../maker/session";
 import { allow } from "../rate-limit";
-import { HOLD_WAIVES_FEE } from "../site";
 import { getBundle, getSession, isPersistent } from "../store";
 import { isPublicKey } from "../solana";
 import { makerSession } from "../../../workflows/maker";
@@ -48,18 +47,11 @@ export function registerTools(server: McpServer): void {
         "the creator's wallet signs it. Up to",
         `${MAX_BUYERS} additional wallets the creator controls can buy in the same`,
         "atomic bundle as the create, which is how a launch is seeded.",
-        `Costs ${FEE_SOL} SOL, paid to the levercoin treasury inside the same bundle.`,
-        ...(HOLD_WAIVES_FEE
-          ? [
-              `Free instead when the creator wallet already holds ${FEE_SOL} SOL worth of`,
-              "$LEVERCOIN: the fee is waived, and the tokens are not transferred.",
-            ]
-          : []),
-        "No private key is ever sent to this server.",
+        "labs does not charge a fee. No private key is ever sent to this server.",
       ].join(" "),
       inputSchema: z.object({
         venue,
-        creator: publicKey.describe("wallet that creates the token and pays the fee"),
+        creator: publicKey.describe("wallet that creates the token"),
         name: z.string().min(1).max(32),
         symbol: z.string().min(1).max(10),
         imageUrl: z.string().url().describe("token image, fetched server-side"),
@@ -127,17 +119,6 @@ export function registerTools(server: McpServer): void {
           mint: bundle.mint,
           venue: bundle.venue,
           feeSol: bundle.feeSol,
-          feeWaived: Boolean(bundle.feeWaiver),
-          feeWaiver: bundle.feeWaiver
-            ? {
-                reason: `${bundle.creator} holds ${bundle.feeWaiver.heldTokens} $LEVERCOIN, and ${bundle.feeWaiver.requiredTokens} covers the ${bundle.feeWaiver.feeSolWaived} SOL fee`,
-                leverHeld: bundle.feeWaiver.heldTokens,
-                leverRequired: bundle.feeWaiver.requiredTokens,
-                keepHolding:
-                  "The wallet must still hold that amount when the launch is submitted.",
-              }
-            : undefined,
-          treasury: bundle.treasury,
           metadataUri: bundle.metadataUri,
           metadataWarning:
             bundle.metadataHost === "labs"
@@ -180,7 +161,6 @@ export function registerTools(server: McpServer): void {
         name: bundle.name,
         symbol: bundle.symbol,
         feeSol: bundle.feeSol,
-        feeWaived: Boolean(bundle.feeWaiver),
         jitoBundleId: bundle.jitoBundleId,
         signatures: bundle.signatures,
         awaitingSignatureFrom: outstanding(bundle).map((tx) => tx.signer),
@@ -268,11 +248,7 @@ export function registerTools(server: McpServer): void {
         `${MAKER.minRefreshSeconds}s. Inside the spread it does nothing. Inventory caps`,
         "shrink and then stop whichever side is already heavy. This does not",
         "generate volume, use multiple wallets, or hide who is trading.",
-        `Costs ${FEE_SOL} SOL${
-          HOLD_WAIVES_FEE
-            ? `, or nothing if the maker wallet holds ${FEE_SOL} SOL worth of $LEVERCOIN`
-            : ""
-        }.`,
+        "labs does not charge a fee to open the session.",
       ].join(" "),
       inputSchema: z.object({
         venue,
@@ -310,24 +286,10 @@ export function registerTools(server: McpServer): void {
         return text({
           ...publicView(session),
           feeSol: session.feeSol,
-          feeWaived: Boolean(session.feeWaiver),
-          feeWaiver: session.feeWaiver
-            ? {
-                reason: `${session.maker} holds ${session.feeWaiver.heldTokens} $LEVERCOIN, and ${session.feeWaiver.requiredTokens} covers the ${session.feeWaiver.feeSolWaived} SOL fee`,
-                leverHeld: session.feeWaiver.heldTokens,
-                leverRequired: session.feeWaiver.requiredTokens,
-                keepHolding:
-                  "The wallet must still hold that amount when the session is approved.",
-              }
-            : undefined,
-          treasury: session.treasury,
           approveUrl: makerUrl(session.id),
           nextStep: [
             "Open approveUrl with the maker wallet. It creates a quoting key in the",
             "browser and has you approve exactly this mint and SOL cap.",
-            session.feeWaiver
-              ? "There is no fee to pay."
-              : "It also pays the fee.",
             "Your wallet's own key never leaves it.",
           ].join(" "),
         });

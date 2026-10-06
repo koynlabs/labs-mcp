@@ -1,7 +1,6 @@
 import { Keypair, VersionedTransaction } from "@solana/web3.js";
 import bs58 from "bs58";
 import { MAX_BUYERS, PUMP } from "../config";
-import { buildFeeTx } from "../fee";
 import { encodeTx } from "../solana";
 import type { PendingTx } from "../types";
 import type { LaunchInput, BuiltLaunch } from "./input";
@@ -79,12 +78,7 @@ export async function buildPumpLaunch(
     throw new Error("PumpPortal returned an unexpected number of transactions");
   }
 
-  // The fee transaction leads the bundle so the treasury is paid in the same
-  // atomic unit as the launch. A waived fee leaves the bundle a transaction
-  // shorter, which is only ever more room under Jito's limit of five.
-  const txs: PendingTx[] = input.feeWaived
-    ? []
-    : [await buildFeeTx(input.creator, 0)];
+  const txs: PendingTx[] = [];
 
   encoded.forEach((raw, position) => {
     const tx = VersionedTransaction.deserialize(bs58.decode(raw));

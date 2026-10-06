@@ -1,5 +1,3 @@
-import type { FeeWaiver } from "./lever";
-
 export type Venue = "pump" | "stonks";
 
 export type TxRole = "fee" | "create" | "buy";
@@ -15,7 +13,7 @@ export type PendingTx = {
   /** Wallet that must add a signature. */
   signer: string;
   tx: string;
-  /** Present on fee and buy transactions. */
+  /** SOL this transaction spends, on a create or a buy. */
   sol?: number;
 };
 
@@ -36,10 +34,8 @@ export type LaunchBundle = {
   metadataUri: string;
   metadataHost: "caller" | "ipfs" | "labs";
   buyers: { publicKey: string; sol: number }[];
+  /** Always 0. Kept so older clients still see the field. */
   feeSol: number;
-  /** Set when the creator's $LEVERCOIN hold stood in for the SOL fee. */
-  feeWaiver?: FeeWaiver;
-  treasury: string;
   txs: PendingTx[];
   /** index -> base64 signed transaction. */
   signed: Record<string, string>;
@@ -63,11 +59,9 @@ export type MakerSession = {
   maxSol: number;
   refreshSeconds: number;
   expiresAt: number;
+  /** Always 0. Kept so older clients still see the field. */
   feeSol: number;
-  /** Set when the maker's $LEVERCOIN hold stood in for the SOL fee. */
-  feeWaiver?: FeeWaiver;
-  treasury: string;
-  /** Fee transaction the maker signs to open the session. Empty when waived. */
+  /** Empty. A session has nothing to sign besides the approval text. */
   txs: PendingTx[];
   signed: Record<string, string>;
   status:

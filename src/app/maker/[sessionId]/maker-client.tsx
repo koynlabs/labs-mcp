@@ -1,11 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Keypair, VersionedTransaction } from "@solana/web3.js";
+import { Keypair } from "@solana/web3.js";
 import bs58 from "bs58";
 import Wordmark from "@/components/Wordmark";
 
-/** Whatever `GET /api/maker/[sessionId]` returns: `publicView` plus the fee. */
+/** Whatever `GET /api/maker/[sessionId]` returns. */
 type Session = {
   sessionId: string;
   status: string;
@@ -23,9 +23,6 @@ type Session = {
   lastQuotedAt?: string;
   error?: string;
   feeSol?: number;
-  treasury?: string;
-  feeTx?: string;
-  feeWaiver?: { requiredTokens: number; heldTokens: number };
   approvalMessage?: string;
 };
 
@@ -33,7 +30,6 @@ type Wallet = {
   publicKey: { toBase58(): string } | null;
   connect(): Promise<unknown>;
   signMessage(message: Uint8Array, encoding?: string): Promise<{ signature: Uint8Array }>;
-  signTransaction(tx: VersionedTransaction): Promise<VersionedTransaction>;
 };
 
 function wallet(): Wallet {
@@ -94,17 +90,6 @@ export function MakerClient({ sessionId }: { sessionId: string }) {
         "utf8",
       );
 
-      // No fee transaction exists when the maker's $LEVERCOIN hold covers it,
-      // so the approval signature is the only thing the wallet is asked for.
-      let signedFeeTx: string | undefined;
-      if (session.feeTx) {
-        const feeTx = VersionedTransaction.deserialize(
-          Uint8Array.from(atob(session.feeTx), (char) => char.charCodeAt(0)),
-        );
-        const signedFee = await provider.signTransaction(feeTx);
-        signedFeeTx = btoa(String.fromCharCode(...signedFee.serialize()));
-      }
-
       const response = await fetch(`/api/maker/${sessionId}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -112,7 +97,6 @@ export function MakerClient({ sessionId }: { sessionId: string }) {
           sessionPublicKey: quoting.publicKey.toBase58(),
           sessionSecretKey: bs58.encode(quoting.secretKey),
           approvalSignature: bs58.encode(signature),
-          signedFeeTx,
         }),
       });
       const result = await response.json();
@@ -169,11 +153,8 @@ export function MakerClient({ sessionId }: { sessionId: string }) {
         <>
           <p>
             Approving creates a throwaway quoting key in this browser and hands
-            it to the server.{" "}
-            {session.feeWaiver
-              ? `No fee: this wallet holds the ${session.feeWaiver.requiredTokens.toLocaleString()} $LEVERCOIN that covers it, and keeps holding it.`
-              : `It also pays ${session.feeSol} SOL to ${session.treasury}.`}{" "}
-            That key can only place these quotes, up to these caps, until expiry.
+            it to the server. That key can only place these quotes, up to these
+            caps, until expiry.
           </p>
           <button onClick={approve} disabled={busy}>
             {busy ? "Approving…" : "Approve and start quoting"}

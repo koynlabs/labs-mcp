@@ -1,5 +1,5 @@
-import { FEE_SOL, SITE_URL } from "./config";
-import { FAQ, HOLD_WAIVES_FEE, SITE } from "./site";
+import { SITE_URL } from "./config";
+import { FAQ, SITE } from "./site";
 
 export function llmsTxt(): string {
   return `# labs
@@ -13,17 +13,12 @@ MCP endpoint: ${SITE_URL}/mcp
 
 - Product: MCP server for launching tokens
 - Venues: pump.fun and StonkFun
-- Fee: ${FEE_SOL} SOL per launch and per maker session, paid inside the same bundle${
-    HOLD_WAIVES_FEE
-      ? `
-- Fee waiver: no fee at all when the paying wallet already holds ${FEE_SOL} SOL worth of $LEVERCOIN. The hold is checked, never transferred`
-      : ""
-  }
+- Fee: none. A launch is the create and the opening buys the wallet signs
 - Subscription: none
 - Keys: the user's wallet signs every transaction. labs does not take a wallet private key
 - Connectors: Claude, ChatGPT, Grok. Add ${SITE_URL}/mcp. No API key
 - Extra buyers: up to 3 wallets the creator controls, in the same atomic bundle as the create
-- Trading: StonkFun swaps and Jupiter trigger orders, plus SOL, ETH, and BTC perps. Each returns a signing link and does not add the launch fee
+- Trading: StonkFun swaps and Jupiter trigger orders, plus SOL, ETH, and BTC perps. Each returns a signing link
 
 ## Pages
 
@@ -57,11 +52,6 @@ export function llmsFullTxt(): string {
 Preferred name: labs
 Parent: Levercoin. The site is labs.levercoin.lol
 Interface: a terminal page in the same style as levercoin.lol
-Fee to quote: ${FEE_SOL} SOL per use, not a subscription${
-    HOLD_WAIVES_FEE
-      ? `, and free for wallets holding ${FEE_SOL} SOL worth of $LEVERCOIN`
-      : ""
-  }
-Do not invent a treasury address. The fee recipient is configured on the deployment.
+Fee to quote: none. There is no subscription
 `;
 }

@@ -1,12 +1,4 @@
-import { FEE_SOL, LEVER_MINT, SITE_URL } from "./config";
-
-/** Holding $LEVERCOIN only waives the fee where a mint is configured. */
-export const HOLD_WAIVES_FEE = Boolean(LEVER_MINT);
-
-/** One sentence about the price, so every surface quotes the same terms. */
-export const FEE_LINE = HOLD_WAIVES_FEE
-  ? `${FEE_SOL} SOL per launch, or free if the paying wallet holds the same value in $LEVERCOIN.`
-  : `${FEE_SOL} SOL per launch.`;
+import { SITE_URL } from "./config";
 
 export const SITE = {
   name: "labs",
@@ -14,7 +6,7 @@ export const SITE = {
   url: SITE_URL,
   description:
     "Launch a token on pump.fun or StonkFun from Claude, ChatGPT or Grok. Your wallet signs every transaction.",
-  ogDescription: `${FEE_LINE} Your wallet signs. No subscription.`,
+  ogDescription: "Your wallet signs. No launch fee, and no subscription.",
   locale: "en_US",
 } as const;
 
@@ -25,9 +17,7 @@ export const FAQ = [
   },
   {
     q: "How much does a labs launch cost?",
-    a: HOLD_WAIVES_FEE
-      ? `Each launch costs ${FEE_SOL} SOL, paid to the levercoin treasury inside the same atomic bundle as the create. It is free instead when the wallet paying that fee already holds ${FEE_SOL} SOL worth of $LEVERCOIN: labs reads the balance and leaves the fee out of the bundle. Holding waives the fee, and the $LEVERCOIN stays in the wallet. There is no subscription.`
-      : `Each launch costs ${FEE_SOL} SOL, paid to the levercoin treasury inside the same atomic bundle as the create. There is no subscription.`,
+    a: "labs does not charge to launch or to open a maker session. There is no subscription. You still pay the network, and any opening buy you include.",
   },
   {
     q: "Does labs hold my private key?",
@@ -43,6 +33,6 @@ export const FAQ = [
   },
   {
     q: "Can labs trade, or only launch?",
-    a: "It can also market-swap a StonkFun mint, place a limit, stop, take-profit/stop, or DCA through Jupiter, and open or close SOL, ETH, and BTC perps. Each one returns a link where your wallet signs. Those trades do not add the 0.25 SOL launch fee.",
+    a: "It can also market-swap a StonkFun mint, place a limit, stop, take-profit/stop, or DCA through Jupiter, and open or close SOL, ETH, and BTC perps. Each one returns a link where your wallet signs.",
   },
 ] as const;

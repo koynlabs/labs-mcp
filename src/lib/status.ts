@@ -1,4 +1,4 @@
-import { FEE_SOL, LEVER_MINT, MAKER_ENABLED, SITE_URL } from "./config";
+import { MAKER_ENABLED, SITE_URL } from "./config";
 import { APP_VERSION, GITHUB_COMMIT_URL, GIT_SHA, GIT_SHA_SHORT } from "./revision";
 import { isPersistent } from "./store";
 
@@ -39,8 +39,8 @@ export type Status = {
   /** Launch bundles and maker sessions survive a redeploy only with Redis. */
   store: "redis" | "memory";
   maker: "enabled" | "disabled";
+  /** Always 0. Kept so older clients still see the field. */
   feeSol: number;
-  feeWaiver: "levercoin" | "none";
 };
 
 /**
@@ -62,7 +62,6 @@ export function getStatus(): Status {
     toolNames: [...TOOL_NAMES],
     store,
     maker: MAKER_ENABLED ? "enabled" : "disabled",
-    feeSol: FEE_SOL,
-    feeWaiver: LEVER_MINT ? "levercoin" : "none",
+    feeSol: 0,
   };
 }
