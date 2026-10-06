@@ -23,9 +23,14 @@ type Intent = {
 };
 
 function wallet(): Phantom {
-  const provider = (window as unknown as { solana?: Phantom }).solana;
-  if (!provider) throw new Error("No Solana wallet found. Install Phantom.");
-  return provider;
+  const scope = window as unknown as {
+    phantom?: { solana?: Phantom & { isPhantom?: boolean } };
+    solana?: Phantom;
+  };
+  const phantom = scope.phantom?.solana;
+  if (phantom?.isPhantom) return phantom;
+  if (scope.solana) return scope.solana;
+  throw new Error("No Solana wallet found. Install Phantom.");
 }
 
 function fromBase64(value: string): Uint8Array {

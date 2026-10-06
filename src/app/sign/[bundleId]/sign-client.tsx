@@ -34,13 +34,16 @@ type Wallet = {
 };
 
 function wallet(): Wallet {
-  const found = (globalThis as { solana?: Wallet }).solana;
-  if (!found) {
-    throw new Error(
-      "No Solana wallet found in this browser. Install Phantom, or open this link in your wallet's browser.",
-    );
-  }
-  return found;
+  const scope = globalThis as {
+    phantom?: { solana?: Wallet & { isPhantom?: boolean } };
+    solana?: Wallet;
+  };
+  const phantom = scope.phantom?.solana;
+  if (phantom?.isPhantom) return phantom;
+  if (scope.solana) return scope.solana;
+  throw new Error(
+    "No Solana wallet found in this browser. Install Phantom, or open this link in your wallet's browser.",
+  );
 }
 
 const label: Record<PendingTx["role"], string> = {

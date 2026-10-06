@@ -1,6 +1,7 @@
 import { Keypair, VersionedTransaction } from "@solana/web3.js";
 import bs58 from "bs58";
 import { MAX_BUYERS, PUMP } from "../config";
+import { includeEventAuthorities } from "../event-authority";
 import { encodeTx } from "../solana";
 import type { PendingTx } from "../types";
 import type { LaunchInput, BuiltLaunch } from "./input";
@@ -80,8 +81,9 @@ export async function buildPumpLaunch(
 
   const txs: PendingTx[] = [];
 
-  encoded.forEach((raw, position) => {
-    const tx = VersionedTransaction.deserialize(bs58.decode(raw));
+  for (let position = 0; position < encoded.length; position += 1) {
+    let tx = VersionedTransaction.deserialize(bs58.decode(encoded[position]));
+    tx = await includeEventAuthorities(tx);
     const isCreate = position === 0;
     if (isCreate) tx.sign([mintKeypair]);
 
@@ -92,7 +94,7 @@ export async function buildPumpLaunch(
       tx: encodeTx(tx),
       sol: isCreate ? input.creatorBuySol : buyers[position - 1].sol,
     });
-  });
+  }
 
   return {
     venue: "pump",
