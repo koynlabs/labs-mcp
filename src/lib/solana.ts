@@ -52,7 +52,9 @@ function signatureFor(
   signer: PublicKey,
 ): Uint8Array | null {
   if (tx instanceof VersionedTransaction) {
-    const keys = tx.message.getAccountKeys().staticAccountKeys;
+    // Static keys only. getAccountKeys() throws on a v0 message until its
+    // lookup tables are loaded, and the signer is never one of those.
+    const keys = tx.message.staticAccountKeys;
     const index = keys.findIndex((key) => key.equals(signer));
     if (index < 0) return null;
     const signature = tx.signatures[index];
