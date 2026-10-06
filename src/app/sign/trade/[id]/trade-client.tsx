@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { VersionedTransaction } from "@solana/web3.js";
 import bs58 from "bs58";
 import Wordmark from "@/components/Wordmark";
+import { prepareForSigning } from "@/lib/prepare-tx";
 
 type Phantom = {
   publicKey?: { toBase58(): string };
@@ -103,6 +104,7 @@ export function TradeClient({ id }: { id: string }) {
         const session = await post(id, { step: "verify", signature: bs58.encode(signatureBytes) });
         const deposit = await post(id, { step: "deposit", token: session.token });
         const transaction = VersionedTransaction.deserialize(fromBase64(deposit.transaction));
+        await prepareForSigning(transaction);
         const signed = await provider.signTransaction(transaction);
         const created = await post(id, {
           step: "create",
@@ -114,6 +116,7 @@ export function TradeClient({ id }: { id: string }) {
       } else {
         const built = await post(id, { step: "build" });
         const transaction = VersionedTransaction.deserialize(fromBase64(built.transaction));
+        await prepareForSigning(transaction);
         const signed = await provider.signTransaction(transaction);
         const submitted = await post(id, {
           step: "submit",

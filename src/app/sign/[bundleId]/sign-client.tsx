@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { VersionedTransaction } from "@solana/web3.js";
 import Wordmark from "@/components/Wordmark";
+import { prepareForSigning } from "@/lib/prepare-tx";
 
 type PendingTx = {
   index: number;
@@ -96,6 +97,7 @@ export function SignClient({ bundleId }: { bundleId: string }) {
         const tx = VersionedTransaction.deserialize(
           Uint8Array.from(atob(pending.tx), (char) => char.charCodeAt(0)),
         );
+        await prepareForSigning(tx);
         const signed = await provider.signTransaction(tx);
         const response = await fetch(`/api/bundle/${bundleId}`, {
           method: "POST",
