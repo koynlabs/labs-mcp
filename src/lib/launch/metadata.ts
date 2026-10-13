@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { baseUrl, PINATA } from "../config";
+import { assertPublicHttpUrl, fetchPublic, SsrfError } from "../ssrf";
 import { putMetadata } from "../store";
 import type { LaunchInput } from "./input";
 
@@ -50,8 +51,14 @@ async function pinFile(file: File): Promise<string> {
  */
 async function pinToIpfs(input: LaunchInput): Promise<string> {
   let image = input.imageUrl;
+  try {
+    assertPublicHttpUrl(image);
+  } catch (error) {
+    if (error instanceof SsrfError) throw new Error(error.message);
+    throw error;
+  }
   if (!image.includes("/ipfs/")) {
-    const source = await fetch(image);
+    const source = await fetchPublic(image);
     if (!source.ok) {
       throw new Error(`could not read the image at ${image}`);
     }

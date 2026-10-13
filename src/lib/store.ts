@@ -8,7 +8,14 @@ import type { LaunchBundle, MakerSession, TradeIntent } from "./types";
  */
 type Row = LaunchBundle | MakerSession | TradeIntent;
 
-const memory = new Map<string, { value: unknown; expiresAt: number }>();
+/**
+ * Route handlers and server components are bundled apart, so a module-level
+ * Map would split `next dev` into two stores. One map on globalThis keeps the
+ * sign page and the API looking at the same row until Redis is configured.
+ */
+const memory = ((globalThis as typeof globalThis & {
+  __labsRows?: Map<string, { value: unknown; expiresAt: number }>;
+}).__labsRows ??= new Map());
 
 /**
  * A fresh client per call. A workflow step resumes in a new invocation and

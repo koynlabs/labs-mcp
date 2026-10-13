@@ -180,6 +180,10 @@ there, the wallet signs a plain-text approval naming the exact mint, spread and
 SOL cap, and only that key reaches the server, encrypted with `LABS_SESSION_SECRET`.
 It expires, and `stop_maker` discards it early.
 
+The same secret seals a Jupiter trigger session after the wallet signs the
+challenge. The browser never receives that bearer. Set `LABS_SESSION_SECRET` in
+Vercel before deploying, or limit, stop, take-profit, and DCA signing fails closed.
+
 ## Running it
 
 ```bash

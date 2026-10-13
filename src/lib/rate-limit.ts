@@ -1,6 +1,16 @@
 import { withRedis } from "./redis";
 
-const memory = new Map<string, { count: number; resetAt: number }>();
+/** First forwarded address, used only as a rate-limit bucket. */
+export function clientAddress(request: Request): string {
+  const forwarded = request.headers.get("x-forwarded-for");
+  const first = forwarded?.split(",")[0]?.trim() ?? "";
+  if (/^[0-9a-fA-F:.]+$/.test(first) && first.length <= 64) return first;
+  return "unknown";
+}
+
+const memory = ((globalThis as typeof globalThis & {
+  __labsRate?: Map<string, { count: number; resetAt: number }>;
+}).__labsRate ??= new Map());
 
 /**
  * Building a launch costs the server a metadata upload and an RPC round trip,

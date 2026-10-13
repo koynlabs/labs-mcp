@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { VersionedTransaction } from "@solana/web3.js";
 import Wordmark from "@/components/Wordmark";
+import { SignFacts } from "@/components/SignFacts";
+import type { LaunchView } from "@/lib/launch/disclosure";
 import { prepareForSigning } from "@/lib/prepare-tx";
 
 type PendingTx = {
@@ -52,7 +54,7 @@ const label: Record<PendingTx["role"], string> = {
   buy: "buy",
 };
 
-export function SignClient({ bundleId }: { bundleId: string }) {
+export function SignClient({ bundleId, facts }: { bundleId: string; facts: LaunchView | null }) {
   const [bundle, setBundle] = useState<Bundle | null>(null);
   const [connected, setConnected] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -150,6 +152,17 @@ export function SignClient({ bundleId }: { bundleId: string }) {
         These transactions land together as one atomic bundle: the token is
         created, and your wallets buy. If any part fails, none of it happens.
       </p>
+
+      {facts ? (
+        <SignFacts
+          caller={facts.caller}
+          host={facts.host}
+          expectedHost={facts.host}
+          action={facts.action}
+          amounts={facts.amounts}
+          warning={facts.warning}
+        />
+      ) : null}
 
       <ol className="txs">
         {bundle.txs.map((tx) => (

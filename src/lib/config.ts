@@ -7,6 +7,15 @@ export function baseUrl(): string {
   return SITE_URL;
 }
 
+/** Host the sign page tells the wallet to expect. */
+export function siteHost(): string {
+  try {
+    return new URL(SITE_URL).host;
+  } catch {
+    return "labs.levercoin.lol";
+  }
+}
+
 export const SOLANA_RPC =
   process.env.SOLANA_RPC ?? "https://api.mainnet-beta.solana.com";
 
