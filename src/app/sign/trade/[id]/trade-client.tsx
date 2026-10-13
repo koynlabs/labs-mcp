@@ -1,9 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useState } from "react";
 import { VersionedTransaction } from "@solana/web3.js";
 import bs58 from "bs58";
-import Wordmark from "@/components/Wordmark";
 import { prepareForSigning } from "@/lib/prepare-tx";
 
 type Phantom = {
@@ -14,12 +13,6 @@ type Phantom = {
     message: Uint8Array,
     display?: string,
   ): Promise<{ signature: Uint8Array } | Uint8Array>;
-};
-
-type Intent = {
-  wallet: string;
-  summary: string;
-  action: string;
 };
 
 function wallet(): Phantom {
@@ -57,25 +50,11 @@ async function post(id: string, body: Record<string, unknown>): Promise<Record<s
   return result;
 }
 
-export function TradeClient({ id }: { id: string }) {
-  const [intent, setIntent] = useState<Intent | null>(null);
+export function TradeClient({ id, wallet: expected, action }: { id: string; wallet: string; action: string }) {
   const [connected, setConnected] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState<string | null>(null);
   const [done, setDone] = useState<string | null>(null);
-
-  const load = useCallback(async () => {
-    const response = await fetch(`/api/trade/${id}`);
-    if (!response.ok) {
-      setNote("This trade has expired or does not exist.");
-      return;
-    }
-    setIntent(await response.json());
-  }, [id]);
-
-  useEffect(() => {
-    void load();
-  }, [load]);
 
   const connect = async () => {
     try {
@@ -89,8 +68,8 @@ export function TradeClient({ id }: { id: string }) {
   };
 
   const sign = async () => {
-    if (!intent || !connected) return;
-    if (connected !== intent.wallet) {
+    if (!connected) return;
+    if (connected !== expected) {
       setNote("Connect the wallet this order was made for.");
       return;
     }
@@ -98,7 +77,7 @@ export function TradeClient({ id }: { id: string }) {
     setNote(null);
     try {
       const provider = wallet();
-      if (intent.action === "order") {
+      if (action === "order") {
         const challenge = await post(id, { step: "challenge" });
         const signedMessage = await provider.signMessage(
           new TextEncoder().encode(challenge.message),
@@ -106,14 +85,13 @@ export function TradeClient({ id }: { id: string }) {
         );
         const signatureBytes =
           signedMessage instanceof Uint8Array ? signedMessage : signedMessage.signature;
-        const session = await post(id, { step: "verify", signature: bs58.encode(signatureBytes) });
-        const deposit = await post(id, { step: "deposit", token: session.token });
+        await post(id, { step: "verify", signature: bs58.encode(signatureBytes) });
+        const deposit = await post(id, { step: "deposit" });
         const transaction = VersionedTransaction.deserialize(fromBase64(deposit.transaction));
         await prepareForSigning(transaction);
         const signed = await provider.signTransaction(transaction);
         const created = await post(id, {
           step: "create",
-          token: session.token,
           requestId: deposit.requestId,
           signedTransaction: toBase64(signed.serialize()),
         });
@@ -138,28 +116,11 @@ export function TradeClient({ id }: { id: string }) {
     }
   };
 
-  if (!intent) {
-    return (
-      <main className="wrap">
-        <Wordmark />
-        <p>{note ?? "Loading…"}</p>
-      </main>
-    );
-  }
-
-  const matches = connected === intent.wallet;
+  const matches = connected === expected;
 
   return (
-    <main className="wrap">
-      <Wordmark />
-      <h1>Sign this trade</h1>
-      <p>{intent.summary}</p>
-      <p className="muted">
-        Jupiter’s own fees still apply. labs never sees this wallet’s key.
-      </p>
-      <p>
-        Wallet <code>{intent.wallet}</code>
-      </p>
+    <>
+      <p className="muted">Jupiter’s own fees still apply. labs never sees this wallet’s key.</p>
       {done ? (
         <p className="ok">
           Submitted <code>{done}</code>
@@ -175,6 +136,6 @@ export function TradeClient({ id }: { id: string }) {
         </>
       )}
       {note ? <p className="note">{note}</p> : null}
-    </main>
+    </>
   );
 }

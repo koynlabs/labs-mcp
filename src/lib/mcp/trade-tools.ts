@@ -141,7 +141,7 @@ export function registerTradeTools(server: McpServer): void {
     {
       title: "Limit, stop, take profit, or DCA",
       description:
-        "Places a Jupiter Trigger order on a StonkFun mint against SOL: limit, stop (price or a 0.5–90% trail), take-profit/stop as one OCO, or DCA. The link signs Jupiter's challenge, then the deposit. Funds sit in a Jupiter vault until fill or cancel. labs does not store the session.",
+        "Places a Jupiter Trigger order on a StonkFun mint against SOL: limit, stop (price or a 0.5–90% trail), take-profit/stop as one OCO, or DCA. The link signs Jupiter's challenge, then the deposit. Funds sit in a Jupiter vault until fill or cancel. labs seals the Jupiter session with LABS_SESSION_SECRET and does not return it to the browser.",
       inputSchema: z.object({
         wallet: publicKey,
         mint: publicKey,
