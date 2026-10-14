@@ -1,6 +1,26 @@
 import { createMcpHandler } from "mcp-handler";
+import { SITE_URL } from "@/lib/config";
 import { registerTools } from "@/lib/mcp/tools";
 import { APP_VERSION } from "@/lib/revision";
+
+/**
+ * Held in a const so the extra SEP-973 fields survive mcp-handler's narrower
+ * `serverInfo` type (name + version only). The handler passes the object
+ * through to initialize.
+ */
+const MCP_SERVER_INFO = {
+  name: "labs",
+  title: "labs",
+  version: APP_VERSION,
+  websiteUrl: SITE_URL,
+  icons: [
+    {
+      src: `${SITE_URL}/icon-180.png`,
+      mimeType: "image/png",
+      sizes: ["180x180"],
+    },
+  ],
+};
 
 /**
  * The MCP endpoint, served at /mcp over Streamable HTTP. Claude, ChatGPT and
@@ -12,7 +32,7 @@ const handler = createMcpHandler(
     registerTools(server);
   },
   {
-    serverInfo: { name: "labs", version: APP_VERSION },
+    serverInfo: MCP_SERVER_INFO,
     instructions: [
       "labs launches tokens on pump.fun and StonkFun and runs disclosed",
       "two-sided quoters. Every transaction is signed by the user's own wallet",
