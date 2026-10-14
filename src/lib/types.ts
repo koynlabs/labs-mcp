@@ -146,9 +146,24 @@ export type TradeDraft =
       slPrice?: string;
     });
 
+/**
+ * The Jupiter quote this trade may submit. The signed message has to match
+ * `transaction`, and `requestId` is the only one execute will accept.
+ */
+export type StoredQuote = {
+  requestId: string;
+  transaction: string;
+  expiresAt: number;
+};
+
 /** The same order, kept until the bundle TTL. The sign page builds the transaction later. */
 export type TradeIntent = TradeDraft & {
   id: string;
   kind: "trade";
   createdAt: number;
+  /** Present after build or deposit. Cleared once the trade is submitted. */
+  quote?: StoredQuote;
+  /** AES-GCM sealed Jupiter bearer. Never returned to the browser. */
+  sealedSession?: string;
+  sessionExpiresAt?: number;
 };

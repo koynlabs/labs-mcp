@@ -1,3 +1,7 @@
+import { connection } from "next/server";
+import { siteHost } from "@/lib/config";
+import { launchDisclosure } from "@/lib/launch/disclosure";
+import { getBundle } from "@/lib/store";
 import { SignClient } from "./sign-client";
 
 export const metadata = {
@@ -10,6 +14,9 @@ export default async function Page({
 }: {
   params: Promise<{ bundleId: string }>;
 }) {
+  await connection();
   const { bundleId } = await params;
-  return <SignClient bundleId={bundleId} />;
+  const bundle = await getBundle(bundleId);
+  const facts = bundle ? launchDisclosure(bundle, siteHost()) : null;
+  return <SignClient bundleId={bundleId} facts={facts} />;
 }

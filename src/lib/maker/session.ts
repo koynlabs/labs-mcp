@@ -1,59 +1,14 @@
-import {
-  createCipheriv,
-  createDecipheriv,
-  createHash,
-  randomBytes,
-  randomUUID,
-} from "node:crypto";
+import { randomUUID } from "node:crypto";
 import { Keypair, PublicKey } from "@solana/web3.js";
 import bs58 from "bs58";
 import nacl from "tweetnacl";
 import { MAKER, SITE_URL } from "../config";
+import { decrypt, encrypt } from "../seal";
 import { getSession, put } from "../store";
 import type { MakerSession, Venue } from "../types";
 
 export function makerUrl(id: string): string {
   return `${SITE_URL}/maker/${id}`;
-}
-
-function encryptionKey(): Buffer {
-  const secret = process.env.LABS_SESSION_SECRET;
-  if (!secret || secret.length < 32) {
-    throw new Error(
-      "LABS_SESSION_SECRET must be set to at least 32 characters to hold maker session keys",
-    );
-  }
-  return createHash("sha256").update(secret).digest();
-}
-
-/**
- * The quoting key is stored encrypted so a leaked row cannot trade. It is only
- * ever decrypted inside a workflow step, and it can only reach the one mint and
- * SOL cap the maker approved.
- */
-function encrypt(plain: string): string {
-  const iv = randomBytes(12);
-  const cipher = createCipheriv("aes-256-gcm", encryptionKey(), iv);
-  const body = Buffer.concat([cipher.update(plain, "utf8"), cipher.final()]);
-  return [
-    iv.toString("base64"),
-    cipher.getAuthTag().toString("base64"),
-    body.toString("base64"),
-  ].join(".");
-}
-
-function decrypt(packed: string): string {
-  const [iv, tag, body] = packed.split(".");
-  const decipher = createDecipheriv(
-    "aes-256-gcm",
-    encryptionKey(),
-    Buffer.from(iv, "base64"),
-  );
-  decipher.setAuthTag(Buffer.from(tag, "base64"));
-  return (
-    decipher.update(Buffer.from(body, "base64")).toString("utf8") +
-    decipher.final("utf8")
-  );
 }
 
 /**

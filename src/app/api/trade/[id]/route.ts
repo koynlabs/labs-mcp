@@ -1,21 +1,29 @@
 import { NextResponse } from "next/server";
-import { loadTrade } from "@/lib/trade/intent";
+import { siteHost } from "@/lib/config";
+import { decrypt, encrypt } from "@/lib/seal";
+import { allow, clientAddress } from "@/lib/rate-limit";
+import { tradeDisclosure } from "@/lib/trade/disclosure";
+import { loadTrade, tradeExpired, updateTrade } from "@/lib/trade/intent";
 import { JupiterError } from "@/lib/trade/http";
 import { buildPerp, submitPerp, type PerpAction } from "@/lib/trade/perps";
+import { JUPITER_SESSION_TTL_MS, lockedSubmit, storeQuote } from "@/lib/trade/quote";
 import { buildSwap, submitSwap } from "@/lib/trade/swap";
 import { craftTriggerDeposit, createTriggerOrder, triggerChallenge, triggerVerify } from "@/lib/trade/trigger";
 import type { TradeIntent } from "@/lib/types";
 
-function fail(error: unknown) {
-  if (error instanceof JupiterError) {
-    return NextResponse.json({ error: error.message }, { status: error.status });
-  }
-  const message = error instanceof Error ? error.message : "Trade failed";
-  return NextResponse.json({ error: message }, { status: 400 });
+const PRIVATE_HEADERS = {
+  "Cache-Control": "no-store",
+  "Referrer-Policy": "no-referrer",
+};
+
+function json(body: unknown, status = 200) {
+  return NextResponse.json(body, { status, headers: PRIVATE_HEADERS });
 }
 
-function isBase64(value: unknown): value is string {
-  return typeof value === "string" && value.length > 0 && value.length < 8000 && /^[A-Za-z0-9+/=]+$/.test(value);
+function fail(error: unknown) {
+  if (error instanceof JupiterError) return json({ error: error.message }, error.status);
+  const message = error instanceof Error ? error.message : "Trade failed";
+  return json({ error: message }, 400);
 }
 
 function perpAction(intent: TradeIntent): PerpAction {
@@ -28,21 +36,57 @@ function perpAction(intent: TradeIntent): PerpAction {
   return "create-tpsl";
 }
 
-export async function GET(_request: Request, context: { params: Promise<{ id: string }> }) {
+function sessionToken(intent: TradeIntent): string {
+  if (!intent.sealedSession || intent.sessionExpiresAt == null) {
+    throw new Error("Sign the Jupiter challenge before depositing.");
+  }
+  if (intent.sessionExpiresAt <= Date.now()) {
+    throw new Error("The Jupiter session expired. Sign the challenge again.");
+  }
+  try {
+    return decrypt(intent.sealedSession);
+  } catch {
+    throw new Error("The Jupiter session on this trade is unreadable.");
+  }
+}
+
+async function limited(request: Request, id: string): Promise<boolean> {
+  const ip = clientAddress(request);
+  const [byIp, byTrade] = await Promise.all([
+    allow(`trade-api:${ip}`, 30, 60),
+    allow(`trade-api:id:${id}`, 20, 60),
+  ]);
+  return byIp && byTrade;
+}
+
+export async function GET(request: Request, context: { params: Promise<{ id: string }> }) {
   const { id } = await context.params;
+  if (!(await limited(request, id))) return json({ error: "Too many requests. Wait a minute." }, 429);
   const intent = await loadTrade(id);
-  if (!intent) return NextResponse.json({ error: "This trade has expired." }, { status: 404 });
-  return NextResponse.json(intent);
+  if (!intent || tradeExpired(intent)) return json({ error: "This trade has expired." }, 404);
+  return json(tradeDisclosure(intent, siteHost()));
 }
 
 export async function POST(request: Request, context: { params: Promise<{ id: string }> }) {
   const { id } = await context.params;
+  if (!(await limited(request, id))) return json({ error: "Too many requests. Wait a minute." }, 429);
   const intent = await loadTrade(id);
-  if (!intent) return NextResponse.json({ error: "This trade has expired." }, { status: 404 });
+  if (!intent || tradeExpired(intent)) return json({ error: "This trade has expired." }, 404);
   const body = (await request.json().catch(() => null)) as Record<string, unknown> | null;
   const step = body?.step;
   try {
+    if (typeof body?.token === "string") {
+      return json({ error: "The Jupiter session stays on the server." }, 400);
+    }
+
     if (step === "build") {
+      if (intent.quote && intent.quote.expiresAt > Date.now()) {
+        return json({
+          transaction: intent.quote.transaction,
+          requestId: intent.quote.requestId,
+          expiresAt: intent.quote.expiresAt,
+        });
+      }
       if (intent.action === "swap") {
         const built = await buildSwap({
           inputMint: intent.inputMint,
@@ -50,68 +94,83 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
           amount: intent.amount,
           taker: intent.wallet,
         });
-        return NextResponse.json(built);
+        intent.quote = storeQuote(built.transaction, built.requestId);
+        await updateTrade(intent);
+        return json({ ...built, expiresAt: intent.quote.expiresAt });
       }
       if (intent.action === "perp-open" || intent.action === "perp-close" || intent.action === "perp-exit") {
-        return NextResponse.json(await buildPerp(intent));
+        const built = await buildPerp(intent);
+        intent.quote = storeQuote(built.transaction, "");
+        await updateTrade(intent);
+        return json({ ...built, expiresAt: intent.quote.expiresAt });
       }
-      return NextResponse.json({ error: "This trade is signed as an order." }, { status: 400 });
+      return json({ error: "This trade is signed as an order." }, 400);
     }
 
     if (step === "submit") {
-      if (!isBase64(body?.signedTransaction)) {
-        return NextResponse.json({ error: "Missing signed transaction." }, { status: 400 });
-      }
+      const locked = lockedSubmit({
+        quote: intent.quote,
+        signedTransaction: body?.signedTransaction,
+        requestId: body?.requestId,
+        wallet: intent.wallet,
+      });
       if (intent.action === "swap") {
-        if (typeof body?.requestId !== "string" || !body.requestId) {
-          return NextResponse.json({ error: "Missing swap request." }, { status: 400 });
-        }
-        const done = await submitSwap({
-          signedTransaction: body.signedTransaction,
-          requestId: body.requestId,
-        });
-        return NextResponse.json({ signature: done.signature });
+        const done = await submitSwap(locked);
+        intent.quote = undefined;
+        await updateTrade(intent);
+        return json({ signature: done.signature });
       }
       if (intent.action === "perp-open" || intent.action === "perp-close" || intent.action === "perp-exit") {
         const done = await submitPerp({
           action: perpAction(intent),
-          signedTransaction: body.signedTransaction,
+          signedTransaction: locked.signedTransaction,
         });
-        return NextResponse.json({ signature: done.txid });
+        intent.quote = undefined;
+        await updateTrade(intent);
+        return json({ signature: done.txid });
       }
-      return NextResponse.json({ error: "This trade is signed as an order." }, { status: 400 });
+      return json({ error: "This trade is signed as an order." }, 400);
     }
 
     if (intent.action !== "order") {
-      return NextResponse.json({ error: "This trade is not a trigger order." }, { status: 400 });
+      return json({ error: "This trade is not a trigger order." }, 400);
     }
     if (step === "challenge") {
-      return NextResponse.json({ message: await triggerChallenge(intent.wallet) });
+      return json({ message: await triggerChallenge(intent.wallet) });
     }
     if (step === "verify") {
       if (typeof body?.signature !== "string" || body.signature.length < 64 || body.signature.length > 200) {
-        return NextResponse.json({ error: "Missing signature." }, { status: 400 });
+        return json({ error: "Missing signature." }, 400);
       }
-      return NextResponse.json({ token: await triggerVerify(intent.wallet, body.signature) });
-    }
-    const token = body?.token;
-    if (typeof token !== "string" || token.length < 20 || token.length > 4096) {
-      return NextResponse.json({ error: "Missing Jupiter session." }, { status: 400 });
+      const token = await triggerVerify(intent.wallet, body.signature);
+      intent.sealedSession = encrypt(token);
+      intent.sessionExpiresAt = Date.now() + JUPITER_SESSION_TTL_MS;
+      await updateTrade(intent);
+      return json({ ok: true });
     }
     if (step === "deposit") {
-      return NextResponse.json(await craftTriggerDeposit(token, intent));
+      const token = sessionToken(intent);
+      const deposit = await craftTriggerDeposit(token, intent);
+      intent.quote = storeQuote(deposit.transaction, deposit.requestId);
+      await updateTrade(intent);
+      return json({ ...deposit, expiresAt: intent.quote.expiresAt });
     }
     if (step === "create") {
-      if (!isBase64(body?.signedTransaction) || typeof body?.requestId !== "string") {
-        return NextResponse.json({ error: "Missing signed deposit." }, { status: 400 });
-      }
-      const created = await createTriggerOrder(token, intent, {
-        requestId: body.requestId,
-        signedTransaction: body.signedTransaction,
+      const token = sessionToken(intent);
+      const locked = lockedSubmit({
+        quote: intent.quote,
+        signedTransaction: body?.signedTransaction,
+        requestId: body?.requestId,
+        wallet: intent.wallet,
       });
-      return NextResponse.json(created);
+      const created = await createTriggerOrder(token, intent, locked);
+      intent.quote = undefined;
+      intent.sealedSession = undefined;
+      intent.sessionExpiresAt = undefined;
+      await updateTrade(intent);
+      return json(created);
     }
-    return NextResponse.json({ error: "Unknown step." }, { status: 400 });
+    return json({ error: "Unknown step." }, 400);
   } catch (error) {
     return fail(error);
   }
