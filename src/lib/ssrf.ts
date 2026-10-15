@@ -174,7 +174,12 @@ export async function fetchPublic(raw: string): Promise<Response> {
       current = assertPublicHttpUrl(new URL(next, current).href);
       continue;
     }
-    return new Response(new Uint8Array(result.body), { status: result.status });
+    const contentType = result.headers["content-type"];
+    const type = Array.isArray(contentType) ? contentType[0] : contentType;
+    return new Response(new Uint8Array(result.body), {
+      status: result.status,
+      headers: type ? { "content-type": type } : undefined,
+    });
   }
   throw new SsrfError("too many redirects");
 }

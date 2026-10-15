@@ -352,6 +352,7 @@ export async function buildStonksLaunch(
     metadataHost: metadata.host,
     txs,
     buyers,
+    ...(metadata.banner ? { banner: metadata.banner } : {}),
     ...(quote === WSOL ? {} : { quoteMint: quote }),
   };
 }

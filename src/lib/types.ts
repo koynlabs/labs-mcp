@@ -36,6 +36,11 @@ export type LaunchBundle = {
   symbol: string;
   metadataUri: string;
   metadataHost: "caller" | "ipfs" | "labs";
+  /**
+   * Banner URL stored in the metadata JSON. pump.fun's coin page does not read
+   * this; see `BANNER_LIMIT`.
+   */
+  banner?: string;
   buyers: { publicKey: string; sol: number }[];
   /** Always 0. Kept so older clients still see the field. */
   feeSol: number;

@@ -8,18 +8,50 @@ export type Metadata = {
   uri: string;
   /** Where the JSON actually lives, so the caller knows what it is trusting. */
   host: "caller" | "ipfs" | "labs";
+  /** Banner URL written into the JSON. Unset when the caller supplied the URI. */
+  banner?: string;
 };
 
-function json(input: LaunchInput) {
+/**
+ * pump.fun's coin page banner is not a create_v2 argument. The instruction
+ * stores name, symbol, and this metadata URI. The banner shown on the coin
+ * page is a separate pump.fun record, set only at creation by
+ * `POST https://frontend-api-v3.pump.fun/coins/add-banner` with
+ * `{ mint, banner }`, and it cannot be edited later. labs does not call that
+ * endpoint. When labs builds the metadata JSON, the banner URL is stored on
+ * it as `banner`.
+ */
+export const BANNER_LIMIT =
+  "pump.fun create_v2 stores only the metadata URI and has no banner argument. The coin-page banner is a separate pump.fun record, set only at creation by POST https://frontend-api-v3.pump.fun/coins/add-banner with { mint, banner }, and it cannot be changed later. labs does not call that endpoint. When labs builds the metadata JSON, the banner URL is stored on it as banner.";
+
+export type CoinMetadata = {
+  name: string;
+  symbol: string;
+  description: string;
+  image: string;
+  showName: true;
+  twitter?: string;
+  telegram?: string;
+  website?: string;
+  banner?: string;
+};
+
+/** Metadata JSON written on-chain by reference. `assets` overrides URLs after pinning. */
+export function metadataDocument(
+  input: LaunchInput,
+  assets: { image?: string; banner?: string } = {},
+): CoinMetadata {
+  const banner = assets.banner ?? input.bannerUrl;
   return {
     name: input.name,
     symbol: input.symbol,
     description: input.description ?? "",
-    image: input.imageUrl,
+    image: assets.image ?? input.imageUrl,
     showName: true,
     ...(input.twitter ? { twitter: input.twitter } : {}),
     ...(input.telegram ? { telegram: input.telegram } : {}),
     ...(input.website ? { website: input.website } : {}),
+    ...(banner ? { banner } : {}),
   };
 }
 
@@ -44,34 +76,50 @@ async function pinFile(file: File): Promise<string> {
   return body.data.cid;
 }
 
+function mediaType(value: string | null | undefined): string | undefined {
+  const mime = value?.split(";")[0]?.trim().toLowerCase();
+  if (!mime || mime === "application/octet-stream") return undefined;
+  return mime;
+}
+
 /**
- * Pins the image and then the metadata JSON that points at it, so neither
- * depends on a host the creator might take down. An image that is already on
- * IPFS is left where it is.
+ * Pins an image or GIF unless it is already on IPFS. Same rules as the coin
+ * image: public http(s) only, and the fetch refuses anything over 5MB.
  */
-async function pinToIpfs(input: LaunchInput): Promise<string> {
-  let image = input.imageUrl;
+async function pinAsset(url: string, filename: string): Promise<string> {
   try {
-    assertPublicHttpUrl(image);
+    assertPublicHttpUrl(url);
   } catch (error) {
     if (error instanceof SsrfError) throw new Error(error.message);
     throw error;
   }
-  if (!image.includes("/ipfs/")) {
-    const source = await fetchPublic(image);
-    if (!source.ok) {
-      throw new Error(`could not read the image at ${image}`);
-    }
-    const blob = await source.blob();
-    const cid = await pinFile(new File([blob], `${input.symbol}-image`));
-    image = `${PINATA.gateway}/${cid}`;
-  }
+  if (url.includes("/ipfs/")) return url;
 
-  const metadata = JSON.stringify({ ...json(input), image });
-  const cid = await pinFile(
-    new File([metadata], `${input.symbol}-metadata.json`),
-  );
+  const source = await fetchPublic(url);
+  if (!source.ok) {
+    throw new Error(`could not read the image at ${url}`);
+  }
+  const blob = await source.blob();
+  const type = mediaType(blob.type || source.headers.get("content-type"));
+  const cid = await pinFile(new File([blob], filename, type ? { type } : undefined));
   return `${PINATA.gateway}/${cid}`;
+}
+
+/**
+ * Pins the image, the optional banner, and then the metadata JSON that points
+ * at them, so none of them depend on a host the creator might take down. A
+ * file that is already on IPFS is left where it is.
+ */
+async function pinToIpfs(input: LaunchInput): Promise<{ uri: string; banner?: string }> {
+  const image = await pinAsset(input.imageUrl, `${input.symbol}-image`);
+  const banner = input.bannerUrl
+    ? await pinAsset(input.bannerUrl, `${input.symbol}-banner`)
+    : undefined;
+  const metadata = JSON.stringify(metadataDocument(input, { image, banner }));
+  const cid = await pinFile(
+    new File([metadata], `${input.symbol}-metadata.json`, { type: "application/json" }),
+  );
+  return { uri: `${PINATA.gateway}/${cid}`, banner };
 }
 
 /**
@@ -94,14 +142,16 @@ export async function resolveMetadata(input: LaunchInput): Promise<Metadata> {
   }
 
   if (PINATA.jwt) {
-    return { uri: await pinToIpfs(input), host: "ipfs" };
+    const pinned = await pinToIpfs(input);
+    return { uri: pinned.uri, host: "ipfs", banner: pinned.banner };
   }
 
+  const document = metadataDocument(input);
   const id = randomUUID();
-  await putMetadata(id, json(input));
+  await putMetadata(id, document);
   const uri = `${baseUrl()}/api/metadata/${id}`;
   await assertReachable(uri);
-  return { uri, host: "labs" };
+  return { uri, host: "labs", banner: document.banner };
 }
 
 /**

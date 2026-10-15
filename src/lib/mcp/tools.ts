@@ -4,6 +4,7 @@ import { start } from "workflow/api";
 import { MAKER, MAKER_ENABLED, MAX_BUYERS } from "../config";
 import { createLaunch, outstanding, signUrl } from "../launch/bundle";
 import { listPumpPairs } from "../launch/pump-pairs";
+import { BANNER_LIMIT } from "../launch/metadata";
 import { launchablePairs } from "../launch/stonks";
 import { solBalance, tokenInfo } from "../market";
 import {
@@ -56,6 +57,18 @@ export function registerTools(server: McpServer): void {
         name: z.string().min(1).max(32),
         symbol: z.string().min(1).max(10),
         imageUrl: z.string().url().describe("token image, fetched server-side"),
+        bannerUrl: z
+          .string()
+          .url()
+          .optional()
+          .describe(
+            "Optional coin banner, image or GIF. Recommended 1500×500 (3:1), max about 5MB. Fetched and pinned the same way as imageUrl, then stored as banner in the metadata JSON. pump.fun's create_v2 instruction has no banner argument. The coin-page banner is a separate pump.fun record, set only at creation by POST https://frontend-api-v3.pump.fun/coins/add-banner with { mint, banner }, and it cannot be changed later. This path does not call that endpoint. Passing metadataUri uses that JSON as-is and does not merge this URL.",
+          ),
+        bannerImageUrl: z
+          .string()
+          .url()
+          .optional()
+          .describe("Alias of bannerUrl. Pass one banner, not two different URLs."),
         description: z.string().max(500).optional(),
         twitter: z.string().optional(),
         telegram: z.string().optional(),
@@ -104,12 +117,22 @@ export function registerTools(server: McpServer): void {
           );
         }
 
+        const bannerUrl = args.bannerUrl ?? args.bannerImageUrl;
+        if (
+          args.bannerUrl &&
+          args.bannerImageUrl &&
+          args.bannerUrl !== args.bannerImageUrl
+        ) {
+          return failure("bannerUrl and bannerImageUrl differ. Pass one banner.");
+        }
+
         const bundle = await createLaunch({
           venue: args.venue,
           creator: args.creator,
           name: args.name,
           symbol: args.symbol,
           imageUrl: args.imageUrl,
+          bannerUrl,
           description: args.description,
           twitter: args.twitter,
           telegram: args.telegram,
@@ -128,6 +151,12 @@ export function registerTools(server: McpServer): void {
           venue: bundle.venue,
           feeSol: bundle.feeSol,
           metadataUri: bundle.metadataUri,
+          banner: bundle.banner,
+          bannerNote: bannerUrl
+            ? args.metadataUri
+              ? `bannerUrl was not written into the metadata JSON because metadataUri is used as-is. ${BANNER_LIMIT}`
+              : `Banner URL stored in the metadata JSON: ${bundle.banner}. ${BANNER_LIMIT}`
+            : undefined,
           metadataWarning:
             bundle.metadataHost === "labs"
               ? "This token's metadata JSON is served by labs, not IPFS. Pass metadataUri, or have the operator set LABS_PINATA_JWT, if it needs to outlive this service."

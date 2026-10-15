@@ -202,6 +202,7 @@ export async function buildPumpLaunch(
     metadataHost: metadata.host,
     txs,
     buyers,
+    ...(metadata.banner ? { banner: metadata.banner } : {}),
     ...(tokenQuote ? { quoteMint: quote.mint.toBase58() } : {}),
   };
 }

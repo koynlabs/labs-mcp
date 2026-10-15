@@ -6,6 +6,11 @@ export type LaunchInput = {
   name: string;
   symbol: string;
   imageUrl: string;
+  /**
+   * Optional coin banner. Pinned and stored in the metadata JSON the same way
+   * as `imageUrl`. pump.fun's create instruction has no banner argument.
+   */
+  bannerUrl?: string;
   description?: string;
   twitter?: string;
   telegram?: string;
@@ -41,6 +46,11 @@ export type BuiltLaunch = {
   lastValidBlockHeight: number;
   metadataUri: string;
   metadataHost: "caller" | "ipfs" | "labs";
+  /**
+   * Banner URL written into the metadata JSON. Absent when the caller supplied
+   * their own metadata URI, which labs does not rewrite.
+   */
+  banner?: string;
   txs: PendingTx[];
   buyers: { publicKey: string; sol: number }[];
   /**

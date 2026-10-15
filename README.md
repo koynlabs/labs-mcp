@@ -182,6 +182,16 @@ The URI is written into the token permanently, so option 3 returns a warning, an
 labs refuses the launch if it cannot fetch its own URI back — that catches a
 misconfigured `LABS_SITE_URL` before a token is minted pointing at nothing.
 
+An optional `bannerUrl` (or `bannerImageUrl`) is fetched and pinned the same way
+as `imageUrl`: recommended 1500×500 (3:1), image or GIF, max about 5MB, which is
+also the fetch limit. The pinned URL is stored as `banner` in the metadata JSON.
+pump.fun's `create_v2` instruction has no banner argument — it only stores the
+metadata URI. The banner on the coin page is a separate pump.fun record, set
+only at creation by `POST https://frontend-api-v3.pump.fun/coins/add-banner`
+with `{ mint, banner }`, and it cannot be changed later. labs does not call
+that endpoint. A caller-supplied `metadataUri` is used as-is, so a banner has
+to already be inside that JSON if you want it there.
+
 ## The quoter
 
 Off unless `LABS_MAKER_ENABLED=true`.

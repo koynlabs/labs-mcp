@@ -24,6 +24,8 @@ type Bundle = {
   name: string;
   symbol: string;
   feeSol: number;
+  /** Banner URL stored in the token metadata, when this launch has one. */
+  banner?: string;
   /** Set when the buy spends this asset instead of SOL. */
   quoteMint?: string;
   jitoBundleId?: string;
@@ -184,6 +186,13 @@ export function SignClient({ bundleId, facts }: { bundleId: string; facts: Launc
       <p className="muted">
         {bundle.venue === "pump" ? "pump.fun" : "StonkFun"} · mint {bundle.mint}
       </p>
+      {bundle.banner ? (
+        <p className="muted">
+          Banner stored in the token metadata: <code>{bundle.banner}</code>.
+          pump.fun shows a coin-page banner from its own record, which this
+          create transaction does not set.
+        </p>
+      ) : null}
 
       <p>
         These transactions land together as one atomic bundle: the token is
