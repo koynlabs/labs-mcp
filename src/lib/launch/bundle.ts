@@ -90,9 +90,10 @@ export async function createLaunch(input: LaunchInput): Promise<LaunchBundle> {
 }
 
 /**
- * Accepts one wallet's signature. Phantom may refresh the blockhash and append
- * Lighthouse assertions; any other change to the handed-out instructions is
- * rejected. The mint key then co-signs the message the wallet actually signed.
+ * Accepts one wallet's signature. Phantom may refresh the blockhash, insert a
+ * priority fee, and add Lighthouse assertions. The launch instructions
+ * themselves cannot change. The mint key then co-signs the message the wallet
+ * actually signed.
  */
 export async function attachSignature(
   id: string,
@@ -120,9 +121,9 @@ export async function attachSignature(
       Buffer.from(messageBytes(originalTx)),
     ) !== 0
   ) {
-    // Phantom refreshes the blockhash and appends Lighthouse assertions after
-    // /prepare. Keep that message — it is what the wallet signed — and reject
-    // any change to the instructions, accounts, or signers.
+    // Phantom refreshes the blockhash, inserts a priority fee, and adds
+    // Lighthouse assertions after /prepare. Keep that message — it is what
+    // the wallet signed — and reject any change to the launch instructions.
     let decision = reconcileWalletMessage(originalTx, signedTx);
     if (!decision.ok && decision.unresolvedLookups) {
       decision = reconcileWalletMessage(
@@ -181,6 +182,8 @@ function signingReason(reason: string): string {
     reason === "the signed transaction added too many instructions" ||
     reason === "the signed transaction changed who has to sign" ||
     reason === "the signed transaction changed the fee payer" ||
+    reason === "the signed transaction lowered the compute budget" ||
+    reason === "the signed transaction made an account read-only" ||
     reason === "could not read the signed transaction"
   ) {
     return `That signature is for an older copy of the transaction. Sign again. (${reason})`;
