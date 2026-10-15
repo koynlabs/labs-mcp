@@ -121,6 +121,9 @@ async function main() {
 }
 
 main().catch((error) => {
-  console.error(error instanceof Error ? error.message : error);
+  const message =
+    error instanceof Error ? error.message : String(error);
+  const sanitizedMessage = message.replace(/[\r\n]/g, "");
+  console.error(sanitizedMessage);
   process.exit(1);
 });
