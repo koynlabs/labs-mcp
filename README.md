@@ -207,9 +207,12 @@ same quote to `/execute`. labs does not sell through the pump SDK.
 `venue` is optional: `pump` or `stonks`. It labels the sign page. Callers that
 omit it keep working. labs does not look the mint up and does not refuse a pump
 mint. Any mint Jupiter can route is accepted. The wallet named on the call signs
-at `/sign/trade/<id>`. The quote that page builds is the only one submit will
-forward. The link lasts 15 minutes, and a wallet is limited to 20 trade intents
-a minute.
+at `/sign/trade/<id>`. Phantom may refresh the blockhash, insert a priority
+fee or a higher compute budget, and add Lighthouse assertions. Those edits are
+kept. The Jupiter instructions themselves — program, data, and account order —
+and the stored request id are not. Submit forwards the transaction the wallet
+signed, not a replacement quote. The link lasts 15 minutes, and a wallet is
+limited to 20 trade intents a minute.
 
 `trade_order` is a Jupiter Trigger order: limit, stop (a price, or a trail from
 0.5% to 90%), take-profit and stop as one OCO, or DCA. The wallet signs

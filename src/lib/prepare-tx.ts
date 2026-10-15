@@ -41,7 +41,7 @@ function fromBase64(value: string): Uint8Array {
  * request because it cannot see the accounts. The compiled bytes are left
  * alone. Phantom may still rewrite the blockhash and insert compute-budget
  * and Lighthouse instructions inside `signTransaction`. The server keeps the
- * launch instructions and accepts those wallet-only changes.
+ * launch or Jupiter instructions and accepts those wallet-only changes.
  */
 export function attachLookupTables(
   tx: VersionedTransaction,
