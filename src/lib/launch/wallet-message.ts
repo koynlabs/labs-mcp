@@ -1,4 +1,5 @@
 import {
+  ComputeBudgetProgram,
   PublicKey,
   TransactionInstruction,
   TransactionMessage,
@@ -8,14 +9,17 @@ import {
 } from "@solana/web3.js";
 
 /**
- * Phantom (and Solflare) append assertions from this program when a transaction
- * is signed on a public https origin. The signature then covers a longer
- * message than the one `/prepare` stored.
+ * Phantom (and Solflare) add assertions from this program when a transaction
+ * is signed on a public https origin. They are not always a suffix: a priority
+ * fee inserted beside them shifts every later instruction.
  * https://docs.phantom.com/developer-powertools/lighthouse
  */
 export const LIGHTHOUSE_PROGRAM_ID = new PublicKey(
   "L2TExMFKdjpN9kozasaurPirfHy9P8sbXoAN1qA3S95",
 );
+
+/** SetComputeUnitLimit. The last one in the message is the one that executes. */
+const COMPUTE_UNIT_LIMIT = 2;
 
 /** Phantom adds one assertion; Solflare adds two. Six is room, not an invitation. */
 const MAX_WALLET_ASSERTIONS = 6;
@@ -25,11 +29,13 @@ export type WalletMessageDecision =
   | { ok: false; reason: string; unresolvedLookups: boolean };
 
 /**
- * Phantom signs an unsigned transaction by refreshing its blockhash and, on a
- * public site, appending Lighthouse assertions. Both change the message bytes,
- * so a byte compare against `/prepare` rejects a signature the wallet just
- * produced. The instructions, accounts, amounts, and required signers still
- * have to be the ones that were handed out.
+ * Phantom signs an unsigned transaction by refreshing its blockhash, inserting
+ * compute-budget instructions, and adding Lighthouse assertions. None of those
+ * have to sit at the end: a priority fee in front, or an assertion between the
+ * create and the buy, shifts every later index. A prefix compare then reports
+ * that an instruction changed even though the launch data did not. The launch
+ * instructions — program, data, and account order — still have to be the ones
+ * that were handed out.
  */
 export function reconcileWalletMessage(
   original: VersionedTransaction,
@@ -55,9 +61,12 @@ export function reconcileWalletMessage(
 }
 
 /**
- * Drops trailing Lighthouse assertions before a blockhash refresh. Those
- * assertions describe the balances Phantom simulated for the previous
- * message; copying them onto a new hash makes the next attempt fail closed.
+ * Drops wallet-only instructions before a blockhash refresh. Lighthouse
+ * assertions describe the balances Phantom simulated for the previous message;
+ * copying them onto a new hash makes the next attempt fail closed. A priority
+ * fee, heap frame, or loaded-account cap Phantom inserted is dropped too, so
+ * the next signature gets a fresh one. The compute-unit limit stays: it is
+ * what makes the create and the buy fit.
  */
 export function stripWalletAssertions(
   tx: VersionedTransaction,
@@ -72,7 +81,9 @@ export function stripWalletAssertions(
   } catch {
     return tx;
   }
-  const instructions = withoutTrailingAssertions(message.instructions);
+  const instructions = message.instructions.filter(
+    (instruction) => !isStrippable(instruction),
+  );
   if (instructions.length === message.instructions.length) return tx;
   return new VersionedTransaction(
     new TransactionMessage({
@@ -168,39 +179,89 @@ function sameLaunchInstructions(
     return rejected("could not read the signed transaction", true);
   }
 
-  if (signedMessage.instructions.length < originalMessage.instructions.length) {
+  const originalLaunch = originalMessage.instructions.filter((ix) => !isWalletMeta(ix));
+  const signedLaunch = signedMessage.instructions.filter((ix) => !isWalletMeta(ix));
+  if (signedLaunch.length < originalLaunch.length) {
     return rejected("the signed transaction dropped an instruction");
   }
-  const extra = signedMessage.instructions.length - originalMessage.instructions.length;
-  if (extra > MAX_WALLET_ASSERTIONS) {
-    return rejected("the signed transaction added too many instructions");
+  if (signedLaunch.length > originalLaunch.length) {
+    return rejected("the signed transaction added an instruction");
   }
-  for (let i = 0; i < originalMessage.instructions.length; i += 1) {
-    const left = originalMessage.instructions[i];
-    const right = signedMessage.instructions[i];
-    if (!left || !right || !sameInstruction(left, right)) {
+  for (let i = 0; i < originalLaunch.length; i += 1) {
+    const left = originalLaunch[i];
+    const right = signedLaunch[i];
+    if (!left || !right || !sameLaunchInstruction(left, right)) {
       return rejected("the signed transaction changed an instruction");
     }
   }
-  for (const instruction of signedMessage.instructions.slice(originalMessage.instructions.length)) {
-    if (!instruction.programId.equals(LIGHTHOUSE_PROGRAM_ID)) {
-      return rejected("the signed transaction added an instruction");
-    }
+
+  const assertions = signedMessage.instructions.filter(isLighthouse).length;
+  if (assertions > MAX_WALLET_ASSERTIONS) {
+    return rejected("the signed transaction added too many instructions");
+  }
+  const originalLimit = lastComputeUnitLimit(originalMessage.instructions);
+  const signedLimit = lastComputeUnitLimit(signedMessage.instructions);
+  if (originalLimit !== null && (signedLimit === null || signedLimit < originalLimit)) {
+    return rejected("the signed transaction lowered the compute budget");
+  }
+  if (!writableAccountsKept(originalMessage, signedMessage)) {
+    return rejected("the signed transaction made an account read-only");
   }
   return { ok: true, blockhash: signed.message.recentBlockhash, blockhashChanged: false };
 }
 
-function withoutTrailingAssertions(
-  instructions: TransactionInstruction[],
-): TransactionInstruction[] {
-  let end = instructions.length;
-  while (
-    end > 0 &&
-    instructions[end - 1]?.programId.equals(LIGHTHOUSE_PROGRAM_ID)
-  ) {
-    end -= 1;
+function isLighthouse(instruction: TransactionInstruction): boolean {
+  return instruction.programId.equals(LIGHTHOUSE_PROGRAM_ID);
+}
+
+function isComputeBudget(instruction: TransactionInstruction): boolean {
+  return instruction.programId.equals(ComputeBudgetProgram.programId);
+}
+
+/**
+ * Lighthouse and every compute-budget instruction are the wallet's. The
+ * compute-unit limit is still checked so a signature cannot shrink the
+ * budget the create was built with. Everything else is the launch.
+ */
+function isWalletMeta(instruction: TransactionInstruction): boolean {
+  return isLighthouse(instruction) || isComputeBudget(instruction);
+}
+
+/** Keep the compute-unit limit. Drop fees, heap frames, data-size caps, and assertions. */
+function isStrippable(instruction: TransactionInstruction): boolean {
+  if (isLighthouse(instruction)) return true;
+  return isComputeBudget(instruction) && instruction.data[0] !== COMPUTE_UNIT_LIMIT;
+}
+
+function lastComputeUnitLimit(instructions: TransactionInstruction[]): number | null {
+  let limit: number | null = null;
+  for (const instruction of instructions) {
+    if (!instruction.programId.equals(ComputeBudgetProgram.programId)) continue;
+    if (instruction.data[0] !== COMPUTE_UNIT_LIMIT || instruction.data.length < 5) continue;
+    limit = instruction.data.readUInt32LE(1);
   }
-  return instructions.slice(0, end);
+  return limit;
+}
+
+function writableAccountsKept(
+  original: TransactionMessage,
+  signed: TransactionMessage,
+): boolean {
+  const kept = writableAccounts(signed);
+  for (const pubkey of writableAccounts(original)) {
+    if (!kept.has(pubkey)) return false;
+  }
+  return true;
+}
+
+function writableAccounts(message: TransactionMessage): Set<string> {
+  const accounts = new Set<string>([message.payerKey.toBase58()]);
+  for (const instruction of message.instructions) {
+    for (const key of instruction.keys) {
+      if (key.isWritable) accounts.add(key.pubkey.toBase58());
+    }
+  }
+  return accounts;
 }
 
 function sameSignerSet(original: VersionedTransaction, signed: VersionedTransaction): boolean {
@@ -215,18 +276,18 @@ function signers(tx: VersionedTransaction): string[] {
     .map((key) => key.toBase58());
 }
 
-function sameInstruction(left: TransactionInstruction, right: TransactionInstruction): boolean {
+function sameLaunchInstruction(
+  left: TransactionInstruction,
+  right: TransactionInstruction,
+): boolean {
   if (!left.programId.equals(right.programId)) return false;
   if (Buffer.compare(left.data, right.data) !== 0) return false;
   if (left.keys.length !== right.keys.length) return false;
+  // Signer and writable are message-wide, not per instruction. Phantom's
+  // priority fee and assertions change those flags without editing the launch.
   return left.keys.every((key, index) => {
     const other = right.keys[index];
-    return (
-      other !== undefined &&
-      key.pubkey.equals(other.pubkey) &&
-      key.isSigner === other.isSigner &&
-      key.isWritable === other.isWritable
-    );
+    return other !== undefined && key.pubkey.equals(other.pubkey);
   });
 }
 

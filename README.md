@@ -136,10 +136,12 @@ key labs generated co-signs the same message afterwards. It is sealed with
 `LABS_SESSION_SECRET`, holds no funds, and is never a wallet key.
 
 You open `/sign/<bundleId>`, connect each wallet in turn, and sign. Phantom may
-refresh the blockhash and append its own Lighthouse assertions. Those are the
-only differences that are kept: the mint key co-signs that signed message, and
-the wallet's signature is checked against it before the bundle is sent. A signer
-can refuse, but cannot change the instructions, accounts, or amounts.
+refresh the blockhash, insert a priority fee or a higher compute budget, and
+add Lighthouse assertions anywhere in the transaction. The mint, the fee payer,
+and the create and buy instructions (program, data, and account order) stay
+the ones that were built. The mint key co-signs that signed message, and the
+wallet's signature is checked against it before the bundle is sent. A signer
+can refuse, but cannot change who is paid or how much.
 
 ### The two venues
 

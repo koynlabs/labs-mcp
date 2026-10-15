@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
   AddressLookupTableAccount,
+  ComputeBudgetProgram,
   Keypair,
   PublicKey,
   SystemProgram,
@@ -264,14 +265,225 @@ describe("wallet signature matches the message Phantom returns", () => {
     assert.equal(reconcileWalletMessage(tx, tampered).ok, false);
   });
 
-  it("rejects a Lighthouse instruction inserted ahead of the launch instructions", () => {
+  it("keeps a priority fee and Lighthouse instructions inserted around the launch", () => {
+    const user = Keypair.generate();
+    const mint = Keypair.generate();
+    const instructions = [
+      ComputeBudgetProgram.setComputeUnitLimit({ units: 600_000 }),
+      new TransactionInstruction({
+        programId: SystemProgram.programId,
+        keys: [
+          { pubkey: user.publicKey, isSigner: true, isWritable: true },
+          { pubkey: mint.publicKey, isSigner: true, isWritable: true },
+        ],
+        data: Buffer.from([4, 5, 6]),
+      }),
+    ];
+    const tx = new VersionedTransaction(
+      new TransactionMessage({
+        payerKey: user.publicKey,
+        recentBlockhash: blockhash,
+        instructions,
+      }).compileToV0Message(),
+    );
+    const phantom = new VersionedTransaction(
+      new TransactionMessage({
+        payerKey: user.publicKey,
+        recentBlockhash: otherBlockhash,
+        instructions: [
+          ComputeBudgetProgram.setComputeUnitPrice({ microLamports: 50_000 }),
+          ComputeBudgetProgram.setComputeUnitLimit({ units: 1_000_000 }),
+          instructions[1]!,
+          lighthouse(user.publicKey),
+        ],
+      }).compileToV0Message(),
+    );
+    phantom.sign([user]);
+
+    const decision = reconcileWalletMessage(tx, phantom);
+    assert.equal(decision.ok, true);
+    if (!decision.ok) return;
+    assert.equal(decision.blockhashChanged, true);
+
+    const stored = encodeTx(clearSignatures(phantom));
+    const finished = cosignMint(
+      encodeTx(phantom),
+      bs58.encode(mint.secretKey),
+      mint.publicKey.toBase58(),
+    );
+    assert.equal(verifySignedTx(finished, stored, user.publicKey.toBase58()).ok, true);
+
+    const stripped = TransactionMessage.decompile(
+      (stripWalletAssertions(decodeTx(stored) as VersionedTransaction, []) as VersionedTransaction)
+        .message,
+    );
+    assert.deepEqual(
+      stripped.instructions.map((instruction) => instruction.programId.toBase58()),
+      [
+        ComputeBudgetProgram.programId.toBase58(),
+        SystemProgram.programId.toBase58(),
+      ],
+    );
+    assert.equal(stripped.instructions[0]?.data[0], 2);
+  });
+
+  it("keeps a Lighthouse assertion inserted between launch instructions", () => {
+    const user = Keypair.generate();
+    const mint = Keypair.generate();
+    const create = new TransactionInstruction({
+      programId: SystemProgram.programId,
+      keys: [
+        { pubkey: user.publicKey, isSigner: true, isWritable: true },
+        { pubkey: mint.publicKey, isSigner: true, isWritable: true },
+      ],
+      data: Buffer.from([1, 2]),
+    });
+    const buy = new TransactionInstruction({
+      programId: SystemProgram.programId,
+      keys: [
+        { pubkey: user.publicKey, isSigner: true, isWritable: true },
+        { pubkey: mint.publicKey, isSigner: true, isWritable: true },
+      ],
+      data: Buffer.from([3, 4]),
+    });
+    const tx = new VersionedTransaction(
+      new TransactionMessage({
+        payerKey: user.publicKey,
+        recentBlockhash: blockhash,
+        instructions: [
+          ComputeBudgetProgram.setComputeUnitLimit({ units: 600_000 }),
+          create,
+          buy,
+        ],
+      }).compileToV0Message(),
+    );
+    const dataSize = new TransactionInstruction({
+      programId: ComputeBudgetProgram.programId,
+      keys: [],
+      data: Buffer.from([4, 0, 0, 0x40, 0]),
+    });
+    const phantom = new VersionedTransaction(
+      new TransactionMessage({
+        payerKey: user.publicKey,
+        recentBlockhash: otherBlockhash,
+        instructions: [
+          ComputeBudgetProgram.setComputeUnitPrice({ microLamports: 25_000 }),
+          ComputeBudgetProgram.setComputeUnitLimit({ units: 800_000 }),
+          create,
+          lighthouse(user.publicKey),
+          buy,
+          dataSize,
+          lighthouse(mint.publicKey),
+        ],
+      }).compileToV0Message(),
+    );
+    phantom.sign([user]);
+
+    const decision = reconcileWalletMessage(tx, phantom);
+    assert.equal(decision.ok, true);
+
+    const stripped = TransactionMessage.decompile(
+      stripWalletAssertions(phantom, []).message,
+    );
+    assert.deepEqual(
+      stripped.instructions.map((instruction) => [
+        instruction.programId.toBase58(),
+        instruction.data[0],
+      ]),
+      [
+        [ComputeBudgetProgram.programId.toBase58(), 2],
+        [SystemProgram.programId.toBase58(), 1],
+        [SystemProgram.programId.toBase58(), 3],
+      ],
+    );
+  });
+
+  it("rejects a compute budget lower than the one the launch was built with", () => {
+    const { tx, user } = twoSignerTx();
+    const original = TransactionMessage.decompile(tx.message);
+    const limited = new VersionedTransaction(
+      new TransactionMessage({
+        payerKey: user.publicKey,
+        recentBlockhash: blockhash,
+        instructions: [
+          ComputeBudgetProgram.setComputeUnitLimit({ units: 400_000 }),
+          ...original.instructions,
+        ],
+      }).compileToV0Message(),
+    );
+    const lowered = new VersionedTransaction(
+      new TransactionMessage({
+        payerKey: user.publicKey,
+        recentBlockhash: otherBlockhash,
+        instructions: [
+          ComputeBudgetProgram.setComputeUnitLimit({ units: 1_000 }),
+          ...original.instructions,
+        ],
+      }).compileToV0Message(),
+    );
+    const decision = reconcileWalletMessage(limited, lowered);
+    assert.equal(decision.ok, false);
+    if (!decision.ok) {
+      assert.equal(decision.reason, "the signed transaction lowered the compute budget");
+    }
+  });
+
+  it("rejects a launch account that Phantom marked read-only", () => {
+    const user = Keypair.generate();
+    const dest = Keypair.generate().publicKey;
+    const launch = new TransactionInstruction({
+      programId: SystemProgram.programId,
+      keys: [
+        { pubkey: user.publicKey, isSigner: true, isWritable: true },
+        { pubkey: dest, isSigner: false, isWritable: true },
+      ],
+      data: Buffer.from([1]),
+    });
+    const tx = new VersionedTransaction(
+      new TransactionMessage({
+        payerKey: user.publicKey,
+        recentBlockhash: blockhash,
+        instructions: [launch],
+      }).compileToV0Message(),
+    );
+    const readonly = new VersionedTransaction(
+      new TransactionMessage({
+        payerKey: user.publicKey,
+        recentBlockhash: otherBlockhash,
+        instructions: [
+          new TransactionInstruction({
+            programId: SystemProgram.programId,
+            keys: [
+              { pubkey: user.publicKey, isSigner: true, isWritable: true },
+              { pubkey: dest, isSigner: false, isWritable: false },
+            ],
+            data: Buffer.from([1]),
+          }),
+        ],
+      }).compileToV0Message(),
+    );
+    const decision = reconcileWalletMessage(tx, readonly);
+    assert.equal(decision.ok, false);
+    if (!decision.ok) {
+      assert.equal(decision.reason, "the signed transaction made an account read-only");
+    }
+  });
+
+  it("rejects a non-wallet instruction inserted ahead of the launch", () => {
     const { tx, user } = twoSignerTx();
     const original = TransactionMessage.decompile(tx.message);
     const tampered = new VersionedTransaction(
       new TransactionMessage({
         payerKey: user.publicKey,
         recentBlockhash: tx.message.recentBlockhash,
-        instructions: [lighthouse(user.publicKey), ...original.instructions],
+        instructions: [
+          SystemProgram.transfer({
+            fromPubkey: user.publicKey,
+            toPubkey: Keypair.generate().publicKey,
+            lamports: 1,
+          }),
+          ...original.instructions,
+        ],
       }).compileToV0Message(),
     );
     tampered.sign([user]);
