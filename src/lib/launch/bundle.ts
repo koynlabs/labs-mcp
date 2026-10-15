@@ -1,12 +1,15 @@
 import { randomUUID } from "node:crypto";
 import bs58 from "bs58";
-import { PublicKey, SystemProgram } from "@solana/web3.js";
+import { PublicKey, SystemProgram, VersionedTransaction } from "@solana/web3.js";
 import { BUNDLE_TTL_SECONDS, PUMP, SITE_URL } from "../config";
-import { connection, decodeTx, verifySignedTx } from "../solana";
+import { decrypt, encrypt } from "../seal";
+import { connection, decodeTx, encodeTx, verifySignedTx } from "../solana";
 import { getBundle, put } from "../store";
 import type { LaunchBundle } from "../types";
+import { loadLookups, rewriteBlockhash } from "./blockhash";
 import type { BuiltLaunch, LaunchInput } from "./input";
-import { buildPumpLaunch } from "./pump";
+import { cosignMint } from "./mint-sign";
+import { assertPumpSimulatable, buildPumpLaunch } from "./pump";
 import { buildStonksLaunch } from "./stonks";
 
 export function signUrl(id: string): string {
@@ -59,10 +62,15 @@ export async function createLaunch(input: LaunchInput): Promise<LaunchBundle> {
     symbol: input.symbol,
     metadataUri: built.metadataUri,
     metadataHost: built.metadataHost,
+    ...(built.banner ? { banner: built.banner } : {}),
     buyers: built.buyers,
     feeSol: 0,
+    ...(built.quoteMint ? { quoteMint: built.quoteMint } : {}),
     txs: built.txs,
     signed: {},
+    sealedMint: encrypt(built.mintSecret),
+    blockhash: built.blockhash,
+    lastValidBlockHeight: built.lastValidBlockHeight,
     status: "awaiting_signatures",
     createdAt: Date.now(),
   };
@@ -90,11 +98,114 @@ export async function attachSignature(
   if (!pending) throw new Error(`no transaction at index ${index}`);
 
   const check = verifySignedTx(signedBase64, pending.tx, pending.signer);
-  if (!check.ok) throw new Error(check.reason);
+  if (!check.ok) throw new Error(signingReason(check.reason));
+  if (!bundle.sealedMint) {
+    throw new Error(
+      "This launch was built before its mint key was kept. Build it again.",
+    );
+  }
 
-  bundle.signed[String(pending.index)] = signedBase64;
+  const finished = cosignMint(
+    signedBase64,
+    decrypt(bundle.sealedMint),
+    bundle.mint,
+  );
+  const again = verifySignedTx(finished, pending.tx, pending.signer);
+  if (!again.ok) throw new Error(signingReason(again.reason));
+
+  bundle.signed[String(pending.index)] = finished;
   await put(bundle, BUNDLE_TTL_SECONDS);
   return bundle;
+}
+
+function signingReason(reason: string): string {
+  if (reason === "the transaction was modified after signing") {
+    return "That signature is for an older copy of the transaction. Sign again.";
+  }
+  return reason;
+}
+
+/**
+ * Replaces the blockhash immediately before the wallet signs, and simulates
+ * the pump transaction the wallet is about to see. Signatures already
+ * collected are kept while their blockhash is still valid. Once it expires
+ * they are dropped, because they no longer match a transaction that can land.
+ */
+export async function refreshForSigning(
+  id: string,
+): Promise<{ bundle: LaunchBundle; reset: boolean }> {
+  const bundle = await getBundle(id);
+  if (!bundle) throw new Error("that launch has expired or does not exist");
+  if (bundle.status !== "awaiting_signatures") return { bundle, reset: false };
+  if (!bundle.sealedMint) {
+    throw new Error(
+      "This launch was built before its mint key was kept. Build it again.",
+    );
+  }
+
+  const signedCount = Object.keys(bundle.signed).length;
+  const expired = await blockhashExpired(bundle);
+  if (signedCount > 0 && !expired) return { bundle, reset: false };
+
+  const reset = signedCount > 0 && expired;
+  if (reset) bundle.signed = {};
+
+  const { blockhash, lastValidBlockHeight } =
+    await connection().getLatestBlockhash("confirmed");
+  const txs = [];
+  for (const pending of [...bundle.txs].sort((a, b) => a.index - b.index)) {
+    const current = decodeTx(pending.tx);
+    if (!(current instanceof VersionedTransaction)) {
+      throw new Error("launch transactions are versioned");
+    }
+    const tables = await loadLookups(current);
+    const next = rewriteBlockhash(current, blockhash, tables);
+    if (bundle.venue === "pump") {
+      await assertPumpSimulatable(next, pending.role, pending.role === "buy");
+    }
+    txs.push({ ...pending, tx: encodeTx(next) });
+  }
+
+  bundle.txs = txs;
+  bundle.blockhash = blockhash;
+  bundle.lastValidBlockHeight = lastValidBlockHeight;
+  bundle.error = reset
+    ? "The blockhash expired before every wallet signed. Sign again."
+    : undefined;
+  await put(bundle, BUNDLE_TTL_SECONDS);
+  return { bundle, reset };
+}
+
+async function blockhashExpired(bundle: LaunchBundle): Promise<boolean> {
+  if (!bundle.lastValidBlockHeight) return true;
+  const height = await connection().getBlockHeight("confirmed");
+  return height > bundle.lastValidBlockHeight;
+}
+
+/** What the sign page is allowed to see. The sealed mint key stays on the server. */
+export function bundleView(bundle: LaunchBundle) {
+  return {
+    bundleId: bundle.id,
+    status: bundle.status,
+    venue: bundle.venue,
+    mint: bundle.mint,
+    name: bundle.name,
+    symbol: bundle.symbol,
+    feeSol: bundle.feeSol,
+    banner: bundle.banner,
+    quoteMint: bundle.quoteMint,
+    jitoBundleId: bundle.jitoBundleId,
+    error: bundle.error,
+    lastValidBlockHeight: bundle.lastValidBlockHeight,
+    txs: bundle.txs.map((tx) => ({
+      index: tx.index,
+      role: tx.role,
+      signer: tx.signer,
+      sol: tx.sol,
+      tx: tx.tx,
+      signed: Boolean(bundle.signed[String(tx.index)]),
+    })),
+  };
 }
 
 export function outstanding(bundle: LaunchBundle) {
@@ -111,6 +222,14 @@ export async function submitLaunch(id: string): Promise<LaunchBundle> {
   if (bundle.status === "submitted") return bundle;
   if (outstanding(bundle).length > 0) {
     throw new Error("every wallet has to sign before the launch can be sent");
+  }
+  if (await blockhashExpired(bundle)) {
+    bundle.signed = {};
+    bundle.status = "awaiting_signatures";
+    bundle.error =
+      "The blockhash expired before the bundle was sent. Sign again.";
+    await put(bundle, BUNDLE_TTL_SECONDS);
+    return bundle;
   }
 
   const ordered = [...bundle.txs].sort((a, b) => a.index - b.index);

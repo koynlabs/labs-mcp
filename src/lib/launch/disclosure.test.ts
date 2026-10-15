@@ -37,4 +37,21 @@ describe("launchDisclosure", () => {
       ["1 SOL · CreatorWallet", "0.5 SOL · BuyerWallet"],
     );
   });
+
+  it("labels a custom-pair buy with the quote mint", () => {
+    const view = launchDisclosure(
+      {
+        ...bundle,
+        quoteMint: "Xs3eBt7uRfJX8QUs4suhyU8p2M6DoUDrJyWBa8LLZsg",
+      },
+      "labs.levercoin.lol",
+    );
+    assert.deepEqual(
+      view.amounts.map((line) => line.value),
+      [
+        "1 Xs3eBt7uRfJX8QUs4suhyU8p2M6DoUDrJyWBa8LLZsg · CreatorWallet",
+        "0.5 Xs3eBt7uRfJX8QUs4suhyU8p2M6DoUDrJyWBa8LLZsg · BuyerWallet",
+      ],
+    );
+  });
 });

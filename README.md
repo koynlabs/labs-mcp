@@ -100,6 +100,7 @@ Then: *“Launch a token on pump.fun called …”*
 | `launch_status` | Who still has to sign, and whether the bundle landed |
 | `token_info` | Price, market cap, graduation progress |
 | `wallet_balance` | SOL balance, to size a launch before signing |
+| `pump_pairs` | Quote assets a pump.fun launch can pair against, from the live on-chain registry |
 | `stonks_pairs` | Quote tokens a StonkFun launch can pair against |
 | `start_maker` | Opens a two-sided quoting session |
 | `maker_status` | Position, last bid and ask, fills, time left |
@@ -115,15 +116,24 @@ Then: *“Launch a token on pump.fun called …”*
 
 ## How a launch works
 
-`launch_token` builds the create and up to three extra buys, and stores them unsigned:
+`launch_token` builds the create and up to three extra buys. The transactions
+are stored unsigned. The blockhash is replaced when a signer clicks Sign, so it
+has not expired by the time Phantom simulates or Jito receives the bundle.
 
 | # | Transaction |
 | --- | --- |
-| 0 | Create the token, plus the creator's own opening buy |
+| 0 | Create the token, plus the creator's own opening buy, in one transaction |
 | 1–3 | One buy per additional wallet the creator controls |
 
 They go out as a single Jito bundle, which lands all-or-none. A Jito bundle holds
 five transactions, and launches stay capped at three extra buyers.
+
+On pump.fun the create uses the same address lookup table as pump.fun's own
+creates, which is what keeps the creator buy inside the create. Phantom can
+then simulate the SOL leaving the wallet. The sign page loads that table before
+asking for a signature. The wallet signs first (`signTransaction`). The mint
+key labs generated co-signs the same message afterwards. It is sealed with
+`LABS_SESSION_SECRET`, holds no funds, and is never a wallet key.
 
 You open `/sign/<bundleId>`, connect each wallet in turn, and sign. The server
 re-verifies every signature against the exact message it handed out, and only
@@ -132,10 +142,22 @@ then submits. A signer can refuse, but cannot rewrite what they were given.
 ### The two venues
 
 **pump.fun** is built in-process with the official [`@pump-fun/pump-sdk`](https://www.npmjs.com/package/@pump-fun/pump-sdk).
-The create is a `create_v2` (Token-2022) with every account written into the
-transaction, including the program event authority, so a wallet can simulate it.
-The creator's opening buy rides in that same transaction when it fits; otherwise
-it becomes the next transaction in the bundle. Each extra wallet gets its own buy.
+The create is a `create_v2` (Token-2022). The creator's opening buy rides in
+that same transaction. Each extra wallet gets its own buy, which runs after the
+create inside the bundle. `npm run simulate:pump` builds one of these against
+mainnet and simulates it, and does not send it.
+
+`quoteMint` defaults to wSOL. Any other mint has to be one `pump_pairs` returns.
+That tool reads Global's whitelist and the QuoteControl account, which is the
+registry `create_v2` consults: xStocks, crypto, metals, PUMP, USDC, and eligible
+parent coins, whatever is listed on-chain at that moment. The create and the
+buys are built against that asset. `creatorBuySol` and each extra buy are then
+amounts of the quote asset, and the wallet has to hold it already. A swap from
+SOL into the quote asset does not fit in the same transaction as the create and
+the creator buy (that transaction is already about 1100 bytes, and a packet holds
+1232), and a swap in an earlier transaction cannot be simulated by the wallet.
+`npm run simulate:pump:pairs` builds one xStock pair and one non-xStock pair
+from that live list and simulates both, and does not send them.
 
 **StonkFun** has no launch endpoint — `paidLaunchesEnabled` is off, and
 `launchLabEnabled` is on. So labs builds the Raydium LaunchLab
@@ -159,6 +181,16 @@ requests with a block page, so metadata is resolved one of three ways:
 The URI is written into the token permanently, so option 3 returns a warning, and
 labs refuses the launch if it cannot fetch its own URI back — that catches a
 misconfigured `LABS_SITE_URL` before a token is minted pointing at nothing.
+
+An optional `bannerUrl` (or `bannerImageUrl`) is fetched and pinned the same way
+as `imageUrl`: recommended 1500×500 (3:1), image or GIF, max about 5MB, which is
+also the fetch limit. The pinned URL is stored as `banner` in the metadata JSON.
+pump.fun's `create_v2` instruction has no banner argument — it only stores the
+metadata URI. The banner on the coin page is a separate pump.fun record, set
+only at creation by `POST https://frontend-api-v3.pump.fun/coins/add-banner`
+with `{ mint, banner }`, and it cannot be changed later. labs does not call
+that endpoint. A caller-supplied `metadataUri` is used as-is, so a banner has
+to already be inside that JSON if you want it there.
 
 ## The quoter
 

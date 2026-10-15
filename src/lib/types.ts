@@ -3,9 +3,9 @@ export type Venue = "pump" | "stonks";
 export type TxRole = "fee" | "create" | "buy";
 
 /**
- * One transaction a wallet still has to sign. `tx` is base64 and may already
- * carry the mint keypair's signature; the message itself is never rebuilt
- * after this point, so the sign page cannot alter what it signs.
+ * One transaction a wallet still has to sign. `tx` is base64 and unsigned.
+ * The mint key signs only after the wallet does. The message is replaced,
+ * still unsigned, when the signer asks for a fresh blockhash.
  */
 export type PendingTx = {
   index: number;
@@ -13,7 +13,10 @@ export type PendingTx = {
   /** Wallet that must add a signature. */
   signer: string;
   tx: string;
-  /** SOL this transaction spends, on a create or a buy. */
+  /**
+   * Amount this transaction spends, on a create or a buy. SOL when the quote
+   * is wSOL. Otherwise the quote asset's own amount (`LaunchBundle.quoteMint`).
+   */
   sol?: number;
 };
 
@@ -33,12 +36,30 @@ export type LaunchBundle = {
   symbol: string;
   metadataUri: string;
   metadataHost: "caller" | "ipfs" | "labs";
+  /**
+   * Banner URL stored in the metadata JSON. pump.fun's coin page does not read
+   * this; see `BANNER_LIMIT`.
+   */
+  banner?: string;
   buyers: { publicKey: string; sol: number }[];
   /** Always 0. Kept so older clients still see the field. */
   feeSol: number;
+  /**
+   * Present when the launch is paired with something other than wSOL.
+   * `txs[].sol` is then an amount of this mint, which the buyer already holds.
+   */
+  quoteMint?: string;
   txs: PendingTx[];
-  /** index -> base64 signed transaction. */
+  /** index -> base64 signed transaction. The create also carries the mint signature. */
   signed: Record<string, string>;
+  /**
+   * Mint keypair, sealed with LABS_SESSION_SECRET. Co-signs the create after
+   * the wallet. Never returned to the browser. Holds no funds.
+   */
+  sealedMint?: string;
+  /** Blockhash currently inside `txs`, and the last block height it survives. */
+  blockhash?: string;
+  lastValidBlockHeight?: number;
   status: BundleStatus;
   jitoBundleId?: string;
   signatures?: string[];

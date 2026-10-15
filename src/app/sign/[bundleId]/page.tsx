@@ -6,6 +6,8 @@ import { SignClient } from "./sign-client";
 
 export const metadata = {
   title: "Sign a launch",
+  description:
+    "Sign a pump.fun or StonkFun token launch. Your wallet approves the transaction. labs never asks for a private key.",
   robots: { index: false, follow: false },
 };
 

@@ -8,7 +8,9 @@
     "build": "next build",
     "start": "next start",
     "typecheck": "tsc --noEmit",
-    "test": "tsx --test src/lib/ssrf.test.ts src/lib/seal.test.ts src/lib/trade/disclosure.test.ts src/lib/trade/quote.test.ts src/lib/launch/disclosure.test.ts",
+    "test": "tsx --test src/lib/ssrf.test.ts src/lib/seal.test.ts src/lib/trade/disclosure.test.ts src/lib/trade/quote.test.ts src/lib/launch/disclosure.test.ts src/lib/launch/metadata.test.ts src/lib/launch/signing.test.ts",
+    "simulate:pump": "tsx scripts/simulate-pump-launch.ts",
+    "simulate:pump:pairs": "tsx scripts/simulate-pump-pairs.ts",
     "workflow": "workflow web"
   },
   "dependencies": {

@@ -21,7 +21,7 @@ export const FAQ = [
   },
   {
     q: "Does labs hold my private key?",
-    a: "No. labs never asks for a wallet private key. Every transaction is built unsigned and signed in your own wallet. The only key it can hold is a throwaway quoting key you generate in the browser for a maker session, and that key is capped and expires.",
+    a: "No. labs never asks for a wallet private key. Your wallet signs every transaction. labs generates the new token's mint key, seals it until you have signed, and uses it only to co-sign the create. That key holds no funds. A maker session can also hold the throwaway quoting key you generate in the browser, and that key is capped and expires.",
   },
   {
     q: "How do I connect labs to Claude, ChatGPT or Grok?",
@@ -29,7 +29,7 @@ export const FAQ = [
   },
   {
     q: "Which venues can labs launch on?",
-    a: "pump.fun and StonkFun. Up to three extra wallets you control can buy in the same bundle as the create.",
+    a: "pump.fun and StonkFun. A pump.fun coin pairs with wSOL unless you pass a quote mint from pump_pairs, which reads the live on-chain registry. That buy spends the quote asset the wallet already holds. Up to three extra wallets you control can buy in the same bundle as the create.",
   },
   {
     q: "Can labs trade, or only launch?",

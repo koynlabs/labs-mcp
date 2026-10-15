@@ -3,6 +3,8 @@ import { z } from "zod";
 import { start } from "workflow/api";
 import { MAKER, MAKER_ENABLED, MAX_BUYERS } from "../config";
 import { createLaunch, outstanding, signUrl } from "../launch/bundle";
+import { listPumpPairs } from "../launch/pump-pairs";
+import { BANNER_LIMIT } from "../launch/metadata";
 import { launchablePairs } from "../launch/stonks";
 import { solBalance, tokenInfo } from "../market";
 import {
@@ -55,6 +57,18 @@ export function registerTools(server: McpServer): void {
         name: z.string().min(1).max(32),
         symbol: z.string().min(1).max(10),
         imageUrl: z.string().url().describe("token image, fetched server-side"),
+        bannerUrl: z
+          .string()
+          .url()
+          .optional()
+          .describe(
+            "Optional coin banner, image or GIF. Recommended 1500×500 (3:1), max about 5MB. Fetched and pinned the same way as imageUrl, then stored as banner in the metadata JSON. pump.fun's create_v2 instruction has no banner argument. The coin-page banner is a separate pump.fun record, set only at creation by POST https://frontend-api-v3.pump.fun/coins/add-banner with { mint, banner }, and it cannot be changed later. This path does not call that endpoint. Passing metadataUri uses that JSON as-is and does not merge this URL.",
+          ),
+        bannerImageUrl: z
+          .string()
+          .url()
+          .optional()
+          .describe("Alias of bannerUrl. Pass one banner, not two different URLs."),
         description: z.string().max(500).optional(),
         twitter: z.string().optional(),
         telegram: z.string().optional(),
@@ -63,12 +77,17 @@ export function registerTools(server: McpServer): void {
           .number()
           .min(0)
           .default(0)
-          .describe("the creator's own opening buy, in SOL"),
+          .describe(
+            "Opening buy. SOL when quoteMint is omitted or wSOL. For any other quote mint, the amount of that asset the wallet already holds.",
+          ),
         buyers: z
           .array(
             z.object({
               publicKey,
-              sol: z.number().positive(),
+              sol: z
+                .number()
+                .positive()
+                .describe("same unit as creatorBuySol"),
             }),
           )
           .max(MAX_BUYERS)
@@ -78,7 +97,9 @@ export function registerTools(server: McpServer): void {
         priorityFeeSol: z.number().min(0).default(0.0001),
         quoteMint: publicKey
           .optional()
-          .describe("StonkFun only: what the token trades against, default wSOL"),
+          .describe(
+            "What the token trades against. Default wSOL. On pump.fun, call pump_pairs and pass any mint it returns (xStocks, crypto, metals, PUMP, USDC, or an eligible parent coin). The list is the live on-chain registry, not a fixed set. A non-SOL pump buy spends that asset, which the wallet already holds. A SOL swap does not fit in the create transaction, so one is not added. On StonkFun the mint must be a launchable pair from stonks_pairs.",
+          ),
         metadataUri: z
           .string()
           .url()
@@ -96,12 +117,22 @@ export function registerTools(server: McpServer): void {
           );
         }
 
+        const bannerUrl = args.bannerUrl ?? args.bannerImageUrl;
+        if (
+          args.bannerUrl &&
+          args.bannerImageUrl &&
+          args.bannerUrl !== args.bannerImageUrl
+        ) {
+          return failure("bannerUrl and bannerImageUrl differ. Pass one banner.");
+        }
+
         const bundle = await createLaunch({
           venue: args.venue,
           creator: args.creator,
           name: args.name,
           symbol: args.symbol,
           imageUrl: args.imageUrl,
+          bannerUrl,
           description: args.description,
           twitter: args.twitter,
           telegram: args.telegram,
@@ -120,6 +151,12 @@ export function registerTools(server: McpServer): void {
           venue: bundle.venue,
           feeSol: bundle.feeSol,
           metadataUri: bundle.metadataUri,
+          banner: bundle.banner,
+          bannerNote: bannerUrl
+            ? args.metadataUri
+              ? `bannerUrl was not written into the metadata JSON because metadataUri is used as-is. ${BANNER_LIMIT}`
+              : `Banner URL stored in the metadata JSON: ${bundle.banner}. ${BANNER_LIMIT}`
+            : undefined,
           metadataWarning:
             bundle.metadataHost === "labs"
               ? "This token's metadata JSON is served by labs, not IPFS. Pass metadataUri, or have the operator set LABS_PINATA_JWT, if it needs to outlive this service."
@@ -199,6 +236,42 @@ export function registerTools(server: McpServer): void {
         return text({
           publicKey: args.publicKey,
           sol: await solBalance(args.publicKey),
+        });
+      } catch (error) {
+        return failure(error instanceof Error ? error.message : String(error));
+      }
+    },
+  );
+
+  server.registerTool(
+    "pump_pairs",
+    {
+      title: "pump.fun quote assets",
+      description: [
+        "Quote assets a pump.fun launch can pair against right now: wSOL plus",
+        "every mint create_v2 currently admits from Global and the QuoteControl",
+        "account. That is the live custom-pair registry (xStocks, crypto, metals,",
+        "PUMP, USDC, and eligible parent coins), read on-chain. Call this before",
+        "passing quoteMint to launch_token. A non-wSOL pair spends that asset,",
+        "which the wallet already holds.",
+      ].join(" "),
+      inputSchema: z.object({
+        search: z
+          .string()
+          .optional()
+          .describe("filter by mint address, or a prefix of one"),
+      }),
+    },
+    async ({ search }) => {
+      try {
+        const pairs = await listPumpPairs();
+        const needle = search?.trim();
+        const filtered = needle
+          ? pairs.filter((pair) => pair.mint.toLowerCase().includes(needle.toLowerCase()))
+          : pairs;
+        return text({
+          count: filtered.length,
+          pairs: filtered,
         });
       } catch (error) {
         return failure(error instanceof Error ? error.message : String(error));

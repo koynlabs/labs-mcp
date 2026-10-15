@@ -5,7 +5,7 @@ import { VersionedTransaction } from "@solana/web3.js";
 import Wordmark from "@/components/Wordmark";
 import { SignFacts } from "@/components/SignFacts";
 import type { LaunchView } from "@/lib/launch/disclosure";
-import { prepareForSigning } from "@/lib/prepare-tx";
+import { assertUnsignedForWallet, prepareForSigning } from "@/lib/prepare-tx";
 
 type PendingTx = {
   index: number;
@@ -24,10 +24,21 @@ type Bundle = {
   name: string;
   symbol: string;
   feeSol: number;
+  /** Banner URL stored in the token metadata, when this launch has one. */
+  banner?: string;
+  /** Set when the buy spends this asset instead of SOL. */
+  quoteMint?: string;
   jitoBundleId?: string;
   error?: string;
   txs: PendingTx[];
 };
+
+const WSOL = "So11111111111111111111111111111111111111112";
+
+function spendUnit(quoteMint?: string): string {
+  if (!quoteMint || quoteMint === WSOL) return "SOL";
+  return quoteMint;
+}
 
 type Wallet = {
   publicKey: { toBase58(): string } | null;
@@ -73,6 +84,12 @@ export function SignClient({ bundleId, facts }: { bundleId: string; facts: Launc
     void load();
   }, [load]);
 
+  useEffect(() => {
+    if (!bundle || bundle.status !== "awaiting_signatures") return;
+    const timer = setInterval(() => void load(), 10_000);
+    return () => clearInterval(timer);
+  }, [bundle, load]);
+
   const connect = async () => {
     try {
       const provider = wallet();
@@ -98,10 +115,32 @@ export function SignClient({ bundleId, facts }: { bundleId: string; facts: Launc
         return;
       }
 
-      for (const pending of mine) {
+      const prepared = await fetch(`/api/bundle/${bundleId}/prepare`, {
+        method: "POST",
+      });
+      const fresh = await prepared.json();
+      if (!prepared.ok) {
+        throw new Error(fresh.error ?? "the transaction failed simulation");
+      }
+      setBundle(fresh);
+      if (fresh.reset) {
+        setNote("The previous signatures expired. Sign again.");
+      }
+      const ready = (fresh.txs as PendingTx[]).filter(
+        (tx) => tx.signer === connected && !tx.signed,
+      );
+      if (ready.length === 0) {
+        setNote("Nothing left for this wallet to sign.");
+        return;
+      }
+
+      for (const pending of ready) {
         const tx = VersionedTransaction.deserialize(
           Uint8Array.from(atob(pending.tx), (char) => char.charCodeAt(0)),
         );
+        // signTransaction, not signAndSendTransaction: the mint key still has
+        // to sign, and the bundle is submitted by the server.
+        assertUnsignedForWallet(tx);
         await prepareForSigning(tx);
         const signed = await provider.signTransaction(tx);
         const response = await fetch(`/api/bundle/${bundleId}`, {
@@ -147,10 +186,24 @@ export function SignClient({ bundleId, facts }: { bundleId: string; facts: Launc
       <p className="muted">
         {bundle.venue === "pump" ? "pump.fun" : "StonkFun"} · mint {bundle.mint}
       </p>
+      {bundle.banner ? (
+        <p className="muted">
+          Banner stored in the token metadata: <code>{bundle.banner}</code>.
+          pump.fun shows a coin-page banner from its own record, which this
+          create transaction does not set.
+        </p>
+      ) : null}
 
       <p>
         These transactions land together as one atomic bundle: the token is
         created, and your wallets buy. If any part fails, none of it happens.
+        Your wallet signs first. The token&apos;s mint key co-signs on the
+        server after that, and only then is the bundle sent.
+        {bundle.venue === "pump"
+          ? bundle.quoteMint && bundle.quoteMint !== WSOL
+            ? ` The create and your opening buy are one transaction, so the wallet can simulate ${bundle.quoteMint} leaving your account. You spend that asset, which the wallet already holds. A swap from SOL does not fit beside the create, so this launch does not include one.`
+            : " The create and your opening buy are one transaction, so the wallet can simulate the SOL leaving your account."
+          : ""}
       </p>
 
       {facts ? (
@@ -168,7 +221,7 @@ export function SignClient({ bundleId, facts }: { bundleId: string; facts: Launc
         {bundle.txs.map((tx) => (
           <li key={tx.index} className={tx.signed ? "done" : ""}>
             <strong>{label[tx.role]}</strong>
-            {tx.sol !== undefined ? ` · ${tx.sol} SOL` : ""}
+            {tx.sol !== undefined ? ` · ${tx.sol} ${spendUnit(bundle.quoteMint)}` : ""}
             <br />
             <code>{tx.signer}</code>
             <span className="state">{tx.signed ? "signed" : "waiting"}</span>
