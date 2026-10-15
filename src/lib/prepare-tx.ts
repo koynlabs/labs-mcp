@@ -39,8 +39,9 @@ function fromBase64(value: string): Uint8Array {
  * Lets Phantom call `getAccountKeys()` with no arguments. On a v0 message that
  * throws until the lookup tables are loaded, and Phantom then blocks the
  * request because it cannot see the accounts. The compiled bytes are left
- * alone. Phantom may still rewrite the blockhash and append Lighthouse
- * assertions inside `signTransaction`; the server accepts only that difference.
+ * alone. Phantom may still rewrite the blockhash and insert compute-budget
+ * and Lighthouse instructions inside `signTransaction`. The server keeps the
+ * launch instructions and accepts those wallet-only changes.
  */
 export function attachLookupTables(
   tx: VersionedTransaction,
