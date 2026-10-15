@@ -5,7 +5,9 @@ export type TxRole = "fee" | "create" | "buy";
 /**
  * One transaction a wallet still has to sign. `tx` is base64 and unsigned.
  * The mint key signs only after the wallet does. The message is replaced,
- * still unsigned, when the signer asks for a fresh blockhash.
+ * still unsigned, when the signer asks for a fresh blockhash, and again when
+ * the wallet refreshes that hash or appends its own assertions. The signature
+ * bytes live in `signed`.
  */
 export type PendingTx = {
   index: number;

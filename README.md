@@ -135,9 +135,11 @@ asking for a signature. The wallet signs first (`signTransaction`). The mint
 key labs generated co-signs the same message afterwards. It is sealed with
 `LABS_SESSION_SECRET`, holds no funds, and is never a wallet key.
 
-You open `/sign/<bundleId>`, connect each wallet in turn, and sign. The server
-re-verifies every signature against the exact message it handed out, and only
-then submits. A signer can refuse, but cannot rewrite what they were given.
+You open `/sign/<bundleId>`, connect each wallet in turn, and sign. Phantom may
+refresh the blockhash and append its own Lighthouse assertions. Those are the
+only differences that are kept: the mint key co-signs that signed message, and
+the wallet's signature is checked against it before the bundle is sent. A signer
+can refuse, but cannot change the instructions, accounts, or amounts.
 
 ### The two venues
 

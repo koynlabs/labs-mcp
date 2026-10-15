@@ -1,9 +1,14 @@
 import { randomUUID } from "node:crypto";
 import bs58 from "bs58";
-import { PublicKey, SystemProgram, VersionedTransaction } from "@solana/web3.js";
+import {
+  PublicKey,
+  SystemProgram,
+  VersionedTransaction,
+  type AddressLookupTableAccount,
+} from "@solana/web3.js";
 import { BUNDLE_TTL_SECONDS, PUMP, SITE_URL } from "../config";
 import { decrypt, encrypt } from "../seal";
-import { connection, decodeTx, encodeTx, verifySignedTx } from "../solana";
+import { connection, decodeTx, encodeTx, messageBytes, verifySignedTx } from "../solana";
 import { getBundle, put } from "../store";
 import type { LaunchBundle } from "../types";
 import { loadLookups, rewriteBlockhash } from "./blockhash";
@@ -11,6 +16,11 @@ import type { BuiltLaunch, LaunchInput } from "./input";
 import { cosignMint } from "./mint-sign";
 import { assertPumpSimulatable, buildPumpLaunch } from "./pump";
 import { buildStonksLaunch } from "./stonks";
+import {
+  clearSignatures,
+  reconcileWalletMessage,
+  stripWalletAssertions,
+} from "./wallet-message";
 
 export function signUrl(id: string): string {
   return `${SITE_URL}/sign/${id}`;
@@ -80,8 +90,9 @@ export async function createLaunch(input: LaunchInput): Promise<LaunchBundle> {
 }
 
 /**
- * Accepts one wallet's signature. The message must match the transaction that
- * was handed out, so a signer can refuse but cannot rewrite.
+ * Accepts one wallet's signature. Phantom may refresh the blockhash and append
+ * Lighthouse assertions; any other change to the handed-out instructions is
+ * rejected. The mint key then co-signs the message the wallet actually signed.
  */
 export async function attachSignature(
   id: string,
@@ -97,7 +108,35 @@ export async function attachSignature(
   const pending = bundle.txs.find((tx) => tx.index === index);
   if (!pending) throw new Error(`no transaction at index ${index}`);
 
-  const check = verifySignedTx(signedBase64, pending.tx, pending.signer);
+  const signedTx = decodeTx(signedBase64);
+  const originalTx = decodeTx(pending.tx);
+  let storedTx = pending.tx;
+  let blockhash = bundle.blockhash;
+  if (
+    signedTx instanceof VersionedTransaction &&
+    originalTx instanceof VersionedTransaction &&
+    Buffer.compare(
+      Buffer.from(messageBytes(signedTx)),
+      Buffer.from(messageBytes(originalTx)),
+    ) !== 0
+  ) {
+    // Phantom refreshes the blockhash and appends Lighthouse assertions after
+    // /prepare. Keep that message — it is what the wallet signed — and reject
+    // any change to the instructions, accounts, or signers.
+    let decision = reconcileWalletMessage(originalTx, signedTx);
+    if (!decision.ok && decision.unresolvedLookups) {
+      decision = reconcileWalletMessage(
+        originalTx,
+        signedTx,
+        await tablesFor(originalTx, signedTx),
+      );
+    }
+    if (!decision.ok) throw new Error(signingReason(decision.reason));
+    storedTx = encodeTx(clearSignatures(signedTx));
+    if (decision.blockhashChanged) blockhash = decision.blockhash;
+  }
+
+  const check = verifySignedTx(signedBase64, storedTx, pending.signer);
   if (!check.ok) throw new Error(signingReason(check.reason));
   if (!bundle.sealedMint) {
     throw new Error(
@@ -110,17 +149,41 @@ export async function attachSignature(
     decrypt(bundle.sealedMint),
     bundle.mint,
   );
-  const again = verifySignedTx(finished, pending.tx, pending.signer);
+  const again = verifySignedTx(finished, storedTx, pending.signer);
   if (!again.ok) throw new Error(signingReason(again.reason));
 
+  pending.tx = storedTx;
+  if (blockhash) bundle.blockhash = blockhash;
   bundle.signed[String(pending.index)] = finished;
   await put(bundle, BUNDLE_TTL_SECONDS);
   return bundle;
 }
 
+async function tablesFor(
+  original: VersionedTransaction,
+  signed: VersionedTransaction,
+): Promise<AddressLookupTableAccount[]> {
+  const byKey = new Map<string, AddressLookupTableAccount>();
+  for (const tx of [original, signed]) {
+    for (const table of await loadLookups(tx)) {
+      byKey.set(table.key.toBase58(), table);
+    }
+  }
+  return [...byKey.values()];
+}
+
 function signingReason(reason: string): string {
-  if (reason === "the transaction was modified after signing") {
-    return "That signature is for an older copy of the transaction. Sign again.";
+  if (
+    reason === "the transaction was modified after signing" ||
+    reason === "the signed transaction changed an instruction" ||
+    reason === "the signed transaction dropped an instruction" ||
+    reason === "the signed transaction added an instruction" ||
+    reason === "the signed transaction added too many instructions" ||
+    reason === "the signed transaction changed who has to sign" ||
+    reason === "the signed transaction changed the fee payer" ||
+    reason === "could not read the signed transaction"
+  ) {
+    return `That signature is for an older copy of the transaction. Sign again. (${reason})`;
   }
   return reason;
 }
@@ -159,7 +222,13 @@ export async function refreshForSigning(
       throw new Error("launch transactions are versioned");
     }
     const tables = await loadLookups(current);
-    const next = rewriteBlockhash(current, blockhash, tables);
+    // A previous attempt may have stored Phantom's assertions. They describe
+    // that attempt's balances, so a fresh hash starts from the original instructions.
+    const next = rewriteBlockhash(
+      stripWalletAssertions(current, tables),
+      blockhash,
+      tables,
+    );
     if (bundle.venue === "pump") {
       await assertPumpSimulatable(next, pending.role, pending.role === "buy");
     }
