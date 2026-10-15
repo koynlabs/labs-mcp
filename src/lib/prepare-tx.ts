@@ -36,10 +36,37 @@ function fromBase64(value: string): Uint8Array {
 }
 
 /**
+ * Lets Phantom call `getAccountKeys()` with no arguments. On a v0 message that
+ * throws until the lookup tables are loaded, and Phantom then blocks the
+ * request because it cannot see the accounts. The compiled bytes are left
+ * alone. Phantom may still rewrite the blockhash and append Lighthouse
+ * assertions inside `signTransaction`; the server accepts only that difference.
+ */
+export function attachLookupTables(
+  tx: VersionedTransaction,
+  accounts: AddressLookupTableAccount[],
+): void {
+  if (tx.message.version !== 0 || tx.message.addressTableLookups.length === 0) {
+    return;
+  }
+  const message = tx.message as MessageV0;
+  const original = message.getAccountKeys.bind(message);
+  message.getAccountKeys = (args) => {
+    if (
+      args &&
+      ("accountKeysFromLookups" in args || "addressLookupTableAccounts" in args)
+    ) {
+      return original(args);
+    }
+    return original({ addressLookupTableAccounts: accounts });
+  };
+  message.getAccountKeys();
+}
+
+/**
  * Phantom calls `getAccountKeys()` with no arguments. On a v0 message that
  * throws unless the lookup tables are already in hand, and Phantom then blocks
- * the request because it cannot see the accounts. The compiled bytes are left
- * alone, so the signature still matches the transaction the server stored.
+ * the request because it cannot see the accounts.
  */
 export async function prepareForSigning(
   tx: VersionedTransaction,
@@ -77,16 +104,6 @@ export async function prepareForSigning(
     });
   });
 
-  const original = message.getAccountKeys.bind(message);
-  message.getAccountKeys = (args) => {
-    if (
-      args &&
-      ("accountKeysFromLookups" in args || "addressLookupTableAccounts" in args)
-    ) {
-      return original(args);
-    }
-    return original({ addressLookupTableAccounts: accounts });
-  };
-  message.getAccountKeys();
+  attachLookupTables(tx, accounts);
   return tx;
 }
