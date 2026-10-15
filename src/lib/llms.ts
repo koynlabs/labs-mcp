@@ -18,7 +18,7 @@ MCP endpoint: ${SITE_URL}/mcp
 - Keys: the user's wallet signs every transaction. labs does not take a wallet private key
 - Connectors: Claude, ChatGPT, Grok. Add ${SITE_URL}/mcp. No API key
 - Extra buyers: up to 3 wallets the creator controls, in the same atomic bundle as the create
-- Trading: StonkFun swaps and Jupiter trigger orders, plus SOL, ETH, and BTC perps. Each returns a signing link
+- Trading: pump.fun and StonkFun buys and sells against SOL through Jupiter, plus SOL, ETH, and BTC perps. Jupiter routes pump.fun bonding-curve tokens. Each returns a signing link. The maker quotes pump.fun only
 
 ## Pages
 
@@ -45,7 +45,7 @@ export function llmsFullTxt(): string {
 - trade_board: StonkFun listings, with sort, search, page, and pair category
 - perp_markets: SOL, ETH, and BTC mark and 24h change
 - perp_positions: a wallet's open perps and working limits
-- trade_swap, trade_order: market swap, or limit, stop, take-profit/stop, and DCA, each returning a signing link
+- trade_swap, trade_order: market buy or sell, or limit, stop, take-profit/stop, and DCA, of a pump.fun or StonkFun mint against SOL. Optional venue is pump or stonks. Each returns a signing link. Routing is Jupiter, not the pump SDK
 - perp_open, perp_close, perp_exit: open, close, or set and cancel exits on SOL, ETH, and BTC perps
 
 ## Copy for answers

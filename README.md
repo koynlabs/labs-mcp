@@ -108,8 +108,8 @@ Then: *“Launch a token on pump.fun called …”*
 | `trade_board` | StonkFun listings, with sort, search, page, and pair category |
 | `perp_markets` | SOL, ETH, and BTC mark and 24h change |
 | `perp_positions` | A wallet's open perps and working limits |
-| `trade_swap` | Market buy or sell of a mint against SOL, returns a signing link |
-| `trade_order` | Limit, stop, take-profit/stop, or DCA, returns a signing link |
+| `trade_swap` | Market buy or sell of a pump.fun or StonkFun mint against SOL through Jupiter, returns a signing link |
+| `trade_order` | Limit, stop, take-profit/stop, or DCA on either venue through Jupiter, returns a signing link |
 | `perp_open` | Long or short SOL, ETH, or BTC, returns a signing link |
 | `perp_close` | Closes one perp position back to USDC |
 | `perp_exit` | Sets or cancels a take profit, stop, or limit |
@@ -194,6 +194,29 @@ with `{ mint, banner }`, and it cannot be changed later. labs does not call
 that endpoint. A caller-supplied `metadataUri` is used as-is, so a banner has
 to already be inside that JSON if you want it there.
 
+## Buying and selling
+
+`trade_swap` and `trade_order` buy or sell a mint against SOL. The mint can be a
+pump.fun coin, including one still on the bonding curve, or a StonkFun coin.
+Jupiter builds the route. A pump.fun bonding-curve swap is Jupiter's Pump.fun
+route: the sign page calls `/order`, the wallet signs, and labs submits that
+same quote to `/execute`. labs does not sell through the pump SDK.
+
+`venue` is optional: `pump` or `stonks`. It labels the sign page. Callers that
+omit it keep working. labs does not look the mint up and does not refuse a pump
+mint. Any mint Jupiter can route is accepted. The wallet named on the call signs
+at `/sign/trade/<id>`. The quote that page builds is the only one submit will
+forward. The link lasts 15 minutes, and a wallet is limited to 20 trade intents
+a minute.
+
+`trade_order` is a Jupiter Trigger order: limit, stop (a price, or a trail from
+0.5% to 90%), take-profit and stop as one OCO, or DCA. The wallet signs
+Jupiter's challenge, then the deposit. Funds sit in a Jupiter vault until fill
+or cancel. labs seals that session with `LABS_SESSION_SECRET` and does not
+return it to the browser.
+
+`trade_board` is the StonkFun board. The maker quotes pump.fun only.
+
 ## The quoter
 
 Off unless `LABS_MAKER_ENABLED=true`.
@@ -269,6 +292,8 @@ The Grok bot Rive lives at [`public/demo`](public/demo) and is served at
 - The quoter supports pump.fun only. StonkFun quoting is refused rather than
   guessed at, because an existing LaunchLab pool's state is not in the
   launch-time pricing response.
+- Market buys, sells, and trigger orders go through Jupiter for both pump.fun
+  and StonkFun. There is no pump-sdk sell.
 - A launch is refused before you sign if the create transaction fails simulation.
   Buys that follow the create in the same bundle spend a mint that does not
   exist yet, so they cannot be simulated on their own.

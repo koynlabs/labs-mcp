@@ -128,6 +128,8 @@ export type TradeDraft =
       inputMint: string;
       outputMint: string;
       amount: string;
+      /** Sign-page label. Jupiter routes the mint whether or not this is set. */
+      venue?: Venue;
     })
   | (TradeDraftBase & {
       action: "order";
@@ -137,6 +139,8 @@ export type TradeDraft =
       tokenMint: string;
       amount: string;
       expiresAt: number;
+      /** Sign-page label. Jupiter routes the mint whether or not this is set. */
+      venue?: Venue;
       triggerPriceUsd?: number;
       triggerCondition?: "above" | "below";
       trailingBps?: number;
