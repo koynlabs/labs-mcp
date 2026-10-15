@@ -33,6 +33,6 @@ export const FAQ = [
   },
   {
     q: "Can labs trade, or only launch?",
-    a: "It can also market-swap a StonkFun mint, place a limit, stop, take-profit/stop, or DCA through Jupiter, and open or close SOL, ETH, and BTC perps. Each one returns a link where your wallet signs.",
+    a: "It can market-swap a pump.fun or StonkFun mint against SOL, place a limit, stop, take-profit/stop, or DCA through Jupiter, and open or close SOL, ETH, and BTC perps. Jupiter routes pump.fun bonding-curve tokens. Each one returns a link where your wallet signs.",
   },
 ] as const;

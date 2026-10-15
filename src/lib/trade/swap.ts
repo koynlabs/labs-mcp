@@ -1,6 +1,10 @@
 import { JUPITER_SWAP } from "../config";
 import { JupiterError, asRecord, errorMessage, jupiter, jupiterHeaders, str, upstreamStatus } from "./http";
 
+/**
+ * Jupiter Ultra `/order`. Any mint Jupiter can route, including a pump.fun
+ * bonding curve and a StonkFun pool. labs does not choose the venue or the route.
+ */
 export async function buildSwap(input: {
   inputMint: string;
   outputMint: string;

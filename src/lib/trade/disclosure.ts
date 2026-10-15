@@ -1,5 +1,6 @@
 import { BUNDLE_TTL_SECONDS, WSOL_MINT } from "../config";
 import type { TradeIntent } from "../types";
+import { venueLabel } from "./request";
 
 export const FUNDS_WARNING =
   "This moves funds from the caller wallet. Confirm the host, the action, and the amounts before you sign. labs cannot undo it.";
@@ -50,12 +51,17 @@ function actionOf(intent: TradeIntent): string {
   return "Cancel a perp exit";
 }
 
+function withVenue(intent: TradeIntent, lines: AmountLine[]): AmountLine[] {
+  if ((intent.action !== "swap" && intent.action !== "order") || !intent.venue) return lines;
+  return [{ label: "Venue", value: venueLabel(intent.venue) }, ...lines];
+}
+
 function amountsOf(intent: TradeIntent): AmountLine[] {
   if (intent.action === "swap") {
-    return [
+    return withVenue(intent, [
       { label: "Spend", value: mintAmount(intent.amount, intent.inputMint) },
       { label: "Receive", value: intent.outputMint === WSOL_MINT ? "SOL" : intent.outputMint },
-    ];
+    ]);
   }
   if (intent.action === "order") {
     const lines: AmountLine[] = [
@@ -69,7 +75,7 @@ function amountsOf(intent: TradeIntent): AmountLine[] {
     if (intent.orderCount != null && intent.intervalSeconds != null) {
       lines.push({ label: "Rounds", value: `${intent.orderCount} every ${intent.intervalSeconds}s` });
     }
-    return lines;
+    return withVenue(intent, lines);
   }
   if (intent.action === "perp-open") {
     const lines: AmountLine[] = [

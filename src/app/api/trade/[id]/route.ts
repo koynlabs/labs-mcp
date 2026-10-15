@@ -108,7 +108,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     }
 
     if (step === "submit") {
-      const locked = lockedSubmit({
+      const locked = await lockedSubmit({
         quote: intent.quote,
         signedTransaction: body?.signedTransaction,
         requestId: body?.requestId,
@@ -157,7 +157,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     }
     if (step === "create") {
       const token = sessionToken(intent);
-      const locked = lockedSubmit({
+      const locked = await lockedSubmit({
         quote: intent.quote,
         signedTransaction: body?.signedTransaction,
         requestId: body?.requestId,

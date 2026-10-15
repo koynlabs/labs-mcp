@@ -74,9 +74,12 @@ export default function Home() {
           one wallet
         </li>
         <li>
-          <code>trade_board</code>, <code>trade_swap</code>, <code>trade_order</code>{" "}
-          — the StonkFun board, a market swap, or a limit, stop, take-profit/stop,
-          or DCA
+          <code>trade_board</code> — StonkFun listings
+        </li>
+        <li>
+          <code>trade_swap</code>, <code>trade_order</code> — market buy or sell, or
+          a limit, stop, take-profit/stop, or DCA, of a pump.fun or StonkFun mint
+          against SOL through Jupiter
         </li>
         <li>
           <code>perp_markets</code>, <code>perp_positions</code>, <code>perp_open</code>,{" "}

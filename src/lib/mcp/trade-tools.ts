@@ -1,19 +1,23 @@
 import type { McpServer } from "@modelcontextprotocol/server";
 import { z } from "zod";
-import { WSOL_MINT } from "../config";
 import { allow } from "../rate-limit";
 import { isPublicKey } from "../solana";
 import { BOARD_PAIRS, BOARD_SORTS, tradeBoard, type BoardSort } from "../trade/board";
 import { saveTrade, tradeUrl } from "../trade/intent";
 import { perpBook, perpMarkets } from "../trade/perps";
+import {
+  orderDraft,
+  swapDraft,
+  TRADE_ORDER_DESCRIPTION,
+  TRADE_SWAP_DESCRIPTION,
+  tradeVenueField,
+} from "../trade/request";
 import { humanToRaw, mintDecimals, usdToRaw } from "../trade/units";
 import type { PerpAsset, PerpSide } from "../types";
 
 const publicKey = z.string().refine(isPublicKey, { message: "not a Solana address" });
 
 const SORTS = { new: "newest", top: "marketCap", volume: "volume" } as const;
-
-const INTERVALS = { "15m": 900, "1h": 3600, "4h": 14400, "1d": 86400 } as const;
 
 function text(value: unknown) {
   return {
@@ -37,6 +41,30 @@ async function limited(wallet: string): Promise<string | null> {
   if (!(await allow(`trade:${wallet}`, 20, 60))) return "Too many trades for this wallet. Wait a minute.";
   return null;
 }
+
+export const tradeSwapInput = z.object({
+  wallet: publicKey,
+  mint: publicKey.describe("the token, not SOL. A pump.fun or StonkFun mint."),
+  side: z.enum(["buy", "sell"]),
+  amount: z.number().positive().describe("SOL to spend when buying, tokens to sell when selling"),
+  venue: tradeVenueField,
+});
+
+export const tradeOrderInput = z.object({
+  wallet: publicKey,
+  mint: publicKey.describe("the token, not SOL. A pump.fun or StonkFun mint."),
+  side: z.enum(["buy", "sell"]).describe("stop and tp/sl are sells"),
+  mode: z.enum(["limit", "stop", "bracket", "dca"]),
+  amount: z.number().positive(),
+  venue: tradeVenueField,
+  triggerPriceUsd: z.number().positive().optional(),
+  trailingPercent: z.number().min(0.5).max(90).optional().describe("stop trail, instead of a price"),
+  tpPriceUsd: z.number().positive().optional(),
+  slPriceUsd: z.number().positive().optional(),
+  rounds: z.number().int().min(2).max(100).optional(),
+  interval: z.enum(["15m", "1h", "4h", "1d"]).optional(),
+  expiresDays: z.number().int().min(1).max(30).default(7),
+});
 
 export function registerTradeTools(server: McpServer): void {
   server.registerTool(
@@ -99,36 +127,15 @@ export function registerTradeTools(server: McpServer): void {
     "trade_swap",
     {
       title: "Market swap",
-      description:
-        "Market buy or sell of a StonkFun mint against SOL. Returns a link. The wallet signs there. labs does not take a key.",
-      inputSchema: z.object({
-        wallet: publicKey,
-        mint: publicKey.describe("the token, not SOL"),
-        side: z.enum(["buy", "sell"]),
-        amount: z.number().positive().describe("SOL to spend when buying, tokens to sell when selling"),
-      }),
+      description: TRADE_SWAP_DESCRIPTION,
+      inputSchema: tradeSwapInput,
     },
-    async ({ wallet, mint, side, amount }) => {
+    async ({ wallet, mint, side, amount, venue }) => {
       try {
         const blocked = await limited(wallet);
         if (blocked) return failure(blocked);
-        if (mint === WSOL_MINT) return failure("Swap the token, not SOL against itself.");
         const decimals = side === "buy" ? 9 : await mintDecimals(mint);
-        const raw = humanToRaw(amount, decimals);
-        const inputMint = side === "buy" ? WSOL_MINT : mint;
-        const outputMint = side === "buy" ? mint : WSOL_MINT;
-        const unit = side === "buy" ? "SOL" : "tokens";
-        const intent = await saveTrade({
-          action: "swap",
-          wallet,
-          inputMint,
-          outputMint,
-          amount: raw,
-          summary:
-            side === "buy"
-              ? `Market-buy ${mint} spending ${amount} ${unit}.`
-              : `Market-sell ${amount} ${unit} of ${mint} for SOL.`,
-        });
+        const intent = await saveTrade(swapDraft({ wallet, mint, side, amount, decimals, venue }));
         return text({ signUrl: tradeUrl(intent.id), expiresInSeconds: 15 * 60, summary: intent.summary });
       } catch (error) {
         return failure(messageOf(error));
@@ -140,88 +147,16 @@ export function registerTradeTools(server: McpServer): void {
     "trade_order",
     {
       title: "Limit, stop, take profit, or DCA",
-      description:
-        "Places a Jupiter Trigger order on a StonkFun mint against SOL: limit, stop (price or a 0.5–90% trail), take-profit/stop as one OCO, or DCA. The link signs Jupiter's challenge, then the deposit. Funds sit in a Jupiter vault until fill or cancel. labs seals the Jupiter session with LABS_SESSION_SECRET and does not return it to the browser.",
-      inputSchema: z.object({
-        wallet: publicKey,
-        mint: publicKey,
-        side: z.enum(["buy", "sell"]).describe("stop and tp/sl are sells"),
-        mode: z.enum(["limit", "stop", "bracket", "dca"]),
-        amount: z.number().positive(),
-        triggerPriceUsd: z.number().positive().optional(),
-        trailingPercent: z.number().min(0.5).max(90).optional().describe("stop trail, instead of a price"),
-        tpPriceUsd: z.number().positive().optional(),
-        slPriceUsd: z.number().positive().optional(),
-        rounds: z.number().int().min(2).max(100).optional(),
-        interval: z.enum(["15m", "1h", "4h", "1d"]).optional(),
-        expiresDays: z.number().int().min(1).max(30).default(7),
-      }),
+      description: TRADE_ORDER_DESCRIPTION,
+      inputSchema: tradeOrderInput,
     },
     async (args) => {
       try {
         const blocked = await limited(args.wallet);
         if (blocked) return failure(blocked);
-        if (args.mint === WSOL_MINT) return failure("Order the token against SOL.");
-        if ((args.mode === "stop" || args.mode === "bracket") && args.side !== "sell") {
-          return failure("A stop or take-profit/stop sells the token.");
-        }
         const selling = args.side === "sell";
         const decimals = selling ? await mintDecimals(args.mint) : 9;
-        const amount = humanToRaw(args.amount, decimals);
-        const expiresAt = Date.now() + args.expiresDays * 86_400_000;
-        const base = {
-          action: "order" as const,
-          wallet: args.wallet,
-          inputMint: selling ? args.mint : WSOL_MINT,
-          outputMint: selling ? WSOL_MINT : args.mint,
-          tokenMint: args.mint,
-          amount,
-          expiresAt,
-        };
-        if (args.mode === "dca") {
-          if (!args.rounds || !args.interval) return failure("DCA needs rounds and an interval.");
-          const intent = await saveTrade({
-            ...base,
-            mode: "dca",
-            orderCount: args.rounds,
-            intervalSeconds: INTERVALS[args.interval],
-            summary: `DCA ${args.side} of ${args.mint}: ${args.rounds} rounds every ${args.interval}, depositing ${args.amount}.`,
-          });
-          return text({ signUrl: tradeUrl(intent.id), expiresInSeconds: 15 * 60, summary: intent.summary });
-        }
-        if (args.mode === "bracket") {
-          if (args.tpPriceUsd == null || args.slPriceUsd == null) {
-            return failure("Take profit and stop both need a price.");
-          }
-          if (args.tpPriceUsd <= args.slPriceUsd) return failure("Take profit has to sit above the stop.");
-          const intent = await saveTrade({
-            ...base,
-            mode: "bracket",
-            tpPriceUsd: args.tpPriceUsd,
-            slPriceUsd: args.slPriceUsd,
-            summary: `Sell ${args.mint} with take profit $${args.tpPriceUsd} and stop $${args.slPriceUsd}.`,
-          });
-          return text({ signUrl: tradeUrl(intent.id), expiresInSeconds: 15 * 60, summary: intent.summary });
-        }
-        if (args.mode === "stop" && args.trailingPercent != null) {
-          const intent = await saveTrade({
-            ...base,
-            mode: "stop",
-            triggerCondition: "below",
-            trailingBps: Math.round(args.trailingPercent * 100),
-            summary: `Trailing stop on ${args.mint}, ${args.trailingPercent}% below the high.`,
-          });
-          return text({ signUrl: tradeUrl(intent.id), expiresInSeconds: 15 * 60, summary: intent.summary });
-        }
-        if (args.triggerPriceUsd == null) return failure("Enter a trigger price.");
-        const condition = args.mode === "stop" || args.side === "buy" ? "below" : "above";
-        const intent = await saveTrade({
-          ...base,
-          mode: args.mode,
-          triggerCondition: condition,
-          triggerPriceUsd: args.triggerPriceUsd,
-          summary: `${args.mode === "stop" ? "Stop" : "Limit"} ${args.side} of ${args.mint} at $${args.triggerPriceUsd}.`,
-        });
+        const intent = await saveTrade(orderDraft({ ...args, decimals }));
         return text({ signUrl: tradeUrl(intent.id), expiresInSeconds: 15 * 60, summary: intent.summary });
       } catch (error) {
         return failure(messageOf(error));
