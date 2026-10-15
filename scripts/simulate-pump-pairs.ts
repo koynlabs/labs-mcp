@@ -278,7 +278,7 @@ function sanitizeForLog(value: unknown): string {
   return message.replace(/[\r\n\u2028\u2029]/g, " ");
 }
 
-main().catch((error) => {
-  console.error(sanitizeForLog(error));
+main().catch(() => {
+  console.error("simulate-pump-pairs failed");
   process.exit(1);
 });
