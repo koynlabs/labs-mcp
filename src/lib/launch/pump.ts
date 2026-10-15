@@ -10,7 +10,9 @@ import {
   type FeeConfig,
   type Global,
 } from "@pump-fun/pump-sdk";
+import bs58 from "bs58";
 import {
+  AddressLookupTableAccount,
   ComputeBudgetProgram,
   Keypair,
   LAMPORTS_PER_SOL,
@@ -22,7 +24,7 @@ import {
   VersionedTransaction,
   type AccountInfo,
 } from "@solana/web3.js";
-import { MAX_BUYERS } from "../config";
+import { MAX_BUYERS, PUMP } from "../config";
 import { connection, encodeTx } from "../solana";
 import type { PendingTx } from "../types";
 import type { BuiltLaunch, LaunchInput } from "./input";
@@ -48,10 +50,18 @@ const CREATE_COMPUTE_UNITS = 600_000;
 const BUY_COMPUTE_UNITS = 250_000;
 
 /**
- * Builds a pump.fun create_v2 launch with the official SDK. Every account is
- * static, so a wallet can simulate the create before it signs. The mint
- * keypair is generated here, signs the create once, and is discarded; it
- * never holds funds.
+ * The lookup table live pump.fun creates use, so the create and the creator's
+ * buy fit in one transaction. A split buy cannot be simulated: the mint does
+ * not exist until the create in front of it lands, and Phantom then shows
+ * "Failed to simulate". Override with LABS_PUMP_LUT if this table is retired.
+ */
+const NOT_DEACTIVATED = BigInt("18446744073709551615");
+
+/**
+ * Builds a pump.fun create_v2 launch with the official SDK. The creator's
+ * opening buy stays in the create transaction, every signature slot is empty,
+ * and the mint secret is returned so the server can co-sign after the wallet.
+ * The mint key never holds funds.
  */
 export async function buildPumpLaunch(
   input: LaunchInput,
@@ -72,7 +82,10 @@ export async function buildPumpLaunch(
     online.fetchGlobal(),
     online.fetchFeeConfig(),
   ]);
-  const { blockhash } = await connection().getLatestBlockhash("confirmed");
+  const [{ blockhash, lastValidBlockHeight }, lookupTable] = await Promise.all([
+    connection().getLatestBlockhash("confirmed"),
+    pumpLookupTable(),
+  ]);
 
   let curve = openingCurve(global, creator);
   const creatorBuy =
@@ -113,43 +126,20 @@ export async function buildPumpLaunch(
           }),
         ];
 
-  const withBuy = compile(
+  // The creator buy has to share the create. A following transaction spends a
+  // mint Phantom cannot see yet, so its simulation fails closed.
+  const createTx = compile(
     creator,
     blockhash,
     budget(CREATE_COMPUTE_UNITS, bundledBuy, tip),
+    lookupTable,
   );
-  const createFits = creatorBuy === null || fits(withBuy);
-  const createTx = createFits
-    ? withBuy
-    : compile(
-        creator,
-        blockhash,
-        budget(
-          CREATE_COMPUTE_UNITS,
-          [
-            await PUMP_SDK.createV2Instruction({
-              mint,
-              name: input.name,
-              symbol: input.symbol,
-              uri: metadata.uri,
-              creator,
-              user: creator,
-              mayhemMode: false,
-              cashback: false,
-            }),
-          ],
-          tip,
-        ),
-      );
-
   if (!fits(createTx)) {
     throw new Error(
       "The pump.fun create transaction is larger than Solana allows. Shorten the name, symbol, or metadata URI.",
     );
   }
-
-  createTx.sign([mintKeypair]);
-  await assertSimulates(createTx, "create");
+  await assertPumpSimulatable(createTx, "create");
 
   const txs: PendingTx[] = [
     {
@@ -157,23 +147,9 @@ export async function buildPumpLaunch(
       role: "create",
       signer: input.creator,
       tx: encodeTx(createTx),
-      ...(createFits ? { sol: input.creatorBuySol } : {}),
+      ...(creatorBuy ? { sol: input.creatorBuySol } : {}),
     },
   ];
-
-  if (!createFits && creatorBuy && creatorQuote) {
-    await pushBuy(txs, {
-      global,
-      blockhash,
-      mint,
-      curve: openingCurve(global, creator),
-      user: creator,
-      tokens: creatorQuote.tokens,
-      sol: creatorBuy,
-      solUi: input.creatorBuySol,
-      slippagePercent: input.slippagePercent,
-    });
-  }
 
   for (const buyer of buyers) {
     const sol = lamports(buyer.sol);
@@ -182,6 +158,7 @@ export async function buildPumpLaunch(
     await pushBuy(txs, {
       global,
       blockhash,
+      lookupTable,
       mint,
       curve: quote.curveBefore,
       user: new PublicKey(buyer.publicKey),
@@ -195,11 +172,33 @@ export async function buildPumpLaunch(
   return {
     venue: "pump",
     mint: mint.toBase58(),
+    mintSecret: bs58.encode(mintKeypair.secretKey),
+    blockhash,
+    lastValidBlockHeight,
     metadataUri: metadata.uri,
     metadataHost: metadata.host,
     txs,
     buyers,
   };
+}
+
+async function pumpLookupTable(): Promise<AddressLookupTableAccount> {
+  const key = new PublicKey(PUMP.lookupTable);
+  const loaded = await connection().getAddressLookupTable(key);
+  if (!loaded.value) {
+    throw new Error(
+      `pump.fun address lookup table ${key.toBase58()} was not found. Set LABS_PUMP_LUT to a live table.`,
+    );
+  }
+  if (loaded.value.state.deactivationSlot !== NOT_DEACTIVATED) {
+    const slot = await connection().getSlot("confirmed");
+    if (BigInt(slot) >= loaded.value.state.deactivationSlot) {
+      throw new Error(
+        `pump.fun address lookup table ${key.toBase58()} is deactivated. Set LABS_PUMP_LUT to a live table.`,
+      );
+    }
+  }
+  return loaded.value;
 }
 
 function openingCurve(global: Global, creator: PublicKey): BondingCurve {
@@ -313,20 +312,24 @@ function compile(
   payer: PublicKey,
   blockhash: string,
   instructions: TransactionInstruction[],
+  lookupTable: AddressLookupTableAccount,
 ): VersionedTransaction {
-  const tx = new VersionedTransaction(
-    new TransactionMessage({
-      payerKey: payer,
-      recentBlockhash: blockhash,
-      instructions,
-    }).compileToV0Message(),
-  );
-  if (tx.message.addressTableLookups.length > 0) {
-    throw new Error(
-      "A pump.fun launch transaction included an address lookup table.",
+  try {
+    return new VersionedTransaction(
+      new TransactionMessage({
+        payerKey: payer,
+        recentBlockhash: blockhash,
+        instructions,
+      }).compileToV0Message([lookupTable]),
     );
+  } catch (error) {
+    if (error instanceof RangeError) {
+      throw new Error(
+        "The pump.fun transaction is larger than Solana allows. Shorten the name, symbol, or metadata URI.",
+      );
+    }
+    throw error;
   }
-  return tx;
 }
 
 function fits(tx: VersionedTransaction): boolean {
@@ -345,14 +348,19 @@ function fits(tx: VersionedTransaction): boolean {
  * bundle creates, so a missing account there means the buy is waiting on the
  * create, which is how the bundle is ordered.
  */
-async function assertSimulates(
+/**
+ * Simulates the exact transaction a wallet will be shown. `sigVerify` stays
+ * off because the wallet has not signed yet; the blockhash is the one in the
+ * message, so an expired hash fails here instead of in Phantom.
+ */
+export async function assertPumpSimulatable(
   tx: VersionedTransaction,
   label: string,
   allowMissingAccount = false,
 ): Promise<void> {
   const simulation = await connection().simulateTransaction(tx, {
     sigVerify: false,
-    replaceRecentBlockhash: true,
+    replaceRecentBlockhash: false,
   });
   if (!simulation.value.err) return;
   if (allowMissingAccount && waitingOnCreate(simulation.value.err, simulation.value.logs)) {
@@ -383,6 +391,7 @@ async function pushBuy(
   args: {
     global: Global;
     blockhash: string;
+    lookupTable: AddressLookupTableAccount;
     mint: PublicKey;
     curve: BondingCurve;
     user: PublicKey;
@@ -407,13 +416,14 @@ async function pushBuy(
     args.user,
     args.blockhash,
     budget(BUY_COMPUTE_UNITS, instructions, null),
+    args.lookupTable,
   );
   if (!fits(tx)) {
     throw new Error(
       "A buy in this launch is larger than Solana allows. Launch with fewer buyer wallets.",
     );
   }
-  await assertSimulates(tx, "buy", true);
+  await assertPumpSimulatable(tx, "buy", true);
   txs.push({
     index: txs.length,
     role: "buy",

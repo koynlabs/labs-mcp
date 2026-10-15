@@ -83,15 +83,18 @@ export default function Home() {
 
       <h2>Your keys stay yours</h2>
       <p>
-        labs never asks for a private key and has no way to move your funds. Every
-        transaction is built unsigned, shown to you, and signed in your own
-        wallet. The only key it ever holds is the throwaway quoting key you
-        generate in your browser if you start a maker session, and that one is
-        capped and expires.
+        labs never asks for a wallet private key. Your wallet signs every
+        transaction, and that signature is what authorises the launch. The new
+        token&apos;s mint key is generated here, sealed until you have signed, and
+        then used only to co-sign the create. It holds no funds. A maker
+        session can also hold the throwaway quoting key you generate in your
+        browser, and that key is capped and expires.
       </p>
 
       <p className="revision muted">
         source <a href={GITHUB_REPO_URL}>github.com/koynlabs/labs-mcp</a>
+        <span className="sep">·</span>
+        <a href="/.well-known/security.txt">security</a>
       </p>
     </main>
   );

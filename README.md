@@ -115,15 +115,24 @@ Then: *“Launch a token on pump.fun called …”*
 
 ## How a launch works
 
-`launch_token` builds the create and up to three extra buys, and stores them unsigned:
+`launch_token` builds the create and up to three extra buys. The transactions
+are stored unsigned. The blockhash is replaced when a signer clicks Sign, so it
+has not expired by the time Phantom simulates or Jito receives the bundle.
 
 | # | Transaction |
 | --- | --- |
-| 0 | Create the token, plus the creator's own opening buy |
+| 0 | Create the token, plus the creator's own opening buy, in one transaction |
 | 1–3 | One buy per additional wallet the creator controls |
 
 They go out as a single Jito bundle, which lands all-or-none. A Jito bundle holds
 five transactions, and launches stay capped at three extra buyers.
+
+On pump.fun the create uses the same address lookup table as pump.fun's own
+creates, which is what keeps the creator buy inside the create. Phantom can
+then simulate the SOL leaving the wallet. The sign page loads that table before
+asking for a signature. The wallet signs first (`signTransaction`). The mint
+key labs generated co-signs the same message afterwards. It is sealed with
+`LABS_SESSION_SECRET`, holds no funds, and is never a wallet key.
 
 You open `/sign/<bundleId>`, connect each wallet in turn, and sign. The server
 re-verifies every signature against the exact message it handed out, and only
@@ -132,10 +141,10 @@ then submits. A signer can refuse, but cannot rewrite what they were given.
 ### The two venues
 
 **pump.fun** is built in-process with the official [`@pump-fun/pump-sdk`](https://www.npmjs.com/package/@pump-fun/pump-sdk).
-The create is a `create_v2` (Token-2022) with every account written into the
-transaction, including the program event authority, so a wallet can simulate it.
-The creator's opening buy rides in that same transaction when it fits; otherwise
-it becomes the next transaction in the bundle. Each extra wallet gets its own buy.
+The create is a `create_v2` (Token-2022). The creator's opening buy rides in
+that same transaction. Each extra wallet gets its own buy, which runs after the
+create inside the bundle. `npm run simulate:pump` builds one of these against
+mainnet and simulates it, and does not send it.
 
 **StonkFun** has no launch endpoint — `paidLaunchesEnabled` is off, and
 `launchLabEnabled` is on. So labs builds the Raydium LaunchLab

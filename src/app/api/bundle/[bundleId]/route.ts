@@ -1,4 +1,9 @@
-import { attachSignature, outstanding, submitLaunch } from "@/lib/launch/bundle";
+import {
+  attachSignature,
+  bundleView,
+  outstanding,
+  submitLaunch,
+} from "@/lib/launch/bundle";
 import { getBundle } from "@/lib/store";
 
 export const maxDuration = 60;
@@ -14,25 +19,7 @@ export async function GET(
     return Response.json({ error: "not_found" }, { status: 404 });
   }
 
-  return Response.json({
-    bundleId: bundle.id,
-    status: bundle.status,
-    venue: bundle.venue,
-    mint: bundle.mint,
-    name: bundle.name,
-    symbol: bundle.symbol,
-    feeSol: bundle.feeSol,
-    jitoBundleId: bundle.jitoBundleId,
-    error: bundle.error,
-    txs: bundle.txs.map((tx) => ({
-      index: tx.index,
-      role: tx.role,
-      signer: tx.signer,
-      sol: tx.sol,
-      tx: tx.tx,
-      signed: Boolean(bundle.signed[String(tx.index)]),
-    })),
-  });
+  return Response.json(bundleView(bundle));
 }
 
 /**

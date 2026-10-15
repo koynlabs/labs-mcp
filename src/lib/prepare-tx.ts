@@ -5,6 +5,22 @@ import {
   type MessageV0,
 } from "@solana/web3.js";
 
+/**
+ * Phantom signs first. A mint signature that is already filled makes Phantom
+ * keep the embedded blockhash, and an expired hash is reported as a failed
+ * simulation. https://docs.phantom.com/developer-powertools/domain-and-transaction-warnings
+ */
+export function assertUnsignedForWallet(tx: VersionedTransaction): void {
+  if (tx.signatures.some((signature) => signature.some((byte) => byte !== 0))) {
+    throw new Error(
+      "This transaction already has a signature. Phantom has to sign it first, or it cannot simulate the result.",
+    );
+  }
+  if (!tx.message.staticAccountKeys[0]) {
+    throw new Error("This transaction has no fee payer.");
+  }
+}
+
 type LookupResponse = {
   tables?: { key: string; data: string }[];
   error?: string;

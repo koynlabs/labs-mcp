@@ -25,6 +25,14 @@ export type LaunchInput = {
 export type BuiltLaunch = {
   venue: Venue;
   mint: string;
+  /**
+   * Base58 secret of the mint keypair this build generated. The caller seals
+   * it and co-signs only after the wallet has signed. It is not a wallet key
+   * and it never holds funds.
+   */
+  mintSecret: string;
+  blockhash: string;
+  lastValidBlockHeight: number;
   metadataUri: string;
   metadataHost: "caller" | "ipfs" | "labs";
   txs: PendingTx[];

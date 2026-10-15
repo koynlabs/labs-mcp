@@ -1,0 +1,6 @@
+Contact: mailto:dev@levercoin.lol
+Expires: 2027-10-15T00:00:00.000Z
+Preferred-Languages: en
+Canonical: https://labs.levercoin.lol/.well-known/security.txt
+Policy: https://github.com/koynlabs/labs-mcp/blob/main/SECURITY.md
+Acknowledgments: https://github.com/koynlabs/labs-mcp

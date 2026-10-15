@@ -3,9 +3,9 @@ export type Venue = "pump" | "stonks";
 export type TxRole = "fee" | "create" | "buy";
 
 /**
- * One transaction a wallet still has to sign. `tx` is base64 and may already
- * carry the mint keypair's signature; the message itself is never rebuilt
- * after this point, so the sign page cannot alter what it signs.
+ * One transaction a wallet still has to sign. `tx` is base64 and unsigned.
+ * The mint key signs only after the wallet does. The message is replaced,
+ * still unsigned, when the signer asks for a fresh blockhash.
  */
 export type PendingTx = {
   index: number;
@@ -37,8 +37,16 @@ export type LaunchBundle = {
   /** Always 0. Kept so older clients still see the field. */
   feeSol: number;
   txs: PendingTx[];
-  /** index -> base64 signed transaction. */
+  /** index -> base64 signed transaction. The create also carries the mint signature. */
   signed: Record<string, string>;
+  /**
+   * Mint keypair, sealed with LABS_SESSION_SECRET. Co-signs the create after
+   * the wallet. Never returned to the browser. Holds no funds.
+   */
+  sealedMint?: string;
+  /** Blockhash currently inside `txs`, and the last block height it survives. */
+  blockhash?: string;
+  lastValidBlockHeight?: number;
   status: BundleStatus;
   jitoBundleId?: string;
   signatures?: string[];

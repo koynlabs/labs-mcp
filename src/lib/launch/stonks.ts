@@ -27,6 +27,7 @@ import {
   initializeWithToken2022,
 } from "@raydium-io/raydium-sdk-v2";
 import BN from "bn.js";
+import bs58 from "bs58";
 import { MAX_BUYERS, STONKS } from "../config";
 import { resolveMetadata } from "./metadata";
 import { connection, encodeTx } from "../solana";
@@ -293,7 +294,8 @@ export async function buildStonksLaunch(
     creator,
   };
 
-  const { blockhash } = await connection().getLatestBlockhash("confirmed");
+  const { blockhash, lastValidBlockHeight } =
+    await connection().getLatestBlockhash("confirmed");
   const buyers = input.buyers.slice(0, MAX_BUYERS);
 
   const createMessage = new TransactionMessage({
@@ -309,7 +311,6 @@ export async function buildStonksLaunch(
   }).compileToV0Message();
 
   const createTx = new VersionedTransaction(createMessage);
-  createTx.sign([mintKeypair]);
 
   const txs: PendingTx[] = [
     {
@@ -344,6 +345,9 @@ export async function buildStonksLaunch(
   return {
     venue: "stonks",
     mint: mint.toBase58(),
+    mintSecret: bs58.encode(mintKeypair.secretKey),
+    blockhash,
+    lastValidBlockHeight,
     metadataUri: metadata.uri,
     metadataHost: metadata.host,
     txs,

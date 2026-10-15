@@ -72,6 +72,13 @@ export const PINATA = {
 export const PUMP = {
   tradeLocal: "https://pumpportal.fun/api/trade-local",
   jitoBundle: "https://mainnet.block-engine.jito.wtf/api/v1/bundles",
+  /**
+   * Lookup table a live pump.fun create+buy uses. Keeping the create and the
+   * creator buy in one transaction is what lets a wallet simulate the buy.
+   */
+  lookupTable:
+    process.env.LABS_PUMP_LUT?.trim() ||
+    "Hyif6eWb8x88RVrvjPfabsgRYnwkVnyByEXTVTXbUcyP",
   /** Read-only pump.fun data: bonding curve, token details, holders. */
   readMcp: process.env.PUMP_READ_MCP_URL ?? "https://three.ws/api/pump-fun-mcp",
 };
