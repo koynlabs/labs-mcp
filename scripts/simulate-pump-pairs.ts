@@ -273,7 +273,12 @@ async function main() {
   console.log(JSON.stringify({ ok: true, sent: false, registry: pairs.length, results }, null, 2));
 }
 
+function sanitizeForLog(value: unknown): string {
+  const message = value instanceof Error ? value.message : String(value);
+  return message.replace(/[\r\n\u2028\u2029]/g, " ");
+}
+
 main().catch((error) => {
-  console.error(error instanceof Error ? error.message : error);
+  console.error(sanitizeForLog(error));
   process.exit(1);
 });
