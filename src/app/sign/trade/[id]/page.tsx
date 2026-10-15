@@ -1,8 +1,7 @@
 import { connection } from "next/server";
 import { headers } from "next/headers";
 import Wordmark from "@/components/Wordmark";
-import { SignFacts } from "@/components/SignFacts";
-import { siteHost } from "@/lib/config";
+import { SOLANA_RPC, siteHost } from "@/lib/config";
 import { tradeDisclosure } from "@/lib/trade/disclosure";
 import { loadTrade, tradeExpired } from "@/lib/trade/intent";
 import { TradeClient } from "./trade-client";
@@ -38,19 +37,19 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
   const view = tradeDisclosure(intent, served ?? expectedHost);
   return (
     <main className="wrap">
-      <Wordmark />
-      <h1>Sign this trade</h1>
-      <p className="muted">{view.summary}</p>
-      <SignFacts
-        caller={view.caller}
+      <TradeClient
+        id={id}
+        wallet={view.caller}
+        action={intent.action}
+        cluster={SOLANA_RPC.includes("devnet") ? "devnet" : "mainnet"}
+        summary={view.summary}
         host={view.host}
         expectedHost={expectedHost}
-        action={view.action}
+        actionLabel={view.action}
         amounts={view.amounts}
         warning={view.warning}
         expiresAt={view.expiresAt}
       />
-      <TradeClient id={id} wallet={view.caller} action={intent.action} />
     </main>
   );
 }

@@ -134,6 +134,73 @@ body {
   }
 }
 
+.sign-bar {
+  display: flex;
+  flex-direction: column;
+}
+
+.sign-wallet {
+  order: -1;
+  align-self: flex-end;
+  margin-bottom: 0.75rem;
+}
+
+.sign-wallet button,
+.wallet-chip {
+  padding: 0.4rem 0.85rem;
+  font-size: 0.8rem;
+  line-height: 1.4;
+  white-space: nowrap;
+}
+
+.wallet-chip {
+  display: inline-block;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--fg);
+}
+
+.wallet-chip.bad {
+  color: var(--bad);
+  border-color: var(--bad);
+}
+
+@media (min-width: 640px) {
+  .sign-bar {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    column-gap: 1.5rem;
+    align-items: start;
+  }
+
+  .sign-bar .wordmark {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .sign-wallet {
+    order: 0;
+    grid-column: 2;
+    grid-row: 1;
+    align-self: start;
+    margin: 0.7rem 0 0;
+  }
+}
+
+.tx-link {
+  color: var(--ok);
+  text-underline-offset: 0.15em;
+  text-decoration: underline;
+}
+
+.tx-link:hover {
+  text-decoration: underline;
+}
+
+.order-id {
+  overflow-wrap: anywhere;
+}
+
 h1 {
   font-size: 1.6rem;
   letter-spacing: -0.02em;

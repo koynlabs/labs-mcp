@@ -3,7 +3,12 @@
 import { useState } from "react";
 import { VersionedTransaction } from "@solana/web3.js";
 import bs58 from "bs58";
+import Wordmark from "@/components/Wordmark";
+import { SignFacts } from "@/components/SignFacts";
 import { prepareForSigning } from "@/lib/prepare-tx";
+import type { AmountLine } from "@/lib/trade/disclosure";
+
+type Cluster = "mainnet" | "devnet";
 
 type Phantom = {
   publicKey?: { toBase58(): string };
@@ -39,6 +44,24 @@ function toBase64(bytes: Uint8Array): string {
   return btoa(binary);
 }
 
+function shorten(value: string, head: number, tail: number): string {
+  if (value.length <= head + tail + 1) return value;
+  return `${value.slice(0, head)}…${value.slice(-tail)}`;
+}
+
+function isSolanaSignature(value: string): boolean {
+  try {
+    return bs58.decode(value).length === 64;
+  } catch {
+    return false;
+  }
+}
+
+function solscanTx(signature: string, cluster: Cluster): string {
+  const query = cluster === "devnet" ? "?cluster=devnet" : "";
+  return `https://solscan.io/tx/${signature}${query}`;
+}
+
 async function post(id: string, body: Record<string, unknown>): Promise<Record<string, string>> {
   const response = await fetch(`/api/trade/${id}`, {
     method: "POST",
@@ -50,7 +73,31 @@ async function post(id: string, body: Record<string, unknown>): Promise<Record<s
   return result;
 }
 
-export function TradeClient({ id, wallet: expected, action }: { id: string; wallet: string; action: string }) {
+export function TradeClient({
+  id,
+  wallet: expected,
+  action,
+  cluster,
+  summary,
+  host,
+  expectedHost,
+  actionLabel,
+  amounts,
+  warning,
+  expiresAt,
+}: {
+  id: string;
+  wallet: string;
+  action: string;
+  cluster: Cluster;
+  summary: string;
+  host: string;
+  expectedHost: string;
+  actionLabel: string;
+  amounts: AmountLine[];
+  warning: string;
+  expiresAt?: number;
+}) {
   const [connected, setConnected] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState<string | null>(null);
@@ -120,22 +167,63 @@ export function TradeClient({ id, wallet: expected, action }: { id: string; wall
 
   return (
     <>
+      <header className="sign-bar">
+        <Wordmark />
+        <div className="sign-wallet">
+          {connected ? (
+            <span className={matches ? "wallet-chip" : "wallet-chip bad"} title={connected}>
+              {shorten(connected, 4, 4)}
+            </span>
+          ) : (
+            <button onClick={connect}>Connect wallet</button>
+          )}
+        </div>
+      </header>
+      <h1>Sign this trade</h1>
+      <p className="muted">{summary}</p>
+      <SignFacts
+        caller={expected}
+        host={host}
+        expectedHost={expectedHost}
+        action={actionLabel}
+        amounts={amounts}
+        warning={warning}
+        expiresAt={expiresAt}
+      />
       <p className="muted">Jupiter’s own fees still apply. labs never sees this wallet’s key.</p>
       {done ? (
-        <p className="ok">
-          Submitted <code>{done}</code>
-        </p>
-      ) : !connected ? (
-        <button onClick={connect}>Connect wallet</button>
-      ) : (
-        <>
-          <p className="muted">Connected as {connected}</p>
-          <button onClick={sign} disabled={busy || !matches}>
-            {busy ? "Signing…" : matches ? "Sign and submit" : "Wrong wallet"}
-          </button>
-        </>
-      )}
+        <Submitted value={done} cluster={cluster} />
+      ) : connected ? (
+        <button onClick={sign} disabled={busy || !matches}>
+          {busy ? "Signing…" : matches ? "Sign and submit" : "Wrong wallet"}
+        </button>
+      ) : null}
       {note ? <p className="note">{note}</p> : null}
     </>
+  );
+}
+
+function Submitted({ value, cluster }: { value: string; cluster: Cluster }) {
+  if (isSolanaSignature(value)) {
+    return (
+      <p className="ok">
+        Submitted{" "}
+        <a
+          className="tx-link"
+          href={solscanTx(value, cluster)}
+          target="_blank"
+          rel="noopener noreferrer"
+          title={value}
+        >
+          {shorten(value, 6, 6)}
+        </a>
+      </p>
+    );
+  }
+  if (value === "submitted") return <p className="ok">Submitted</p>;
+  return (
+    <p className="ok">
+      Submitted <span className="order-id">{value}</span>
+    </p>
   );
 }
