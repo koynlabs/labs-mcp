@@ -24,10 +24,19 @@ type Bundle = {
   name: string;
   symbol: string;
   feeSol: number;
+  /** Set when the buy spends this asset instead of SOL. */
+  quoteMint?: string;
   jitoBundleId?: string;
   error?: string;
   txs: PendingTx[];
 };
+
+const WSOL = "So11111111111111111111111111111111111111112";
+
+function spendUnit(quoteMint?: string): string {
+  if (!quoteMint || quoteMint === WSOL) return "SOL";
+  return quoteMint;
+}
 
 type Wallet = {
   publicKey: { toBase58(): string } | null;
@@ -182,7 +191,9 @@ export function SignClient({ bundleId, facts }: { bundleId: string; facts: Launc
         Your wallet signs first. The token&apos;s mint key co-signs on the
         server after that, and only then is the bundle sent.
         {bundle.venue === "pump"
-          ? " The create and your opening buy are one transaction, so the wallet can simulate the SOL leaving your account."
+          ? bundle.quoteMint && bundle.quoteMint !== WSOL
+            ? ` The create and your opening buy are one transaction, so the wallet can simulate ${bundle.quoteMint} leaving your account. You spend that asset, which the wallet already holds. A swap from SOL does not fit beside the create, so this launch does not include one.`
+            : " The create and your opening buy are one transaction, so the wallet can simulate the SOL leaving your account."
           : ""}
       </p>
 
@@ -201,7 +212,7 @@ export function SignClient({ bundleId, facts }: { bundleId: string; facts: Launc
         {bundle.txs.map((tx) => (
           <li key={tx.index} className={tx.signed ? "done" : ""}>
             <strong>{label[tx.role]}</strong>
-            {tx.sol !== undefined ? ` · ${tx.sol} SOL` : ""}
+            {tx.sol !== undefined ? ` · ${tx.sol} ${spendUnit(bundle.quoteMint)}` : ""}
             <br />
             <code>{tx.signer}</code>
             <span className="state">{tx.signed ? "signed" : "waiting"}</span>

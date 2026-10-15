@@ -146,6 +146,17 @@ that same transaction. Each extra wallet gets its own buy, which runs after the
 create inside the bundle. `npm run simulate:pump` builds one of these against
 mainnet and simulates it, and does not send it.
 
+`quoteMint` defaults to wSOL. Any other mint has to be admitted by the on-chain
+QuoteControl registry (pump.fun custom pairs, including xStocks such as AMZNX
+`Xs3eBt7uRfJX8QUs4suhyU8p2M6DoUDrJyWBa8LLZsg`). The create and the buys are
+built against that asset. `creatorBuySol` and each extra buy are then amounts
+of the quote asset, and the wallet has to hold it already. A swap from SOL into
+the quote asset does not fit in the same transaction as the create and the
+creator buy (that transaction is already about 1100 bytes, and a packet holds
+1232), and a swap in an earlier transaction cannot be simulated by the wallet.
+`npm run simulate:pump:amznx` builds an AMZNX pair and simulates it, and does
+not send it.
+
 **StonkFun** has no launch endpoint — `paidLaunchesEnabled` is off, and
 `launchLabEnabled` is on. So labs builds the Raydium LaunchLab
 `initialize_with_token_2022` itself against StonkFun's platform id, and StonkFun

@@ -352,5 +352,6 @@ export async function buildStonksLaunch(
     metadataHost: metadata.host,
     txs,
     buyers,
+    ...(quote === WSOL ? {} : { quoteMint: quote }),
   };
 }

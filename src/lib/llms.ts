@@ -35,7 +35,7 @@ export function llmsFullTxt(): string {
   return `${llmsTxt()}
 ## Tools
 
-- launch_token: build a launch and return a signing link
+- launch_token: build a launch and return a signing link. quoteMint defaults to wSOL. On pump.fun any other mint must be in the QuoteControl registry, and the buy spends that asset (the wallet already holds it; a SOL swap does not fit in the create)
 - launch_status: who still has to sign, and whether the bundle landed
 - token_info: price, market cap, graduation
 - wallet_balance: SOL balance, to size a launch before signing

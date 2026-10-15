@@ -63,12 +63,17 @@ export function registerTools(server: McpServer): void {
           .number()
           .min(0)
           .default(0)
-          .describe("the creator's own opening buy, in SOL"),
+          .describe(
+            "Opening buy. SOL when quoteMint is omitted or wSOL. For any other quote mint, the amount of that asset the wallet already holds.",
+          ),
         buyers: z
           .array(
             z.object({
               publicKey,
-              sol: z.number().positive(),
+              sol: z
+                .number()
+                .positive()
+                .describe("same unit as creatorBuySol"),
             }),
           )
           .max(MAX_BUYERS)
@@ -78,7 +83,9 @@ export function registerTools(server: McpServer): void {
         priorityFeeSol: z.number().min(0).default(0.0001),
         quoteMint: publicKey
           .optional()
-          .describe("StonkFun only: what the token trades against, default wSOL"),
+          .describe(
+            "What the token trades against. Default wSOL. On pump.fun the mint must be wSOL or listed in the on-chain QuoteControl registry (pump custom pairs, including xStocks such as AMZNX). A non-SOL pump buy spends that asset directly: the wallet has to hold it. A SOL swap does not fit in the create transaction, so one is not added. On StonkFun the mint must be a launchable pair.",
+          ),
         metadataUri: z
           .string()
           .url()

@@ -13,7 +13,10 @@ export type PendingTx = {
   /** Wallet that must add a signature. */
   signer: string;
   tx: string;
-  /** SOL this transaction spends, on a create or a buy. */
+  /**
+   * Amount this transaction spends, on a create or a buy. SOL when the quote
+   * is wSOL. Otherwise the quote asset's own amount (`LaunchBundle.quoteMint`).
+   */
   sol?: number;
 };
 
@@ -36,6 +39,11 @@ export type LaunchBundle = {
   buyers: { publicKey: string; sol: number }[];
   /** Always 0. Kept so older clients still see the field. */
   feeSol: number;
+  /**
+   * Present when the launch is paired with something other than wSOL.
+   * `txs[].sol` is then an amount of this mint, which the buyer already holds.
+   */
+  quoteMint?: string;
   txs: PendingTx[];
   /** index -> base64 signed transaction. The create also carries the mint signature. */
   signed: Record<string, string>;
