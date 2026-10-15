@@ -13,6 +13,7 @@ export const TOOL_NAMES = [
   "launch_status",
   "token_info",
   "wallet_balance",
+  "pump_pairs",
   "stonks_pairs",
   "start_maker",
   "maker_status",

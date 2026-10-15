@@ -100,6 +100,7 @@ Then: *“Launch a token on pump.fun called …”*
 | `launch_status` | Who still has to sign, and whether the bundle landed |
 | `token_info` | Price, market cap, graduation progress |
 | `wallet_balance` | SOL balance, to size a launch before signing |
+| `pump_pairs` | Quote assets a pump.fun launch can pair against, from the live on-chain registry |
 | `stonks_pairs` | Quote tokens a StonkFun launch can pair against |
 | `start_maker` | Opens a two-sided quoting session |
 | `maker_status` | Position, last bid and ask, fills, time left |
@@ -146,16 +147,17 @@ that same transaction. Each extra wallet gets its own buy, which runs after the
 create inside the bundle. `npm run simulate:pump` builds one of these against
 mainnet and simulates it, and does not send it.
 
-`quoteMint` defaults to wSOL. Any other mint has to be admitted by the on-chain
-QuoteControl registry (pump.fun custom pairs, including xStocks such as AMZNX
-`Xs3eBt7uRfJX8QUs4suhyU8p2M6DoUDrJyWBa8LLZsg`). The create and the buys are
-built against that asset. `creatorBuySol` and each extra buy are then amounts
-of the quote asset, and the wallet has to hold it already. A swap from SOL into
-the quote asset does not fit in the same transaction as the create and the
-creator buy (that transaction is already about 1100 bytes, and a packet holds
+`quoteMint` defaults to wSOL. Any other mint has to be one `pump_pairs` returns.
+That tool reads Global's whitelist and the QuoteControl account, which is the
+registry `create_v2` consults: xStocks, crypto, metals, PUMP, USDC, and eligible
+parent coins, whatever is listed on-chain at that moment. The create and the
+buys are built against that asset. `creatorBuySol` and each extra buy are then
+amounts of the quote asset, and the wallet has to hold it already. A swap from
+SOL into the quote asset does not fit in the same transaction as the create and
+the creator buy (that transaction is already about 1100 bytes, and a packet holds
 1232), and a swap in an earlier transaction cannot be simulated by the wallet.
-`npm run simulate:pump:amznx` builds an AMZNX pair and simulates it, and does
-not send it.
+`npm run simulate:pump:pairs` builds one xStock pair and one non-xStock pair
+from that live list and simulates both, and does not send them.
 
 **StonkFun** has no launch endpoint — `paidLaunchesEnabled` is off, and
 `launchLabEnabled` is on. So labs builds the Raydium LaunchLab

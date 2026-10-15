@@ -220,7 +220,7 @@ async function resolvePumpQuote(
   } catch (error) {
     if (error instanceof UnsupportedQuoteMintError) {
       throw new Error(
-        `${quoteMint.toBase58()} is not a pump.fun quote asset. Use wSOL (${WSOL_MINT}) or a mint listed in the on-chain QuoteControl registry: https://pump.fun/docs/custom-pairs`,
+        `${quoteMint.toBase58()} is not a pump.fun quote asset. Call pump_pairs for the live registry (wSOL, Global whitelist, and QuoteControl), or use wSOL (${WSOL_MINT}).`,
       );
     }
     throw error;

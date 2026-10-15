@@ -29,7 +29,7 @@ export const FAQ = [
   },
   {
     q: "Which venues can labs launch on?",
-    a: "pump.fun and StonkFun. A pump.fun coin pairs with wSOL unless you pass a quote mint from pump's on-chain registry, such as an xStock. That buy spends the quote asset the wallet already holds. Up to three extra wallets you control can buy in the same bundle as the create.",
+    a: "pump.fun and StonkFun. A pump.fun coin pairs with wSOL unless you pass a quote mint from pump_pairs, which reads the live on-chain registry. That buy spends the quote asset the wallet already holds. Up to three extra wallets you control can buy in the same bundle as the create.",
   },
   {
     q: "Can labs trade, or only launch?",

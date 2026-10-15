@@ -63,6 +63,9 @@ export default function Home() {
           <code>wallet_balance</code> — size a launch before signing it
         </li>
         <li>
+          <code>pump_pairs</code> — what a pump.fun launch can trade against, from the live registry
+        </li>
+        <li>
           <code>stonks_pairs</code> — what a StonkFun launch can trade against
         </li>
         <li>

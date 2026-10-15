@@ -3,6 +3,7 @@ import { z } from "zod";
 import { start } from "workflow/api";
 import { MAKER, MAKER_ENABLED, MAX_BUYERS } from "../config";
 import { createLaunch, outstanding, signUrl } from "../launch/bundle";
+import { listPumpPairs } from "../launch/pump-pairs";
 import { launchablePairs } from "../launch/stonks";
 import { solBalance, tokenInfo } from "../market";
 import {
@@ -84,7 +85,7 @@ export function registerTools(server: McpServer): void {
         quoteMint: publicKey
           .optional()
           .describe(
-            "What the token trades against. Default wSOL. On pump.fun the mint must be wSOL or listed in the on-chain QuoteControl registry (pump custom pairs, including xStocks such as AMZNX). A non-SOL pump buy spends that asset directly: the wallet has to hold it. A SOL swap does not fit in the create transaction, so one is not added. On StonkFun the mint must be a launchable pair.",
+            "What the token trades against. Default wSOL. On pump.fun, call pump_pairs and pass any mint it returns (xStocks, crypto, metals, PUMP, USDC, or an eligible parent coin). The list is the live on-chain registry, not a fixed set. A non-SOL pump buy spends that asset, which the wallet already holds. A SOL swap does not fit in the create transaction, so one is not added. On StonkFun the mint must be a launchable pair from stonks_pairs.",
           ),
         metadataUri: z
           .string()
@@ -206,6 +207,42 @@ export function registerTools(server: McpServer): void {
         return text({
           publicKey: args.publicKey,
           sol: await solBalance(args.publicKey),
+        });
+      } catch (error) {
+        return failure(error instanceof Error ? error.message : String(error));
+      }
+    },
+  );
+
+  server.registerTool(
+    "pump_pairs",
+    {
+      title: "pump.fun quote assets",
+      description: [
+        "Quote assets a pump.fun launch can pair against right now: wSOL plus",
+        "every mint create_v2 currently admits from Global and the QuoteControl",
+        "account. That is the live custom-pair registry (xStocks, crypto, metals,",
+        "PUMP, USDC, and eligible parent coins), read on-chain. Call this before",
+        "passing quoteMint to launch_token. A non-wSOL pair spends that asset,",
+        "which the wallet already holds.",
+      ].join(" "),
+      inputSchema: z.object({
+        search: z
+          .string()
+          .optional()
+          .describe("filter by mint address, or a prefix of one"),
+      }),
+    },
+    async ({ search }) => {
+      try {
+        const pairs = await listPumpPairs();
+        const needle = search?.trim();
+        const filtered = needle
+          ? pairs.filter((pair) => pair.mint.toLowerCase().includes(needle.toLowerCase()))
+          : pairs;
+        return text({
+          count: filtered.length,
+          pairs: filtered,
         });
       } catch (error) {
         return failure(error instanceof Error ? error.message : String(error));
