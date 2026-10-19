@@ -85,6 +85,10 @@ export default function Home() {
           <code>perp_markets</code>, <code>perp_positions</code>, <code>perp_open</code>,{" "}
           <code>perp_close</code>, <code>perp_exit</code> — SOL, ETH, and BTC perps
         </li>
+        <li>
+          <code>x_connect_link</code>, <code>x_connection_status</code>, <code>x_prepare_post</code>,{" "}
+          <code>x_publish_post</code> — connect one X account, then publish a confirmed post as that account
+        </li>
       </ul>
 
       <h2>Your keys stay yours</h2>
@@ -94,7 +98,9 @@ export default function Home() {
         token&apos;s mint key is generated here, sealed until you have signed, and
         then used only to co-sign the create. It holds no funds. A maker
         session can also hold the throwaway quoting key you generate in your
-        browser, and that key is capped and expires.
+        browser, and that key is capped and expires. An X connection stores that
+        account&apos;s tokens sealed on the server. A post is published only after
+        a draft is prepared and then confirmed.
       </p>
 
       <p className="revision muted">

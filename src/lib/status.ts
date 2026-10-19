@@ -26,6 +26,10 @@ export const TOOL_NAMES = [
   "perp_open",
   "perp_close",
   "perp_exit",
+  "x_connection_status",
+  "x_connect_link",
+  "x_prepare_post",
+  "x_publish_post",
 ] as const;
 
 export type Status = {

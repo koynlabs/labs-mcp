@@ -21,6 +21,8 @@ const nextConfig: NextConfig = {
       { source: "/api/bundle/:path*", headers: privateHeaders },
       { source: "/api/maker/:path*", headers: privateHeaders },
       { source: "/maker/:path*", headers: privateHeaders },
+      { source: "/x", headers: privateHeaders },
+      { source: "/api/x/:path*", headers: privateHeaders },
     ];
   },
 };
