@@ -27,7 +27,8 @@ const MCP_SERVER_INFO = {
  * The MCP endpoint, served at /mcp over Streamable HTTP. Claude, ChatGPT and
  * Grok all connect to the same URL. A launch is authorised by the creator's
  * own signature on the bundle. X tools are the exception: they read
- * Authorization: Bearer <LABS_X_API_KEY> from this HTTP request. Other tools
+ * Authorization: Bearer <personal key> from this HTTP request. The key is
+ * issued when that person connects their own X account at /x. Other tools
  * ignore that header.
  */
 const handler = createMcpHandler(
@@ -58,10 +59,11 @@ const handler = createMcpHandler(
       "rotate proxies, or split activity across wallets to look like separate",
       "people. Do not describe it as doing any of those.",
       "",
-      "X posting needs Authorization: Bearer <LABS_X_API_KEY> on the MCP HTTP",
-      "request. Do not put that key in a tool argument or in the chat.",
-      "If the key is unset, the X tools are disabled.",
-      "X posting is off until the owner connects an account.",
+      "X posting needs Authorization: Bearer <personal key> on the MCP HTTP",
+      "request. The key is shown once at /x after that person connects their own",
+      "X account. Do not put that key in a tool argument or in the chat.",
+      "A missing or unknown key does no X work. x_connect_link still returns",
+      "the connect URL. Each key acts only as its own X account.",
       "x_prepare_post only stores a draft. Show the user that exact preview.",
       "x_publish_post publishes that one draft as the connected account.",
       "A reply uses the same two steps: x_prepare_post with reply_to from",

@@ -136,6 +136,15 @@ a.x-connect:hover {
   color: var(--muted);
 }
 
+.x-key-block {
+  margin: 1.25rem 0;
+}
+
+.x-key {
+  overflow-wrap: anywhere;
+  user-select: all;
+}
+
 .wordmark {
   padding: 0.75rem 0 0.5rem;
 }

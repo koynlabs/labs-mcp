@@ -3,7 +3,7 @@ import { fetchPublicBuffer } from "../ssrf";
 import { MediaStillProcessing, XError, type XConfig } from "./config";
 import { DRAFT_TTL_SECONDS, VIDEO_MAX_BYTES, X_API, xPostUrl } from "./constants";
 import { classifyMedia, type ClassifiedMedia } from "./media-type";
-import { ensureAccessToken, readAccount, type XFetch } from "./oauth";
+import { ensureAccessToken, readAccount, type StoredXAccount, type XFetch } from "./oauth";
 import { readUpload } from "./stage";
 import { KEYS, type XStore } from "./store";
 import { assertPostLength } from "./text";
@@ -16,6 +16,7 @@ export type DraftSource =
 
 export type XDraft = {
   id: string;
+  userId: string;
   text: string;
   replyTo?: string;
   quote?: string;
@@ -63,6 +64,7 @@ export type PostDeps = {
   store: XStore;
   config: XConfig;
   http: XFetch;
+  userId: string;
   loadUrl?: (url: string) => Promise<Buffer>;
   now?: number;
   sleep?: (seconds: number) => Promise<void>;
@@ -71,12 +73,17 @@ export type PostDeps = {
   caps?: ReplyCaps;
 };
 
+async function accountOf(deps: PostDeps): Promise<StoredXAccount> {
+  const account = await readAccount(deps.store, deps.userId);
+  if (!account) throw new XError("X is not connected. Open /x, connect your X account, and use the personal key.");
+  return account;
+}
+
 export async function preparePost(
   deps: PostDeps,
   input: { text?: string; media?: string; replyTo?: string; quote?: string },
 ): Promise<{ draft: XDraft; preview: ReturnType<typeof previewOf> }> {
-  const account = await readAccount(deps.store);
-  if (!account) throw new XError("X is not connected. Call x_connect_link and authorize the account.");
+  const account = await accountOf(deps);
   const text = input.text ?? "";
   if (input.replyTo && !TWEET_ID.test(input.replyTo)) throw new XError("reply_to must be a post id.");
   if (input.quote && !TWEET_ID.test(input.quote)) throw new XError("quote must be a post id.");
@@ -100,7 +107,7 @@ export async function preparePost(
 
   let media: XDraft["media"];
   if (source) {
-    const bytes = await loadSource(deps, source);
+    const bytes = await loadSource(deps, account.userId, source);
     const classified = classifyMedia(bytes);
     media = {
       kind: classified.kind,
@@ -113,6 +120,7 @@ export async function preparePost(
 
   const draft: XDraft = {
     id: randomUUID(),
+    userId: account.userId,
     text,
     replyTo: input.replyTo,
     quote: input.quote,
@@ -121,13 +129,13 @@ export async function preparePost(
     media,
     createdAt: now,
   };
-  await deps.store.set(KEYS.draft(draft.id), JSON.stringify(draft), DRAFT_TTL_SECONDS);
+  await deps.store.set(KEYS.draft(account.userId, draft.id), JSON.stringify(draft), DRAFT_TTL_SECONDS);
   return { draft, preview: previewOf(draft, account.username, length) };
 }
 
-async function loadSource(deps: PostDeps, source: DraftSource): Promise<Buffer> {
+async function loadSource(deps: PostDeps, userId: string, source: DraftSource): Promise<Buffer> {
   if (source.type === "upload") {
-    const upload = await readUpload(deps.store, source.uploadId);
+    const upload = await readUpload(deps.store, userId, source.uploadId);
     return upload.bytes;
   }
   const load = deps.loadUrl ?? loadUrlBytes;
@@ -168,9 +176,11 @@ export async function publishPost(
   deps: PostDeps,
   draftId: string,
 ): Promise<{ id: string; url: string; text: string; username: string; draftId: string; posted: true }> {
-  const raw = await deps.store.get(KEYS.draft(draftId));
+  const caller = await accountOf(deps);
+  const raw = await deps.store.get(KEYS.draft(caller.userId, draftId));
   if (!raw) throw new XError("That draft expired or does not exist. Prepare it again.");
   const draft = JSON.parse(raw) as XDraft;
+  if (draft.userId !== caller.userId) throw new XError("That draft expired or does not exist. Prepare it again.");
   if (draft.published) {
     return {
       id: draft.published.id,
@@ -186,16 +196,14 @@ export async function publishPost(
   const caps = deps.caps ?? replyCapsFromEnv();
   let replyAuthorId = draft.replyAuthorId;
   if (draft.replyTo) {
-    const current = await readAccount(deps.store);
-    if (!current) throw new XError("X is not connected. Call x_connect_link and authorize the account.");
-    const target = await loadReplyTarget(deps.store, draft.replyTo, current.userId, now, caps);
+    const target = await loadReplyTarget(deps.store, draft.replyTo, caller.userId, now, caps);
     replyAuthorId = target.authorId ?? draft.replyAuthorId;
   }
 
-  const { accessToken, account } = await ensureAccessToken(deps.store, deps.config, deps.http, now);
+  const { accessToken, account } = await ensureAccessToken(deps.store, deps.config, deps.http, caller.userId, now);
   let mediaId = draft.mediaReady ? draft.pendingMediaId : undefined;
   if (draft.media && !mediaId) {
-    const bytes = draft.pendingMediaId ? null : await loadSource(deps, draft.media.source);
+    const bytes = draft.pendingMediaId ? null : await loadSource(deps, account.userId, draft.media.source);
     if (bytes) {
       if (sha256(bytes) !== draft.media.sha256) {
         throw new XError("The media changed after the preview. Prepare the post again. Nothing was posted.");
@@ -226,7 +234,7 @@ export async function publishPost(
       if (error instanceof MediaStillProcessing) {
         draft.pendingMediaId = error.mediaId;
         draft.mediaReady = false;
-        await deps.store.set(KEYS.draft(draft.id), JSON.stringify(draft), DRAFT_TTL_SECONDS);
+        await deps.store.set(KEYS.draft(account.userId, draft.id), JSON.stringify(draft), DRAFT_TTL_SECONDS);
         throw new XError(
           `X is still processing the media for draft ${draft.id}. Call x_publish_post with this same draft id. Nothing has been posted.`,
         );
@@ -234,13 +242,13 @@ export async function publishPost(
       if (draft.pendingMediaId && error instanceof XError && error.message.includes("could not process")) {
         delete draft.pendingMediaId;
         draft.mediaReady = false;
-        await deps.store.set(KEYS.draft(draft.id), JSON.stringify(draft), DRAFT_TTL_SECONDS);
+        await deps.store.set(KEYS.draft(account.userId, draft.id), JSON.stringify(draft), DRAFT_TTL_SECONDS);
       }
       throw error;
     }
     draft.pendingMediaId = mediaId;
     draft.mediaReady = true;
-    await deps.store.set(KEYS.draft(draft.id), JSON.stringify(draft), DRAFT_TTL_SECONDS);
+    await deps.store.set(KEYS.draft(account.userId, draft.id), JSON.stringify(draft), DRAFT_TTL_SECONDS);
   }
 
   const payload: Record<string, unknown> = { text: draft.text };
@@ -277,8 +285,8 @@ export async function publishPost(
 
   const url = xPostUrl(account.username, body.data.id);
   draft.published = { id: body.data.id, url };
-  await deps.store.set(KEYS.draft(draft.id), JSON.stringify(draft), DRAFT_TTL_SECONDS);
-  if (draft.replyTo) await recordPublishedReply(deps.store, draft.replyTo, replyAuthorId, now);
+  await deps.store.set(KEYS.draft(account.userId, draft.id), JSON.stringify(draft), DRAFT_TTL_SECONDS);
+  if (draft.replyTo) await recordPublishedReply(deps.store, account.userId, draft.replyTo, replyAuthorId, now);
   return {
     id: body.data.id,
     url,

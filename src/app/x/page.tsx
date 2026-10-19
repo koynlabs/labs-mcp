@@ -4,7 +4,7 @@ import Link from "next/link";
 import Wordmark from "@/components/Wordmark";
 import { xConfigFromEnv } from "@/lib/x/config";
 import { xCallbackUrl, xConnectUrl, xWebhookUrl, X_OWNER_COOKIE, X_SCOPES } from "@/lib/x/constants";
-import { cookieCanManage, readAccount } from "@/lib/x/oauth";
+import { consumePersonalKey, readAccountByCookie } from "@/lib/x/oauth";
 import { xStore } from "@/lib/x/store";
 import { consumerSecretFromEnv } from "@/lib/x/webhook";
 
@@ -12,7 +12,7 @@ export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "X",
-  description: "Connect one X account so labs can publish a post the owner confirms.",
+  description: "Connect your X account and copy the personal key for the labs MCP.",
   robots: { index: false, follow: false },
 };
 
@@ -22,7 +22,7 @@ const ERRORS: Record<string, string> = {
   denied: "X authorization was declined.",
   token: "X did not return a usable token. Start again.",
   scope: "X did not grant tweet.write, media.write, and offline.access. Add those scopes and start again.",
-  disconnect: "Disconnect is available in the browser that connected this account. Sign in again as the same @username to replace the token.",
+  disconnect: "Disconnect only works in the browser that connected this account.",
   revoke: "Disconnected here. X did not confirm the revoke. Remove labs from the account's connected apps if it still appears.",
 };
 
@@ -33,19 +33,14 @@ export default async function XPage({
 }) {
   const params = await searchParams;
   const errorCode = typeof params.error === "string" ? params.error : "";
-  const accountName = typeof params.account === "string" && /^[A-Za-z0-9_]{1,15}$/.test(params.account)
-    ? params.account
-    : "";
   const jar = await cookies();
   const cookie = jar.get(X_OWNER_COOKIE)?.value ?? null;
-  const configured = xConfigFromEnv() !== null;
-  const account = configured ? await readAccount(xStore) : null;
-  const canDisconnect = cookieCanManage(account, cookie);
+  const config = xConfigFromEnv();
+  const configured = config !== null;
+  const account = config ? await readAccountByCookie(xStore, cookie) : null;
+  const personalKey = config && account ? await consumePersonalKey(xStore, config.encryptionSecret, cookie) : null;
   const webhookReady = consumerSecretFromEnv() !== null;
-  const error =
-    errorCode === "occupied"
-      ? `Already connected as @${accountName || account?.username || "another account"}. Sign in as that account to replace the token, or disconnect first.`
-      : ERRORS[errorCode];
+  const error = ERRORS[errorCode];
 
   return (
     <main className="wrap x-page">
@@ -53,13 +48,10 @@ export default async function XPage({
         {account ? (
           <div className="x-account">
             <strong>Connected as @{account.username}</strong>
-            {canDisconnect ? (
-              <form method="post" action="/api/x/disconnect" className="x-disconnect">
-                <button type="submit">Disconnect</button>
-              </form>
-            ) : (
-              <span className="muted">Disconnect is available in the browser that connected this account.</span>
-            )}
+            <form method="post" action="/api/x/disconnect" className="x-disconnect">
+              <button type="submit">Disconnect</button>
+            </form>
+            <a href={xConnectUrl()}>Connect again</a>
           </div>
         ) : (
           <a className="x-connect" href={xConnectUrl()}>
@@ -70,10 +62,28 @@ export default async function XPage({
       <Wordmark />
       <h1>X</h1>
       <p className="muted">
-        One account. A post goes out only after it is prepared and then published. Nothing here posts by itself.
+        Each person connects their own account. The MCP posts only as the account for the personal key on that request.
+        A post goes out only after it is prepared and then published.
       </p>
 
-      {params.connected === "1" ? <p className="ok">Connected.</p> : null}
+      {personalKey ? (
+        <div className="x-key-block">
+          <p className="ok">Connected. Copy this personal key now. It is shown once.</p>
+          <pre className="x-key">{personalKey}</pre>
+          <p className="muted">
+            Send it on the MCP request as <code>Authorization: Bearer</code> followed by the key. Do not put it in a
+            tool argument. Connecting again as @{account?.username} rotates the key and the previous one stops working.
+          </p>
+        </div>
+      ) : params.connected === "1" ? (
+        <p className="ok">Connected. The personal key was already shown. Connect again to issue a new one.</p>
+      ) : null}
+      {account && !account.keyHash && !personalKey ? (
+        <p className="warn">
+          Connected as @{account.username}, but this connection has no personal key yet. Connect again as that account.
+          That visit issues a key and replaces the token. Until then, MCP calls for this account are refused.
+        </p>
+      ) : null}
       {params.disconnected === "1" ? <p className="ok">Disconnected.</p> : null}
       {error ? <p className="warn">{error}</p> : null}
 
@@ -94,10 +104,11 @@ export default async function XPage({
 
       {account ? (
         <p>
-          Posts from the MCP go out as @{account.username}. {account.name !== account.username ? account.name : ""}
+          Posts from a client using this browser&apos;s key go out as @{account.username}.{" "}
+          {account.name !== account.username ? account.name : ""}
         </p>
       ) : (
-        <p>Connect the account that should publish launch posts. For this deployment that is @cyberpsychoxx78.</p>
+        <p>Connect the X account this client should post as. The next page shows a personal key once.</p>
       )}
 
       <h2>Sign-in URL</h2>

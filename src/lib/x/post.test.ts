@@ -71,6 +71,7 @@ describe("prepare and publish", () => {
       {
         store,
         config,
+        userId: "1001",
         http,
         loadUrl: async () => file,
       },
@@ -99,7 +100,7 @@ describe("prepare and publish", () => {
       throw new Error(url);
     };
     const published = await publishPost(
-      { store, config, http: publishHttp, loadUrl: async () => file, sleep: async () => {}, chunkBytes: 8 },
+      { store, config, userId: "1001", http: publishHttp, loadUrl: async () => file, sleep: async () => {}, chunkBytes: 8 },
       preview.draftId,
     );
     assert.equal(published.url, "https://x.com/cyberpsychoxx78/status/777");
@@ -113,7 +114,7 @@ describe("prepare and publish", () => {
     });
 
     const again = await publishPost(
-      { store, config, http: publishHttp, loadUrl: async () => file, sleep: async () => {} },
+      { store, config, userId: "1001", http: publishHttp, loadUrl: async () => file, sleep: async () => {} },
       preview.draftId,
     );
     assert.equal(again.url, published.url);
@@ -124,24 +125,24 @@ describe("prepare and publish", () => {
     const store = createMemoryXStore();
     await connect(store);
     await assert.rejects(
-      () => preparePost({ store, config, http: fetch }, { text: "a".repeat(281) }),
+      () => preparePost({ store, config, userId: "1001", http: fetch }, { text: "a".repeat(281) }),
       /280/,
     );
     await assert.rejects(
-      () => preparePost({ store, config, http: fetch }, { text: "" }),
+      () => preparePost({ store, config, userId: "1001", http: fetch }, { text: "" }),
       /text, media, or both/,
     );
     await assert.rejects(
-      () => preparePost({ store, config, http: fetch }, { media: "https://127.0.0.1/launch.mp4" }),
+      () => preparePost({ store, config, userId: "1001", http: fetch }, { media: "https://127.0.0.1/launch.mp4" }),
       /non-public/,
     );
     await assert.rejects(
-      () => preparePost({ store, config, http: fetch, loadUrl: async () => Buffer.from("hello") }, { media: "https://cdn.example.com/a.mp4" }),
+      () => preparePost({ store, config, userId: "1001", http: fetch, loadUrl: async () => Buffer.from("hello") }, { media: "https://cdn.example.com/a.mp4" }),
       /JPEG, PNG, WEBP, GIF, or MP4/,
     );
 
     const { preview } = await preparePost(
-      { store, config, http: fetch, loadUrl: async () => mp4(16) },
+      { store, config, userId: "1001", http: fetch, loadUrl: async () => mp4(16) },
       { text: "ok", media: "https://cdn.example.com/a.mp4" },
     );
     let tweets = 0;
@@ -151,6 +152,7 @@ describe("prepare and publish", () => {
           {
             store,
             config,
+            userId: "1001",
             http: async (url) => {
               if (url.endsWith("/2/tweets")) tweets += 1;
               return json({ data: { id: "1" } });
@@ -174,7 +176,7 @@ describe("prepare and publish", () => {
     await connect(store);
     const file = mp4(8);
     const { preview } = await preparePost(
-      { store, config, http: fetch, loadUrl: async () => file },
+      { store, config, userId: "1001", http: fetch, loadUrl: async () => file },
       { text: "tape", media: "https://cdn.example.com/tape.mp4" },
     );
 
@@ -206,20 +208,20 @@ describe("prepare and publish", () => {
     await assert.rejects(
       () =>
         publishPost(
-          { store, config, http, loadUrl: async () => file, sleep: async () => {}, chunkBytes: 8, maxPolls: 0 },
+          { store, config, userId: "1001", http, loadUrl: async () => file, sleep: async () => {}, chunkBytes: 8, maxPolls: 0 },
           preview.draftId,
         ),
       /still processing/,
     );
     assert.equal(tweets, 0);
     assert.equal(inits, 1);
-    const saved = JSON.parse((await store.get(KEYS.draft(preview.draftId))) ?? "{}") as { pendingMediaId?: string };
+    const saved = JSON.parse((await store.get(KEYS.draft("1001", preview.draftId))) ?? "{}") as { pendingMediaId?: string };
     assert.equal(saved.pendingMediaId, "555");
 
     await assert.rejects(
       () =>
         publishPost(
-          { store, config, http, loadUrl: async () => file, sleep: async () => {}, chunkBytes: 8, maxPolls: 4 },
+          { store, config, userId: "1001", http, loadUrl: async () => file, sleep: async () => {}, chunkBytes: 8, maxPolls: 4 },
           preview.draftId,
         ),
       /try again/,
@@ -228,7 +230,7 @@ describe("prepare and publish", () => {
     assert.equal(tweets, 1);
 
     const published = await publishPost(
-      { store, config, http, loadUrl: async () => Buffer.alloc(0), sleep: async () => {}, chunkBytes: 8 },
+      { store, config, userId: "1001", http, loadUrl: async () => Buffer.alloc(0), sleep: async () => {}, chunkBytes: 8 },
       preview.draftId,
     );
     assert.equal(published.url, "https://x.com/cyberpsychoxx78/status/888");
@@ -239,9 +241,9 @@ describe("prepare and publish", () => {
   it("accepts an uploaded file id and a text-only post", async () => {
     const store = createMemoryXStore();
     await connect(store);
-    const upload = await stageBytes(store, mp4(20), "launch.mp4", "video/mp4");
+    const upload = await stageBytes(store, "1001", mp4(20), "launch.mp4", "video/mp4");
     const { preview } = await preparePost(
-      { store, config, http: fetch },
+      { store, config, userId: "1001", http: fetch },
       { media: upload.id },
     );
     assert.equal(preview.preview.text, "");

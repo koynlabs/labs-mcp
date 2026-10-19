@@ -1,5 +1,5 @@
-import { rejectXHttp } from "@/lib/x/api-key";
 import { XError } from "@/lib/x/config";
+import { authorizeXRequest } from "@/lib/x/oauth";
 import { appendStage } from "@/lib/x/stage";
 import { xStore } from "@/lib/x/store";
 
@@ -11,13 +11,13 @@ export async function PUT(
   request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const denied = rejectXHttp(request.headers.get("authorization"));
-  if (denied) return denied;
+  const auth = await authorizeXRequest(xStore, request.headers.get("authorization"));
+  if (!auth.ok) return auth.response;
   try {
     const { id } = await params;
     const index = Number(request.headers.get("x-segment-index"));
     const bytes = Buffer.from(await request.arrayBuffer());
-    const stage = await appendStage(xStore, id, index, bytes);
+    const stage = await appendStage(xStore, auth.account.userId, id, index, bytes);
     return Response.json({
       stageId: stage.id,
       received: stage.received,

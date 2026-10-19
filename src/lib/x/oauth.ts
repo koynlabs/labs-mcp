@@ -1,6 +1,16 @@
 import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
+import {
+  bearerToken,
+  currentAuthorization,
+  hashesEqual,
+  newPersonalKey,
+  personalKeyHash,
+  rejectUnknownKey,
+  xKeyMessage,
+} from "./api-key";
 import { XError, type XConfig } from "./config";
 import {
+  KEY_REVEAL_TTL_SECONDS,
   OAUTH_TTL_SECONDS,
   X_API,
   X_AUTHORIZE_URL,
@@ -27,6 +37,8 @@ export type StoredXAccount = {
   name: string;
   scope: string;
   sealed: string;
+  /** sha256 hex of the personal key. Null on a migrated connection until that account connects again. */
+  keyHash?: string | null;
   ownerCookieHash: string;
   connectedAt: number;
 };
@@ -77,20 +89,116 @@ export function authorizationUrl(input: {
   return url.toString();
 }
 
-export async function readAccount(store: XStore): Promise<StoredXAccount | null> {
-  const raw = await store.get(KEYS.account);
-  if (!raw) return null;
+const USER_ID = /^[0-9]{1,20}$/;
+
+function isSha256(value: string | null | undefined): value is string {
+  return typeof value === "string" && /^[0-9a-f]{64}$/i.test(value);
+}
+
+function parseAccount(raw: string): StoredXAccount | null {
   try {
     const parsed = JSON.parse(raw) as StoredXAccount;
-    if (!parsed.userId || !parsed.username || !parsed.sealed) return null;
-    return parsed;
+    if (!parsed.userId || !USER_ID.test(parsed.userId) || !parsed.username || !parsed.sealed) return null;
+    return { ...parsed, keyHash: parsed.keyHash ?? null };
   } catch {
     throw new XError("The stored X connection is unreadable.");
   }
 }
 
+async function readLegacy(store: XStore): Promise<StoredXAccount | null> {
+  const raw = await store.get(KEYS.legacyAccount);
+  if (!raw) return null;
+  return parseAccount(raw);
+}
+
+/**
+ * The single-account row from before personal keys. Moved under the user id
+ * with no key. The next Connect X for that account issues the key.
+ */
+async function migrateLegacy(store: XStore, userId: string): Promise<StoredXAccount | null> {
+  const legacy = await readLegacy(store);
+  if (!legacy || legacy.userId !== userId) return null;
+  const moved: StoredXAccount = { ...legacy, keyHash: null };
+  await store.set(KEYS.user(userId), JSON.stringify(moved));
+  if (isSha256(moved.ownerCookieHash)) await store.set(KEYS.owner(moved.ownerCookieHash), userId);
+  await store.del(KEYS.legacyAccount);
+  return moved;
+}
+
+export async function readAccount(store: XStore, userId: string): Promise<StoredXAccount | null> {
+  if (!USER_ID.test(userId)) return null;
+  const raw = await store.get(KEYS.user(userId));
+  if (raw) return parseAccount(raw);
+  return migrateLegacy(store, userId);
+}
+
+export async function readAccountByCookie(store: XStore, cookie: string | null): Promise<StoredXAccount | null> {
+  if (!cookie) return null;
+  const hash = hashOwnerCookie(cookie);
+  const indexed = await store.get(KEYS.owner(hash));
+  if (indexed && USER_ID.test(indexed)) {
+    const account = await readAccount(store, indexed);
+    if (account && cookieCanManage(account, cookie)) return account;
+  }
+  const legacy = await readLegacy(store);
+  if (!legacy || !cookieCanManage(legacy, cookie)) return null;
+  return readAccount(store, legacy.userId);
+}
+
 export async function writeAccount(store: XStore, account: StoredXAccount): Promise<void> {
-  await store.set(KEYS.account, JSON.stringify(account));
+  if (!USER_ID.test(account.userId)) throw new XError("The X account id is not usable.");
+  const stored: StoredXAccount = { ...account, keyHash: account.keyHash ?? null };
+  await store.set(KEYS.user(stored.userId), JSON.stringify(stored));
+  if (isSha256(stored.keyHash)) await store.set(KEYS.key(stored.keyHash), stored.userId);
+  if (isSha256(stored.ownerCookieHash)) await store.set(KEYS.owner(stored.ownerCookieHash), stored.userId);
+}
+
+export async function resolveXAccount(store: XStore, authorization?: string | null): Promise<StoredXAccount | null> {
+  const header = authorization === undefined ? currentAuthorization() : authorization;
+  const presented = bearerToken(header);
+  if (!presented) return null;
+  const digest = personalKeyHash(presented);
+  const userId = await store.get(KEYS.key(digest));
+  if (!userId || !USER_ID.test(userId)) {
+    rejectUnknownKey(digest);
+    return null;
+  }
+  const account = await readAccount(store, userId);
+  if (!account?.keyHash || !hashesEqual(digest, account.keyHash)) {
+    rejectUnknownKey(digest);
+    return null;
+  }
+  return account;
+}
+
+export async function authorizeXRequest(
+  store: XStore,
+  authorization?: string | null,
+): Promise<{ ok: true; account: StoredXAccount } | { ok: false; response: Response }> {
+  const account = await resolveXAccount(store, authorization);
+  if (account) return { ok: true, account };
+  return {
+    ok: false,
+    response: Response.json(
+      { error: xKeyMessage() },
+      { status: 401, headers: { "cache-control": "no-store" } },
+    ),
+  };
+}
+
+export async function consumePersonalKey(store: XStore, secret: string, cookie: string | null): Promise<string | null> {
+  if (!cookie) return null;
+  const hash = hashOwnerCookie(cookie);
+  const sealed = await store.get(KEYS.reveal(hash));
+  if (!sealed) return null;
+  await store.del(KEYS.reveal(hash));
+  try {
+    const key = openSecret(sealed, secret);
+    if (!/^lxk_[A-Za-z0-9_-]{40,}$/.test(key)) return null;
+    return key;
+  } catch {
+    return null;
+  }
 }
 
 export function unsealTokens(account: StoredXAccount, secret: string): TokenBundle {
@@ -319,8 +427,8 @@ export async function consumeOAuthState(
 }
 
 export type FinishResult =
-  | { type: "connected"; username: string; cookie: string }
-  | { type: "error"; code: "denied" | "state" | "token" | "scope" | "occupied"; username?: string };
+  | { type: "connected"; username: string; cookie: string; key: string }
+  | { type: "error"; code: "denied" | "state" | "token" | "scope" };
 
 export async function finishConnect(
   store: XStore,
@@ -357,23 +465,30 @@ export async function finishConnect(
     return { type: "error", code: "token" };
   }
 
-  const existing = await readAccount(store);
-  if (existing && existing.userId !== me.id) {
-    await revokeQuietly(http, config, bundle.refreshToken);
-    return { type: "error", code: "occupied", username: existing.username };
-  }
-
+  const existing = await readAccount(store, me.id);
+  const key = newPersonalKey();
+  const keyHash = personalKeyHash(key);
   const cookie = newOwnerCookie();
+  const cookieHash = hashOwnerCookie(cookie);
   const account: StoredXAccount = {
     userId: me.id,
     username: me.username,
     name: me.name,
     scope: bundle.scope,
     sealed: sealTokens(bundle, config.encryptionSecret),
-    ownerCookieHash: hashOwnerCookie(cookie),
+    keyHash,
+    ownerCookieHash: cookieHash,
     connectedAt: now,
   };
   await writeAccount(store, account);
+  await store.set(KEYS.reveal(cookieHash), sealSecret(key, config.encryptionSecret), KEY_REVEAL_TTL_SECONDS);
+  if (existing?.keyHash && existing.keyHash !== keyHash) await store.del(KEYS.key(existing.keyHash));
+  if (existing && isSha256(existing.ownerCookieHash) && existing.ownerCookieHash !== cookieHash) {
+    await store.del(KEYS.owner(existing.ownerCookieHash));
+    await store.del(KEYS.reveal(existing.ownerCookieHash));
+  }
+  const legacy = await readLegacy(store);
+  if (legacy?.userId === me.id) await store.del(KEYS.legacyAccount);
 
   if (existing) {
     try {
@@ -386,7 +501,7 @@ export async function finishConnect(
     }
   }
 
-  return { type: "connected", username: me.username, cookie };
+  return { type: "connected", username: me.username, cookie, key };
 }
 
 /**
@@ -398,22 +513,23 @@ export async function ensureAccessToken(
   store: XStore,
   config: XConfig,
   http: XFetch,
+  userId: string,
   now = Date.now(),
 ): Promise<{ accessToken: string; account: StoredXAccount }> {
-  const account = await readAccount(store);
-  if (!account) throw new XError("X is not connected. Call x_connect_link and authorize the account.");
+  const account = await readAccount(store, userId);
+  if (!account) throw new XError("X is not connected. Open /x, connect your X account, and use the personal key.");
   const current = unsealTokens(account, config.encryptionSecret);
   if (current.expiresAt - now > 60_000) {
     return { accessToken: current.accessToken, account };
   }
 
   const lockId = randomBytes(8).toString("hex");
-  const locked = await store.setNx(KEYS.refreshLock, lockId, 30);
+  const locked = await store.setNx(KEYS.refreshLock(account.userId), lockId, 30);
   if (!locked) {
     throw new XError("X token refresh is already in progress. Try the post again in a moment.");
   }
   try {
-    const latest = (await readAccount(store)) ?? account;
+    const latest = (await readAccount(store, account.userId)) ?? account;
     const bundle = unsealTokens(latest, config.encryptionSecret);
     if (bundle.expiresAt - now > 60_000) {
       return { accessToken: bundle.accessToken, account: latest };
@@ -423,8 +539,8 @@ export async function ensureAccessToken(
     await writeAccount(store, updated);
     return { accessToken: next.accessToken, account: updated };
   } finally {
-    const holder = await store.get(KEYS.refreshLock);
-    if (holder === lockId) await store.del(KEYS.refreshLock);
+    const holder = await store.get(KEYS.refreshLock(account.userId));
+    if (holder === lockId) await store.del(KEYS.refreshLock(account.userId));
   }
 }
 
@@ -439,9 +555,8 @@ export async function disconnectAccount(
   cookie: string | null,
   http: XFetch,
 ): Promise<DisconnectResult> {
-  const account = await readAccount(store);
-  if (!account) return { type: "none" };
-  if (!cookieCanManage(account, cookie)) return { type: "forbidden" };
+  const account = await readAccountByCookie(store, cookie);
+  if (!account) return { type: "forbidden" };
   let revoked = false;
   try {
     const bundle = unsealTokens(account, config.encryptionSecret);
@@ -449,6 +564,13 @@ export async function disconnectAccount(
   } catch {
     revoked = false;
   }
-  await store.del(KEYS.account);
+  if (isSha256(account.keyHash)) await store.del(KEYS.key(account.keyHash));
+  if (isSha256(account.ownerCookieHash)) {
+    await store.del(KEYS.owner(account.ownerCookieHash));
+    await store.del(KEYS.reveal(account.ownerCookieHash));
+  }
+  await store.del(KEYS.user(account.userId));
+  const legacy = await readLegacy(store);
+  if (legacy?.userId === account.userId) await store.del(KEYS.legacyAccount);
   return { type: "ok", revoked };
 }

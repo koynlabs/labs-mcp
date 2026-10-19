@@ -1,6 +1,6 @@
 import { SITE_URL } from "../config";
 
-/** Confidential-client OAuth 2.0 with PKCE. One connected account posts as itself. */
+/** Confidential-client OAuth 2.0 with PKCE. Each connected account posts only as itself. */
 export const X_SCOPES = [
   "tweet.read",
   "tweet.write",
@@ -37,6 +37,9 @@ export const STAGE_CHUNK_BYTES = 4 * 1024 * 1024;
 
 export const OAUTH_TTL_SECONDS = 10 * 60;
 export const DRAFT_TTL_SECONDS = 30 * 60;
+
+/** How long /x can still show a personal key after connect. The row is deleted on that view. */
+export const KEY_REVEAL_TTL_SECONDS = 10 * 60;
 
 /** Inbox rows, the replied-to mark, and the mentions since_id. */
 export const MENTION_TTL_SECONDS = 14 * 24 * 60 * 60;

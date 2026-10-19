@@ -7,16 +7,19 @@ import {
   basicAuthorization,
   beginConnect,
   connectionStatus,
+  consumePersonalKey,
   consumeOAuthState,
   disconnectAccount,
   ensureAccessToken,
   finishConnect,
   hashOwnerCookie,
   readAccount,
+  resolveXAccount,
   unsealTokens,
   writeAccount,
   type XFetch,
 } from "./oauth";
+import { personalKeyHash } from "./api-key";
 import { codeChallenge } from "./pkce";
 import { openSecret, sealSecret } from "./seal";
 import { createMemoryXStore, KEYS, type XStore } from "./store";
@@ -88,8 +91,10 @@ describe("PKCE and OAuth state", () => {
     if (first.type !== "connected") return;
     assert.equal(first.username, "cyberpsychoxx78");
 
-    const account = await readAccount(store);
+    const account = await readAccount(store, "1001");
     assert.ok(account);
+    assert.match(first.key, /^lxk_[A-Za-z0-9_-]{40,}$/);
+    assert.equal(JSON.stringify(account).includes(first.key), false);
     assert.equal(account.sealed.includes("access-plain"), false);
     assert.equal(account.sealed.includes("refresh-plain"), false);
     assert.equal(account.ownerCookieHash, hashOwnerCookie(first.cookie));
@@ -144,7 +149,7 @@ describe("PKCE and OAuth state", () => {
     assert.equal(await store.get(KEYS.oauth("stale")), null);
   });
 
-  it("refuses a different account and revokes the new grant", async () => {
+  it("keeps the first account when a different account connects", async () => {
     const store = createMemoryXStore();
     await writeAccount(store, {
       userId: "1001",
@@ -170,11 +175,15 @@ describe("PKCE and OAuth state", () => {
       throw new Error(target);
     };
     const result = await finishConnect(store, config, { code: "c", state: started.state }, http, 2_000);
-    assert.equal(result.type, "error");
-    if (result.type === "error") assert.equal(result.code, "occupied");
-    assert.deepEqual(revoked, ["new-refresh"]);
-    const account = await readAccount(store);
-    assert.equal(unsealTokens(account!, config.encryptionSecret).refreshToken, "old-refresh");
+    assert.equal(result.type, "connected");
+    if (result.type !== "connected") return;
+    assert.equal(result.username, "someoneelse");
+    assert.deepEqual(revoked, []);
+    const first = await readAccount(store, "1001");
+    const second = await readAccount(store, "2002");
+    assert.equal(unsealTokens(first!, config.encryptionSecret).refreshToken, "old-refresh");
+    assert.equal(unsealTokens(second!, config.encryptionSecret).refreshToken, "new-refresh");
+    assert.equal(JSON.stringify(second).includes(result.key), false);
   });
 
   it("replaces the token when the same account signs in again", async () => {
@@ -204,9 +213,78 @@ describe("PKCE and OAuth state", () => {
     };
     const result = await finishConnect(store, config, { code: "c", state: started.state }, http, 5_000);
     assert.equal(result.type, "connected");
+    if (result.type !== "connected") return;
     assert.deepEqual(revoked, ["old-refresh"]);
-    const account = await readAccount(store);
+    const account = await readAccount(store, "1001");
     assert.equal(unsealTokens(account!, config.encryptionSecret).refreshToken, "new-refresh");
+    assert.match(result.key, /^lxk_/);
+    assert.equal(JSON.stringify(account).includes(result.key), false);
+    assert.equal(await store.get(KEYS.legacyAccount), null);
+    const again = await beginConnect(store, config, 6_000);
+    const rotated = await finishConnect(store, config, { code: "c", state: again.state }, http, 7_000);
+    assert.equal(rotated.type, "connected");
+    if (rotated.type !== "connected") return;
+    assert.notEqual(rotated.key, result.key);
+    assert.equal(await resolveXAccount(store, `Bearer ${result.key}`), null);
+    assert.equal((await resolveXAccount(store, `Bearer ${rotated.key}`))?.userId, "1001");
+  });
+
+  it("issues a key for the old global connection only when that account connects again", async () => {
+    const store = createMemoryXStore();
+    await store.set(
+      KEYS.legacyAccount,
+      JSON.stringify({
+        userId: "1001",
+        username: "cyberpsychoxx78",
+        name: "Cyber",
+        scope: SCOPE,
+        sealed: sealSecret(
+          JSON.stringify({ accessToken: "old-access", refreshToken: "old-refresh", expiresAt: 9, scope: SCOPE }),
+          config.encryptionSecret,
+        ),
+        ownerCookieHash: hashOwnerCookie("owner-cookie"),
+        connectedAt: 1,
+      }),
+    );
+    const other = await beginConnect(store, config, 1_000);
+    const http: XFetch = async (target, init) => {
+      if (target.endsWith("/oauth2/token")) return json(tokenPair("new-access", "new-refresh"));
+      if (target.includes("/users/me")) return me("other", "2002");
+      if (target.endsWith("/oauth2/revoke")) return json({});
+      throw new Error(String(init?.method ?? target));
+    };
+    const second = await finishConnect(store, config, { code: "c", state: other.state }, http, 2_000);
+    assert.equal(second.type, "connected");
+    assert.ok(await store.get(KEYS.legacyAccount));
+
+    const moved = await readAccount(store, "1001");
+    assert.equal(moved?.username, "cyberpsychoxx78");
+    assert.equal(moved?.keyHash ?? null, null);
+    assert.equal(await store.get(KEYS.legacyAccount), null);
+    assert.equal(await resolveXAccount(store, "Bearer lxk_not-a-key"), null);
+
+    const started = await beginConnect(store, config, 3_000);
+    const revoked: string[] = [];
+    const reconnect: XFetch = async (target, init) => {
+      if (target.endsWith("/oauth2/token")) return json(tokenPair("fresh-access", "fresh-refresh"));
+      if (target.includes("/users/me")) return me();
+      if (target.endsWith("/oauth2/revoke")) {
+        revoked.push(form(init).get("token") ?? "");
+        return json({});
+      }
+      throw new Error(target);
+    };
+    const result = await finishConnect(store, config, { code: "c", state: started.state }, reconnect, 4_000);
+    assert.equal(result.type, "connected");
+    if (result.type !== "connected") return;
+    assert.deepEqual(revoked, ["old-refresh"]);
+    const account = await readAccount(store, "1001");
+    assert.equal(account?.keyHash, personalKeyHash(result.key));
+    assert.equal(JSON.stringify(account).includes(result.key), false);
+    const shown = await consumePersonalKey(store, config.encryptionSecret, result.cookie);
+    assert.equal(shown, result.key);
+    assert.equal(await consumePersonalKey(store, config.encryptionSecret, result.cookie), null);
+    assert.equal((await readAccount(store, "2002"))?.username, "other");
   });
 });
 
@@ -231,7 +309,7 @@ describe("granted scopes", () => {
     const result = await finishConnect(store, config, { code: "c", state: started.state }, http, 2_000);
     assert.deepEqual(result, { type: "error", code: "scope" });
     assert.deepEqual(revoked, ["refresh-plain"]);
-    assert.equal(await readAccount(store), null);
+    assert.equal(await readAccount(store, "1001"), null);
   });
 });
 
@@ -259,20 +337,20 @@ describe("token refresh rotation", () => {
       return json(tokenPair(`access-${generation}`, `refresh-${generation}`));
     };
 
-    const first = await ensureAccessToken(store, config, http, 10_000);
+    const first = await ensureAccessToken(store, config, http, "1001", 10_000);
     assert.equal(first.accessToken, "access-2");
-    assert.equal(unsealTokens((await readAccount(store))!, config.encryptionSecret).refreshToken, "refresh-2");
+    assert.equal(unsealTokens((await readAccount(store, "1001"))!, config.encryptionSecret).refreshToken, "refresh-2");
 
-    const expired = unsealTokens((await readAccount(store))!, config.encryptionSecret);
+    const expired = unsealTokens((await readAccount(store, "1001"))!, config.encryptionSecret);
     expired.expiresAt = 0;
-    const current = (await readAccount(store))!;
+    const current = (await readAccount(store, "1001"))!;
     current.sealed = sealSecret(JSON.stringify(expired), config.encryptionSecret);
     await writeAccount(store, current);
 
-    const second = await ensureAccessToken(store, config, http, 20_000);
+    const second = await ensureAccessToken(store, config, http, "1001", 20_000);
     assert.equal(second.accessToken, "access-3");
     assert.deepEqual(sent, ["refresh-1", "refresh-2"]);
-    assert.equal(unsealTokens((await readAccount(store))!, config.encryptionSecret).refreshToken, "refresh-3");
+    assert.equal(unsealTokens((await readAccount(store, "1001"))!, config.encryptionSecret).refreshToken, "refresh-3");
   });
 
   it("keeps the previous refresh token when the refresh request fails", async () => {
@@ -290,8 +368,8 @@ describe("token refresh rotation", () => {
       connectedAt: 1,
     });
     const http: XFetch = async () => json({ error_description: "invalid_grant" }, 400);
-    await assert.rejects(() => ensureAccessToken(store, config, http, 10_000), /invalid_grant/);
-    assert.equal(unsealTokens((await readAccount(store))!, config.encryptionSecret).refreshToken, "refresh-1");
+    await assert.rejects(() => ensureAccessToken(store, config, http, "1001", 10_000), /invalid_grant/);
+    assert.equal(unsealTokens((await readAccount(store, "1001"))!, config.encryptionSecret).refreshToken, "refresh-1");
   });
 });
 
@@ -315,13 +393,13 @@ describe("disconnect", () => {
       throw new Error("should not revoke");
     });
     assert.deepEqual(denied, { type: "forbidden" });
-    assert.ok(await readAccount(store));
+    assert.ok(await readAccount(store, "1001"));
 
     const wrongCookie = await disconnectAccount(store, config, `${cookie}-no`, async () => {
       throw new Error("should not revoke");
     });
     assert.deepEqual(wrongCookie, { type: "forbidden" });
-    assert.equal((await readAccount(store))?.username, "cyberpsychoxx78");
+    assert.equal((await readAccount(store, "1001"))?.username, "cyberpsychoxx78");
 
     let revoked = "";
     const ok = await disconnectAccount(store, config, cookie, async (_target, init) => {
@@ -330,7 +408,7 @@ describe("disconnect", () => {
     });
     assert.deepEqual(ok, { type: "ok", revoked: true });
     assert.equal(revoked, "refresh-1");
-    assert.equal(await readAccount(store), null);
+    assert.equal(await readAccount(store, "1001"), null);
   });
 });
 
@@ -378,7 +456,7 @@ describe("config and seal", () => {
       ownerCookieHash: "hash",
       connectedAt: 1,
     });
-    const status = connectionStatus(await readAccount(store), true);
+    const status = connectionStatus(await readAccount(store, "1001"), true);
     assert.equal(status.username, "@cyberpsychoxx78");
     assert.equal(JSON.stringify(status).includes("sealed-blob"), false);
     const authorize = authorizationUrl({

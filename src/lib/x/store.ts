@@ -145,20 +145,27 @@ export const xStore: XStore = {
 };
 
 export const KEYS = {
-  account: "x:account",
-  refreshLock: "x:refresh-lock",
+  /** Pre-multi-user row. Read once, then moved under `user`. It has no personal key. */
+  legacyAccount: "x:account",
+  user: (userId: string) => `x:user:${userId}`,
+  /** sha256 of the personal key → user id. The raw key is never a Redis key. */
+  key: (keyHash: string) => `x:key:${keyHash}`,
+  owner: (cookieHash: string) => `x:owner:${cookieHash}`,
+  /** Sealed one-time copy of a new personal key. Deleted when /x renders it. */
+  reveal: (cookieHash: string) => `x:reveal:${cookieHash}`,
+  refreshLock: (userId: string) => `x:refresh-lock:${userId}`,
   oauth: (state: string) => `x:oauth:${state}`,
-  draft: (id: string) => `x:draft:${id}`,
-  upload: (id: string) => `x:upload:${id}`,
-  blob: (id: string) => `x:blob:${id}`,
-  stage: (id: string) => `x:stage:${id}`,
-  stageChunk: (id: string, index: number) => `x:stage:${id}:${index}`,
-  mention: (id: string) => `x:mention:${id}`,
-  mentionSeen: (id: string) => `x:mention-seen:${id}`,
-  mentionIndex: "x:mentions",
-  mentionLock: "x:mentions-lock",
-  replied: (id: string) => `x:replied:${id}`,
-  replyDay: (day: string) => `x:reply-day:${day}`,
-  replyAuthorDay: (authorId: string, day: string) => `x:reply-author:${authorId}:${day}`,
+  draft: (userId: string, id: string) => `x:draft:${userId}:${id}`,
+  upload: (userId: string, id: string) => `x:upload:${userId}:${id}`,
+  blob: (userId: string, id: string) => `x:blob:${userId}:${id}`,
+  stage: (userId: string, id: string) => `x:stage:${userId}:${id}`,
+  stageChunk: (userId: string, id: string, index: number) => `x:stage:${userId}:${id}:${index}`,
+  mention: (userId: string, id: string) => `x:mention:${userId}:${id}`,
+  mentionSeen: (userId: string, id: string) => `x:mention-seen:${userId}:${id}`,
+  mentionIndex: (userId: string) => `x:mentions:${userId}`,
+  mentionLock: (userId: string) => `x:mentions-lock:${userId}`,
+  replied: (userId: string, id: string) => `x:replied:${userId}:${id}`,
+  replyDay: (userId: string, day: string) => `x:reply-day:${userId}:${day}`,
+  replyAuthorDay: (userId: string, authorId: string, day: string) => `x:reply-author:${userId}:${authorId}:${day}`,
   mentionsSince: (userId: string) => `x:mentions-since:${userId}`,
 };

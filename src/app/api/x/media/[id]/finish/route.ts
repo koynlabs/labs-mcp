@@ -1,5 +1,5 @@
-import { rejectXHttp } from "@/lib/x/api-key";
 import { XError } from "@/lib/x/config";
+import { authorizeXRequest } from "@/lib/x/oauth";
 import { finishStage } from "@/lib/x/stage";
 import { xStore } from "@/lib/x/store";
 
@@ -11,11 +11,11 @@ export async function POST(
   request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const denied = rejectXHttp(request.headers.get("authorization"));
-  if (denied) return denied;
+  const auth = await authorizeXRequest(xStore, request.headers.get("authorization"));
+  if (!auth.ok) return auth.response;
   try {
     const { id } = await params;
-    const upload = await finishStage(xStore, id);
+    const upload = await finishStage(xStore, auth.account.userId, id);
     return Response.json({
       uploadId: upload.id,
       kind: upload.kind,
