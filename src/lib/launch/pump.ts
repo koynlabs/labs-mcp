@@ -6,6 +6,7 @@ import {
   UnsupportedQuoteMintError,
   computeFeesBps,
   getBuyTokenAmountFromSolAmount,
+  holderRewardsPda,
   isLegacyQuoteMint,
   newBondingCurve,
   type BondingCurve,
@@ -30,8 +31,10 @@ import {
 import { MAX_BUYERS, PUMP, WSOL_MINT } from "../config";
 import { connection, encodeTx } from "../solana";
 import type { PendingTx } from "../types";
-import type { BuiltLaunch, LaunchInput } from "./input";
+import type { BuiltLaunch, LaunchChecks, LaunchInput } from "./input";
 import { resolveMetadata } from "./metadata";
+import { assertHolderFees, assertStockPairing, STOCK_CATEGORY, type LaunchFeatures } from "./features";
+import { stockQuote } from "./stonks";
 
 /**
  * Jito drops a bundle whose first transaction does not pay a tip. PumpPortal
@@ -71,6 +74,7 @@ const NOT_DEACTIVATED = BigInt("18446744073709551615");
  */
 export async function buildPumpLaunch(
   input: LaunchInput,
+  checks: LaunchChecks = {},
 ): Promise<BuiltLaunch> {
   const buyers = input.buyers.slice(0, MAX_BUYERS);
   const metadata = await resolveMetadata(input);
@@ -98,8 +102,16 @@ export async function buildPumpLaunch(
     pumpLookupTable(),
   ]);
   const tokenQuote = !isLegacyQuoteMint(quote.mint);
+  let quoteSymbol: string | undefined;
+  if (checks.stockPairing) {
+    const stock = await stockQuote(quote.mint.toBase58());
+    assertStockPairing(stock ? STOCK_CATEGORY : undefined, stock?.symbol ?? quote.mint.toBase58());
+    quoteSymbol = stock?.symbol;
+  }
+  const holderReward = Boolean(checks.holderFees);
+  if (holderReward) assertHolderFees(global.isHolderRewardEnabled, "pump.fun");
 
-  let curve = openingCurve(global, creator, quote.mint, quoteControl);
+  let curve = openingCurve(global, creator, quote.mint, quoteControl, holderReward, mint);
   const creatorBuy =
     input.creatorBuySol > 0
       ? quoteAtoms(input.creatorBuySol, quote.decimals)
@@ -129,6 +141,7 @@ export async function buildPumpLaunch(
           quoteAmount: quoteBeforeSdkSlippage(creatorBuy, input.slippagePercent),
           mayhemMode: false,
           cashback: false,
+          holderReward,
           ...quoteAccounts,
         })
       : [
@@ -141,6 +154,7 @@ export async function buildPumpLaunch(
             user: creator,
             mayhemMode: false,
             cashback: false,
+            holderReward,
             ...quoteAccounts,
           }),
         ];
@@ -204,6 +218,16 @@ export async function buildPumpLaunch(
     buyers,
     ...(metadata.banner ? { banner: metadata.banner } : {}),
     ...(tokenQuote ? { quoteMint: quote.mint.toBase58() } : {}),
+    ...(checks.stockPairing && holderReward
+      ? {
+          features: {
+            stockPairing: true,
+            holderFees: true,
+            mode: "holder-reward",
+            ...(quoteSymbol ? { quoteSymbol } : {}),
+          } satisfies LaunchFeatures,
+        }
+      : {}),
   };
 }
 
@@ -252,12 +276,15 @@ function openingCurve(
   creator: PublicKey,
   quoteMint: PublicKey,
   quoteControl: QuoteControl | null,
+  holderReward: boolean,
+  mint: PublicKey,
 ): BondingCurve {
   return {
-    ...newBondingCurve(global, quoteMint, quoteControl),
-    creator,
+    ...newBondingCurve(global, quoteMint, quoteControl, undefined, holderReward),
+    creator: holderReward ? holderRewardsPda(mint) : creator,
     isMayhemMode: false,
     isCashbackCoin: false,
+    isHolderReward: holderReward,
   };
 }
 

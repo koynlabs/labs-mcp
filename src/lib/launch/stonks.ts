@@ -30,9 +30,10 @@ import BN from "bn.js";
 import bs58 from "bs58";
 import { MAX_BUYERS, STONKS } from "../config";
 import { resolveMetadata } from "./metadata";
+import { assertHolderFees, assertStockPairing, type LaunchFeatures } from "./features";
 import { connection, encodeTx } from "../solana";
 import type { PendingTx } from "../types";
-import type { BuiltLaunch, LaunchInput } from "./input";
+import type { BuiltLaunch, LaunchChecks, LaunchInput } from "./input";
 
 const WSOL = "So11111111111111111111111111111111111111112";
 
@@ -43,6 +44,8 @@ type Pair = {
   tokenProgram: string;
   launchable: boolean;
   launchLabReady?: boolean;
+  /** StonkFun quote category. An xStock is `xstock`. */
+  category?: string;
 };
 
 type Pricing = {
@@ -58,6 +61,13 @@ type Pricing = {
   };
   platform: { standard: string; reward: string };
   curveRule: { standard: string; reward: string };
+  allowConfig?: {
+    available?: { reward?: boolean };
+    reward?: string;
+  };
+  modes?: {
+    reward?: { transferFeeBps?: number[] };
+  };
 };
 
 async function read<T>(path: string): Promise<T> {
@@ -201,6 +211,17 @@ function buyInstructions(
 }
 
 /**
+ * xStock quote for this mint, or null when it is not a stock pair.
+ */
+export async function stockQuote(
+  mint: string,
+): Promise<{ symbol: string } | null> {
+  const pairs = await launchablePairs();
+  const pair = pairs.find((item) => item.mint === mint && item.category === "xstock");
+  return pair ? { symbol: pair.symbol } : null;
+}
+
+/**
  * Builds a StonkFun launch as a Raydium LaunchLab pool. Everything that decides
  * whether StonkFun adopts the pool comes from their pricing response rather than
  * from constants here, which is what makes an adopted launch indistinguishable
@@ -208,6 +229,7 @@ function buyInstructions(
  */
 export async function buildStonksLaunch(
   input: LaunchInput,
+  checks: LaunchChecks = {},
 ): Promise<BuiltLaunch> {
   const quote = input.quoteMint ?? WSOL;
   const metadata = await resolveMetadata(input);
@@ -218,14 +240,26 @@ export async function buildStonksLaunch(
       `${quote} is not launchable on StonkFun right now. Call stonks_pairs for the current list.`,
     );
   }
+  if (checks.stockPairing) assertStockPairing(pair.category, pair.symbol || quote);
 
   const pricing = await read<Pricing>(`/launchlab/pricing?quoteMint=${quote}`);
+  const rewardAvailable = pricing.allowConfig?.available?.reward === true;
+  if (checks.holderFees) assertHolderFees(rewardAvailable, pair.symbol || quote);
+  const reward = Boolean(checks.holderFees);
   const programId = new PublicKey(pricing.curve.programId);
   const configId = new PublicKey(pricing.curve.configId);
-  // Standard mode only: a reward launch writes a transfer-fee extension whose
-  // withheld tax is unrecoverable unless StonkFun adopts the pool.
-  const platformId = new PublicKey(pricing.platform.standard);
-  const curveRule = new PublicKey(pricing.curveRule.standard);
+  // Reward mode writes the transfer-fee extension StonkFun collects and pays
+  // out to holders. Standard mode is the fallback when that check is not required.
+  const platformId = new PublicKey(reward ? pricing.platform.reward : pricing.platform.standard);
+  const curveRule = new PublicKey(reward ? pricing.curveRule.reward : pricing.curveRule.standard);
+  const allowConfigAddress = reward ? pricing.allowConfig?.reward : undefined;
+  const transferFeeBps = pricing.modes?.reward?.transferFeeBps?.[0];
+  if (reward && (!allowConfigAddress || !transferFeeBps)) {
+    throw new Error(
+      `Distributing fees to holders is not enabled for ${pair.symbol || quote}. StonkFun did not publish a reward platform for this quote.`,
+    );
+  }
+  const allowConfig = allowConfigAddress ? new PublicKey(allowConfigAddress) : undefined;
   const quoteMint = new PublicKey(quote);
   const quoteProgram = new PublicKey(pair.tokenProgram);
 
@@ -265,17 +299,31 @@ export async function buildStonksLaunch(
     new BN(0),
     new BN(0),
     pricing.curve.cpmmCreatorFeeOn,
-    undefined,
-    undefined,
+    reward && transferFeeBps
+      ? {
+          transferFeeBasePoints: transferFeeBps,
+          maxinumFee: new BN(pricing.curve.supply),
+        }
+      : undefined,
+    allowConfig,
     curveRule,
   );
 
-  // StonkFun requires its curve-rule account last and read-only. Asserting it
-  // here means an SDK layout change fails the build rather than the launch.
+  // StonkFun requires the allow-config account, then its curve-rule account,
+  // both read-only and in that order at the end.
   const last = initialize.keys.at(-1);
+  const beforeLast = initialize.keys.at(-2);
   if (!last?.pubkey.equals(curveRule) || last.isSigner || last.isWritable) {
     throw new Error(
       "the LaunchLab initialize no longer ends with a read-only curve-rule account",
+    );
+  }
+  if (
+    allowConfig &&
+    (!beforeLast?.pubkey.equals(allowConfig) || beforeLast.isSigner || beforeLast.isWritable)
+  ) {
+    throw new Error(
+      "the LaunchLab initialize no longer carries a read-only allow-config account before the curve rule",
     );
   }
 
@@ -354,5 +402,15 @@ export async function buildStonksLaunch(
     buyers,
     ...(metadata.banner ? { banner: metadata.banner } : {}),
     ...(quote === WSOL ? {} : { quoteMint: quote }),
+    ...(reward
+      ? {
+          features: {
+            stockPairing: true,
+            holderFees: true,
+            mode: "reward",
+            quoteSymbol: pair.symbol,
+          } satisfies LaunchFeatures,
+        }
+      : {}),
   };
 }

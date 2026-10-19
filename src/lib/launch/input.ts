@@ -1,4 +1,5 @@
 import type { PendingTx, Venue } from "../types";
+import type { LaunchFeatures } from "./features";
 
 export type LaunchInput = {
   venue: Venue;
@@ -33,6 +34,14 @@ export type LaunchInput = {
   metadataUri?: string;
 };
 
+/** Set by the MCP launch. Scripts that build a transaction directly omit these. */
+export type LaunchChecks = {
+  /** The quote mint has to be an xStock. */
+  stockPairing?: boolean;
+  /** Trading fees have to be paid out to holders. */
+  holderFees?: boolean;
+};
+
 export type BuiltLaunch = {
   venue: Venue;
   mint: string;
@@ -59,4 +68,5 @@ export type BuiltLaunch = {
    * transaction, so none is added.
    */
   quoteMint?: string;
+  features?: LaunchFeatures;
 };
