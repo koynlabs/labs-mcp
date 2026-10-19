@@ -1,6 +1,7 @@
-import { clientAddress, allow } from "@/lib/rate-limit";
+import { allow } from "@/lib/rate-limit";
 import { XError } from "@/lib/x/config";
 import { STAGE_CHUNK_BYTES } from "@/lib/x/constants";
+import { authorizeXRequest } from "@/lib/x/oauth";
 import { stageBytes, startStage } from "@/lib/x/stage";
 import { xStore } from "@/lib/x/store";
 
@@ -20,8 +21,10 @@ function fail(error: unknown) {
  * than a 20MB MP4. PUT each segment to /api/x/media/:stageId, then POST finish.
  */
 export async function POST(request: Request) {
+  const auth = await authorizeXRequest(xStore, request.headers.get("authorization"));
+  if (!auth.ok) return auth.response;
   try {
-    if (!(await allow(`x-media:${clientAddress(request)}`, 30, 600))) {
+    if (!(await allow(`x-media:${auth.account.userId}`, 30, 600))) {
       return Response.json({ error: "Too many uploads. Wait a few minutes." }, { status: 429 });
     }
     const type = request.headers.get("content-type") ?? "";
@@ -31,7 +34,7 @@ export async function POST(request: Request) {
         contentType?: string;
         totalBytes?: number;
       };
-      const stage = await startStage(xStore, {
+      const stage = await startStage(xStore, auth.account.userId, {
         filename: body.filename ?? "upload",
         contentType: body.contentType ?? "application/octet-stream",
         totalBytes: Number(body.totalBytes),
@@ -50,7 +53,7 @@ export async function POST(request: Request) {
       return Response.json({ error: "Send the file as multipart field 'file'." }, { status: 400 });
     }
     const bytes = Buffer.from(await file.arrayBuffer());
-    const upload = await stageBytes(xStore, bytes, file.name, file.type);
+    const upload = await stageBytes(xStore, auth.account.userId, bytes, file.name, file.type);
     return Response.json({
       uploadId: upload.id,
       kind: upload.kind,

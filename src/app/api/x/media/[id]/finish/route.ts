@@ -1,4 +1,5 @@
 import { XError } from "@/lib/x/config";
+import { authorizeXRequest } from "@/lib/x/oauth";
 import { finishStage } from "@/lib/x/stage";
 import { xStore } from "@/lib/x/store";
 
@@ -7,12 +8,14 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
 export async function POST(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const auth = await authorizeXRequest(xStore, request.headers.get("authorization"));
+  if (!auth.ok) return auth.response;
   try {
     const { id } = await params;
-    const upload = await finishStage(xStore, id);
+    const upload = await finishStage(xStore, auth.account.userId, id);
     return Response.json({
       uploadId: upload.id,
       kind: upload.kind,

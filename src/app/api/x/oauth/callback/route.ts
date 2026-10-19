@@ -31,9 +31,6 @@ export async function GET(request: Request) {
   if (result.type === "error") {
     const path = new URL("/x", request.url);
     path.searchParams.set("error", result.code);
-    if (result.username && /^[A-Za-z0-9_]{1,15}$/.test(result.username)) {
-      path.searchParams.set("account", result.username);
-    }
     return NextResponse.redirect(path);
   }
 

@@ -18,21 +18,18 @@ export async function GET(request: Request) {
   });
 }
 
-/** Stores mention and reply events. Does not reply. */
+/** Stores mention and reply events for the connected user in for_user_id. Does not reply. */
 export async function POST(request: Request) {
-  const [{ readAccount }, { xStore }, { receiveWebhook }] = await Promise.all([
-    import("@/lib/x/oauth"),
+  const [{ xStore }, { receiveWebhook }] = await Promise.all([
     import("@/lib/x/store"),
     import("@/lib/x/webhook"),
   ]);
   const raw = await request.text();
-  const account = await readAccount(xStore).catch(() => null);
   const result = await receiveWebhook({
     store: xStore,
     rawBody: raw,
     signature: request.headers.get("x-twitter-webhooks-signature"),
     consumerSecret: consumerSecretFromEnv(),
-    connectedUserId: account?.userId ?? null,
   });
   return NextResponse.json(result.body, {
     status: result.status,

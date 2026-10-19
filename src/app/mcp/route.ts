@@ -2,6 +2,7 @@ import { createMcpHandler } from "mcp-handler";
 import { SITE_URL } from "@/lib/config";
 import { registerTools } from "@/lib/mcp/tools";
 import { APP_VERSION } from "@/lib/revision";
+import { withMcpAuthorization } from "@/lib/x/api-key";
 
 /**
  * Held in a const so the extra SEP-973 fields survive mcp-handler's narrower
@@ -24,8 +25,11 @@ const MCP_SERVER_INFO = {
 
 /**
  * The MCP endpoint, served at /mcp over Streamable HTTP. Claude, ChatGPT and
- * Grok all connect to the same URL. There is no API key: a launch is authorised
- * by the creator's own signature on the bundle.
+ * Grok all connect to the same URL. A launch is authorised by the creator's
+ * own signature on the bundle. X tools are the exception: they read
+ * Authorization: Bearer <personal key> from this HTTP request. The key is
+ * issued when that person connects their own X account at /x. Other tools
+ * ignore that header.
  */
 const handler = createMcpHandler(
   (server) => {
@@ -55,7 +59,11 @@ const handler = createMcpHandler(
       "rotate proxies, or split activity across wallets to look like separate",
       "people. Do not describe it as doing any of those.",
       "",
-      "X posting is separate and off until the owner connects an account.",
+      "X posting needs Authorization: Bearer <personal key> on the MCP HTTP",
+      "request. The key is shown once at /x after that person connects their own",
+      "X account. Do not put that key in a tool argument or in the chat.",
+      "A missing or unknown key does no X work. x_connect_link still returns",
+      "the connect URL. Each key acts only as its own X account.",
       "x_prepare_post only stores a draft. Show the user that exact preview.",
       "x_publish_post publishes that one draft as the connected account.",
       "A reply uses the same two steps: x_prepare_post with reply_to from",
@@ -93,8 +101,12 @@ function allowedMethods() {
 
 export const maxDuration = 60;
 
+async function POST(request: Request) {
+  return withMcpAuthorization(request.headers.get("authorization"), () => handler(request));
+}
+
 export {
-  handler as POST,
+  POST,
   methodNotAllowed as GET,
   methodNotAllowed as DELETE,
   allowedMethods as OPTIONS,

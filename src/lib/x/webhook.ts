@@ -9,7 +9,7 @@ import {
   X_API,
 } from "./constants";
 import { signWebhookBody, webhookSignaturesMatch } from "./crc";
-import type { XFetch } from "./oauth";
+import { readAccount, type XFetch } from "./oauth";
 import { KEYS, type XStore } from "./store";
 
 export {
@@ -222,26 +222,26 @@ export function mentionsFromV2(body: unknown, userId: string): InboundMention[] 
   return out;
 }
 
-async function rememberMentionId(store: XStore, id: string): Promise<void> {
+async function rememberMentionId(store: XStore, userId: string, id: string): Promise<void> {
   for (let attempt = 0; attempt < 5; attempt++) {
-    const locked = await store.setNx(KEYS.mentionLock, "1", 5);
+    const locked = await store.setNx(KEYS.mentionLock(userId), "1", 5);
     if (!locked) continue;
     try {
-      await writeMentionIndex(store, id);
+      await writeMentionIndex(store, userId, id);
       return;
     } finally {
-      await store.del(KEYS.mentionLock);
+      await store.del(KEYS.mentionLock(userId));
     }
   }
-  await writeMentionIndex(store, id);
+  await writeMentionIndex(store, userId, id);
 }
 
-async function writeMentionIndex(store: XStore, id: string): Promise<void> {
-  const raw = await store.get(KEYS.mentionIndex);
+async function writeMentionIndex(store: XStore, userId: string, id: string): Promise<void> {
+  const raw = await store.get(KEYS.mentionIndex(userId));
   const ids = raw ? (JSON.parse(raw) as unknown[]) : [];
   const previous = Array.isArray(ids) ? ids.filter((item): item is string => typeof item === "string" && item !== id) : [];
   const next = [id, ...previous].slice(0, MENTION_INDEX_CAP);
-  await store.set(KEYS.mentionIndex, JSON.stringify(next), MENTION_TTL_SECONDS);
+  await store.set(KEYS.mentionIndex(userId), JSON.stringify(next), MENTION_TTL_SECONDS);
 }
 
 export async function ingestMentions(
@@ -251,20 +251,20 @@ export async function ingestMentions(
   let stored = 0;
   let duplicates = 0;
   for (const mention of mentions) {
-    const fresh = await store.setNx(KEYS.mentionSeen(mention.id), "1", MENTION_TTL_SECONDS);
+    const fresh = await store.setNx(KEYS.mentionSeen(mention.forUserId, mention.id), "1", MENTION_TTL_SECONDS);
     if (!fresh) {
       duplicates += 1;
       continue;
     }
-    await store.set(KEYS.mention(mention.id), JSON.stringify(mention), MENTION_TTL_SECONDS);
-    await rememberMentionId(store, mention.id);
+    await store.set(KEYS.mention(mention.forUserId, mention.id), JSON.stringify(mention), MENTION_TTL_SECONDS);
+    await rememberMentionId(store, mention.forUserId, mention.id);
     stored += 1;
   }
   return { stored, duplicates };
 }
 
-export async function readMention(store: XStore, id: string): Promise<InboundMention | null> {
-  const raw = await store.get(KEYS.mention(id));
+export async function readMention(store: XStore, userId: string, id: string): Promise<InboundMention | null> {
+  const raw = await store.get(KEYS.mention(userId, id));
   if (!raw) return null;
   try {
     const parsed = JSON.parse(raw) as InboundMention;
@@ -284,17 +284,18 @@ async function counter(store: XStore, key: string): Promise<number> {
 
 export async function replyBlocked(
   store: XStore,
+  userId: string,
   authorId: string | null,
   now: number,
   caps: ReplyCaps,
 ): Promise<string | null> {
   if (caps.globalDaily <= 0) return "Replies are off. X_REPLY_DAILY_CAP is 0.";
   const day = utcDay(now);
-  const globalCount = await counter(store, KEYS.replyDay(day));
+  const globalCount = await counter(store, KEYS.replyDay(userId, day));
   if (globalCount >= caps.globalDaily) return `The daily reply cap of ${caps.globalDaily} is reached.`;
   if (!authorId) return null;
   if (caps.authorDaily <= 0) return "Replies to this author are off. X_REPLY_AUTHOR_DAILY_CAP is 0.";
-  const authorCount = await counter(store, KEYS.replyAuthorDay(authorId, day));
+  const authorCount = await counter(store, KEYS.replyAuthorDay(userId, authorId, day));
   if (authorCount >= caps.authorDaily) return `The daily reply cap of ${caps.authorDaily} for this author is reached.`;
   return null;
 }
@@ -306,30 +307,31 @@ export async function loadReplyTarget(
   now: number,
   caps: ReplyCaps,
 ): Promise<{ authorId?: string; authorHandle?: string }> {
-  if (await store.get(KEYS.replied(replyTo))) {
+  if (await store.get(KEYS.replied(accountUserId, replyTo))) {
     throw new XError(`Already replied to post ${replyTo}. Nothing was posted.`);
   }
-  const mention = await readMention(store, replyTo);
+  const mention = await readMention(store, accountUserId, replyTo);
   const known = mention && mention.forUserId === accountUserId ? mention : null;
-  const blocked = await replyBlocked(store, known?.authorId ?? null, now, caps);
+  const blocked = await replyBlocked(store, accountUserId, known?.authorId ?? null, now, caps);
   if (blocked) throw new XError(`${blocked} Nothing was posted.`);
   return { authorId: known?.authorId, authorHandle: known?.authorHandle };
 }
 
 export async function recordPublishedReply(
   store: XStore,
+  userId: string,
   replyTo: string,
   authorId: string | undefined,
   now: number,
 ): Promise<void> {
   const day = utcDay(now);
   const ttl = secondsUntilDayEnd(now);
-  await store.set(KEYS.replied(replyTo), "1", MENTION_TTL_SECONDS);
-  const globalCount = await store.incr(KEYS.replyDay(day));
-  if (globalCount === 1) await store.expire(KEYS.replyDay(day), ttl);
+  await store.set(KEYS.replied(userId, replyTo), "1", MENTION_TTL_SECONDS);
+  const globalCount = await store.incr(KEYS.replyDay(userId, day));
+  if (globalCount === 1) await store.expire(KEYS.replyDay(userId, day), ttl);
   if (authorId && SNOWFLAKE.test(authorId)) {
-    const authorCount = await store.incr(KEYS.replyAuthorDay(authorId, day));
-    if (authorCount === 1) await store.expire(KEYS.replyAuthorDay(authorId, day), ttl);
+    const authorCount = await store.incr(KEYS.replyAuthorDay(userId, authorId, day));
+    if (authorCount === 1) await store.expire(KEYS.replyAuthorDay(userId, authorId, day), ttl);
   }
 }
 
@@ -357,10 +359,10 @@ export async function listOpenMentions(
 }> {
   const now = opts.now ?? Date.now();
   const limit = Math.min(50, Math.max(1, opts.limit ?? 20));
-  const raw = await store.get(KEYS.mentionIndex);
+  const raw = await store.get(KEYS.mentionIndex(opts.userId));
   const ids = raw ? (JSON.parse(raw) as unknown[]) : [];
   const day = utcDay(now);
-  const globalCount = await counter(store, KEYS.replyDay(day));
+  const globalCount = await counter(store, KEYS.replyDay(opts.userId, day));
   const globalCapReached = opts.caps.globalDaily <= 0 || globalCount >= opts.caps.globalDaily;
   const authorCounts = new Map<string, number>();
   const open: OpenMention[] = [];
@@ -369,15 +371,15 @@ export async function listOpenMentions(
 
   for (const id of Array.isArray(ids) ? ids : []) {
     if (typeof id !== "string") continue;
-    const mention = await readMention(store, id);
+    const mention = await readMention(store, opts.userId, id);
     if (!mention || mention.forUserId !== opts.userId) continue;
-    if (await store.get(KEYS.replied(mention.id))) {
+    if (await store.get(KEYS.replied(opts.userId, mention.id))) {
       hiddenReplied += 1;
       continue;
     }
     let authorCount = authorCounts.get(mention.authorId);
     if (authorCount === undefined) {
-      authorCount = await counter(store, KEYS.replyAuthorDay(mention.authorId, day));
+      authorCount = await counter(store, KEYS.replyAuthorDay(opts.userId, mention.authorId, day));
       authorCounts.set(mention.authorId, authorCount);
     }
     if (opts.caps.authorDaily <= 0 || authorCount >= opts.caps.authorDaily) {
@@ -476,12 +478,16 @@ export async function syncMentions(deps: {
   return { stored, duplicates, fetched, sinceId: maxId };
 }
 
+function activityUserId(payload: unknown): string | null {
+  if (!payload || typeof payload !== "object") return null;
+  return asId((payload as { for_user_id?: unknown }).for_user_id);
+}
+
 export async function receiveWebhook(opts: {
   store: XStore;
   rawBody: string;
   signature: string | null;
   consumerSecret: string | null;
-  connectedUserId: string | null;
 }): Promise<{ status: number; body: Record<string, unknown> }> {
   if (!opts.consumerSecret) {
     return { status: 503, body: { ok: false, error: "X_CONSUMER_SECRET is not set." } };
@@ -499,6 +505,17 @@ export async function receiveWebhook(opts: {
   } catch {
     return { status: 400, body: { ok: false, error: "invalid json" } };
   }
-  const result = await ingestMentions(opts.store, mentionsFromActivity(parsed, opts.connectedUserId));
+  const forUserId = activityUserId(parsed);
+  if (!forUserId) return { status: 200, body: { ok: true, stored: 0, duplicates: 0 } };
+  let account: { userId: string } | null = null;
+  try {
+    account = await readAccount(opts.store, forUserId);
+  } catch {
+    return { status: 500, body: { ok: false, error: "stored connection is unreadable" } };
+  }
+  if (!account || account.userId !== forUserId) {
+    return { status: 200, body: { ok: true, stored: 0, duplicates: 0 } };
+  }
+  const result = await ingestMentions(opts.store, mentionsFromActivity(parsed, account.userId));
   return { status: 200, body: { ok: true, stored: result.stored, duplicates: result.duplicates } };
 }

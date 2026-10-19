@@ -87,8 +87,8 @@ export default function Home() {
         </li>
         <li>
           <code>x_connect_link</code>, <code>x_connection_status</code>, <code>x_get_mentions</code>,{" "}
-          <code>x_sync_mentions</code>, <code>x_prepare_post</code>, <code>x_publish_post</code> — connect one X
-          account, then publish a confirmed post or reply as that account
+          <code>x_sync_mentions</code>, <code>x_prepare_post</code>, <code>x_publish_post</code> — connect your own X
+          account at /x, then publish a confirmed post or reply as that account
         </li>
       </ul>
 
@@ -101,7 +101,8 @@ export default function Home() {
         session can also hold the throwaway quoting key you generate in your
         browser, and that key is capped and expires. An X connection stores that
         account&apos;s tokens sealed on the server. A post is published only after
-        a draft is prepared and then confirmed.
+        a draft is prepared and then confirmed, and only for the client that sends
+        that account&apos;s personal key.
       </p>
 
       <p className="revision muted">

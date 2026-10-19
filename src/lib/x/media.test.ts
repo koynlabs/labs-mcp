@@ -4,7 +4,7 @@ import { MediaStillProcessing } from "./config";
 import { VIDEO_MAX_BYTES, X_CHUNK_BYTES } from "./constants";
 import { classifyMedia, mediaLimit, segmentCount, sniffMedia } from "./media-type";
 import { appendStage, finishStage, startStage } from "./stage";
-import { createMemoryXStore } from "./store";
+import { createMemoryXStore, KEYS } from "./store";
 import { uploadMedia } from "./upload";
 import type { XFetch } from "./oauth";
 
@@ -216,18 +216,20 @@ describe("file staging", () => {
   it("assembles ordered segments into an upload id", async () => {
     const store = createMemoryXStore();
     const file = mp4(10);
-    const stage = await startStage(store, {
+    const stage = await startStage(store, "1001", {
       filename: "launch.mp4",
       contentType: "video/mp4",
       totalBytes: file.length,
     });
-    await appendStage(store, stage.id, 0, file.subarray(0, 6));
-    await assert.rejects(() => appendStage(store, stage.id, 0, file.subarray(6)), /Expected segment 1/);
-    await appendStage(store, stage.id, 1, file.subarray(6));
-    const upload = await finishStage(store, stage.id);
+    await appendStage(store, "1001", stage.id, 0, file.subarray(0, 6));
+    await assert.rejects(() => appendStage(store, "1001", stage.id, 0, file.subarray(6)), /Expected segment 1/);
+    await appendStage(store, "1001", stage.id, 1, file.subarray(6));
+    await assert.rejects(() => appendStage(store, "2002", stage.id, 2, file.subarray(0, 1)), /No such upload/);
+    const upload = await finishStage(store, "1001", stage.id);
     assert.equal(upload.kind, "video");
     assert.equal(upload.mime, "video/mp4");
     assert.equal(upload.bytes, 10);
-    assert.equal(await store.get(`x:stage:${stage.id}`), null);
+    assert.equal(await store.get(KEYS.stage("1001", stage.id)), null);
+    await assert.rejects(() => finishStage(store, "2002", stage.id), /No such upload/);
   });
 });

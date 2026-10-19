@@ -298,7 +298,7 @@ The Grok bot Rive lives at [`public/demo`](public/demo) and is served at
 
 ## Posting to X
 
-Launch and promo posts go out as one connected account. The owner signs in with X. labs stores the access and refresh tokens sealed, and the MCP publishes only a draft the caller has already prepared. There is no scheduler, no bulk posting, and no follow, like, or DM tooling.
+Anyone who adds the labs MCP can connect their own X account. labs stores that account's access and refresh tokens sealed, and the MCP publishes only a draft that same person's key has already prepared. There is no scheduler, no bulk posting, and no follow, like, or DM tooling.
 
 OAuth is the confidential-client user-context flow with PKCE (S256). The token request sends the client id and secret as Basic auth. Scopes: `tweet.read tweet.write users.read offline.access media.write`. Refresh tokens rotate. Every refresh stores the new refresh token.
 
@@ -319,17 +319,45 @@ Callback to add on that X app, alongside the KOYN FX callback:
 https://labs.levercoin.lol/api/x/oauth/callback
 ```
 
-Connect @cyberpsychoxx78:
+The MCP URL is public. Launches stay unauthenticated. X does not. There is no shared `LABS_X_API_KEY`. Connecting at `/x` issues a personal key for that X account. It is shown once on the success page and stored only as a SHA-256 hash (the one-time reveal row is sealed and deleted when the page renders). Signing in again as the same account rotates the key. Disconnect revokes the X token and deletes the key.
+
+Every `x_*` tool except `x_connect_link`, and every `/api/x/media` upload, resolves this header to that person's connection. The compare is constant time. A missing or unknown key does nothing.
+
+```
+Authorization: Bearer <personal key>
+```
+
+Send it on the HTTP request to `https://labs.levercoin.lol/mcp`. Do not pass the key as a tool argument, and do not log it. `x_connect_link` still returns the connect URL with no key. `x_connection_status` without a key returns `configured` and `connected: false` plus the message to visit `/x`. The webhook stays on X's CRC and body signature, and stores events for the connected user in `for_user_id`. OAuth start and callback stay open. Disconnect only succeeds for the browser cookie set when that account connected. One person's key cannot prepare, upload, or publish as someone else, and cannot publish another person's draft.
+
+```json
+{
+  "mcpServers": {
+    "labs": {
+      "url": "https://labs.levercoin.lol/mcp",
+      "headers": {
+        "Authorization": "Bearer <personal key from /x>"
+      }
+    }
+  }
+}
+```
+
+### Existing connection
+
+The account connected before personal keys (the single `@cyberpsychoxx78` row) has no key. MCP calls cannot use it. The next time that account finishes Connect X, labs issues a key, stores the connection under that user id, revokes the previous refresh token when X rotates it, and deletes the old global row. Until that visit, webhook events for that user id are still stored: the first lookup moves the row and leaves `keyHash` empty. Other people can connect their own accounts without waiting for that reconnect.
+
+Connect an account:
 
 1. Set the env vars on the deployment. Do not put them in the repo.
 2. Add the callback above to the X app's allowed callback URLs.
-3. Call `x_connect_link`, or open [https://labs.levercoin.lol/x](https://labs.levercoin.lol/x), and sign in as @cyberpsychoxx78.
-4. `x_connection_status` should report `@cyberpsychoxx78`.
-5. `x_prepare_post` returns a draft and the exact preview. `x_publish_post` with that draft id is what publishes it.
+3. Call `x_connect_link`, or open [https://labs.levercoin.lol/x](https://labs.levercoin.lol/x), and sign in as the X account this client should post as.
+4. Copy the personal key shown once on `/x` into the MCP client's `Authorization` header.
+5. `x_connection_status` should report that @username.
+6. `x_prepare_post` returns a draft and the exact preview. `x_publish_post` with that draft id is what publishes it.
 
 Media is a JPEG, PNG, WEBP, GIF, or MP4 (H.264 video, AAC audio). Images use `POST https://api.x.com/2/media/upload`. GIF and video use the chunked v2 flow: `POST /2/media/upload/initialize`, `POST /2/media/upload/{id}/append`, `POST /2/media/upload/{id}/finalize`, then `GET /2/media/upload?command=STATUS` until processing succeeds. Pass an https URL, or upload a file to `POST /api/x/media`. A file around 20MB is over the host's single-request body limit, so start a stage, `PUT` 4MB segments to `/api/x/media/<stageId>` with `x-segment-index`, then `POST /api/x/media/<stageId>/finish`, and pass the returned upload id as `media`. The cap on this server is 25MB.
 
-Disconnect from the browser that connected the account, at `/x`. That revokes the refresh token. Signing in again as the same @username replaces the token. A different account is refused until then. Posts are 280 weighted characters. A URL counts as 23.
+Disconnect from the browser that connected the account, at `/x`. That revokes the refresh token and the personal key. Signing in again as the same account rotates the key. Another person connecting does not replace yours. Posts are 280 weighted characters. A URL counts as 23. Reply caps, drafts, and the mention inbox are per account.
 
 ### Mentions and replies
 
@@ -375,9 +403,10 @@ If Account Activity is not on the app's plan, skip the webhook. `x_sync_mentions
 - A launch is refused before you sign if the create transaction fails simulation.
   Buys that follow the create in the same bundle spend a mint that does not
   exist yet, so they cannot be simulated on their own.
-- X posting is one connected account, two steps (prepare, then publish), and
+- X posting is per connected account, two steps (prepare, then publish), and
   one post at a time. Video is MP4 up to 25MB. Replies use those same two
-  steps, with a per-author cap and a global daily cap. There is no auto-reply.
+  steps, with a per-author cap and a per-account daily cap. There is no auto-reply.
+  X tools and media uploads require `Authorization: Bearer <personal key>`.
 
 ## License
 
