@@ -3,8 +3,9 @@
 import { useState } from "react";
 import { VersionedTransaction } from "@solana/web3.js";
 import bs58 from "bs58";
-import Wordmark from "@/components/Wordmark";
 import { SignFacts } from "@/components/SignFacts";
+import { Button } from "@/components/site/Button";
+import { PageIntro } from "@/components/site/PageIntro";
 import { prepareForSigning } from "@/lib/prepare-tx";
 import type { AmountLine } from "@/lib/trade/disclosure";
 
@@ -167,20 +168,18 @@ export function TradeClient({
 
   return (
     <>
-      <header className="sign-bar">
-        <Wordmark />
-        <div className="sign-wallet">
-          {connected ? (
-            <span className={matches ? "wallet-chip" : "wallet-chip bad"} title={connected}>
-              {shorten(connected, 4, 4)}
-            </span>
-          ) : (
-            <button onClick={connect}>Connect wallet</button>
-          )}
-        </div>
-      </header>
-      <h1>Sign this trade</h1>
-      <p className="muted">{summary}</p>
+      <PageIntro eyebrow="Trade" title="Sign this trade">
+        {summary}
+      </PageIntro>
+      <div className="sign-wallet">
+        {connected ? (
+          <span className={matches ? "wallet-chip" : "wallet-chip bad"} title={connected}>
+            {shorten(connected, 4, 4)}
+          </span>
+        ) : (
+          <Button onClick={connect}>Connect wallet</Button>
+        )}
+      </div>
       <SignFacts
         caller={expected}
         host={host}
@@ -194,9 +193,9 @@ export function TradeClient({
       {done ? (
         <Submitted value={done} cluster={cluster} />
       ) : connected ? (
-        <button onClick={sign} disabled={busy || !matches}>
+        <Button onClick={sign} disabled={busy || !matches}>
           {busy ? "Signing…" : matches ? "Sign and submit" : "Wrong wallet"}
-        </button>
+        </Button>
       ) : null}
       {note ? <p className="note">{note}</p> : null}
     </>

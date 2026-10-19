@@ -3,7 +3,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { Keypair } from "@solana/web3.js";
 import bs58 from "bs58";
-import Wordmark from "@/components/Wordmark";
+import { Button } from "@/components/site/Button";
+import { PageIntro } from "@/components/site/PageIntro";
 
 /** Whatever `GET /api/maker/[sessionId]` returns. */
 type Session = {
@@ -112,21 +113,14 @@ export function MakerClient({ sessionId }: { sessionId: string }) {
   };
 
   if (!session) {
-    return (
-      <main className="wrap">
-        <Wordmark />
-        <p>{note ?? "Loading…"}</p>
-      </main>
-    );
+    return <p className="lede page-actions">{note ?? "Loading…"}</p>;
   }
 
   return (
-    <main className="wrap">
-      <Wordmark />
-      <h1>Two-sided quoting</h1>
-      <p className="muted">
+    <>
+      <PageIntro eyebrow="Maker" title="Two-sided quoting">
         {session.venue === "pump" ? "pump.fun" : "StonkFun"} · mint {session.mint}
-      </p>
+      </PageIntro>
 
       <p>
         One wallet, <code>{session.maker}</code>, will hold a bid and an ask{" "}
@@ -156,9 +150,9 @@ export function MakerClient({ sessionId }: { sessionId: string }) {
             it to the server. That key can only place these quotes, up to these
             caps, until expiry.
           </p>
-          <button onClick={approve} disabled={busy}>
+          <Button onClick={approve} disabled={busy}>
             {busy ? "Approving…" : "Approve and start quoting"}
-          </button>
+          </Button>
         </>
       ) : (
         <>
@@ -183,6 +177,6 @@ export function MakerClient({ sessionId }: { sessionId: string }) {
       )}
 
       {note ? <p className="note">{note}</p> : null}
-    </main>
+    </>
   );
 }

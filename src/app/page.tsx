@@ -1,11 +1,12 @@
 import Link from "next/link";
 import Wordmark from "@/components/Wordmark";
+import { Button } from "@/components/site/Button";
 import CopyField from "@/components/site/CopyField";
 import LaunchTranscript from "@/components/site/LaunchTranscript";
+import { Panel } from "@/components/site/Panel";
 import SiteChrome from "@/components/site/SiteChrome";
 import { LaunchIcon, MakerIcon, PerpsIcon, TradeIcon, XIcon } from "@/components/site/icons";
 import { SITE_URL } from "@/lib/config";
-import { GITHUB_REPO_URL } from "@/lib/revision";
 
 const MCP_URL = `${SITE_URL}/mcp`;
 
@@ -47,12 +48,10 @@ export default function Home() {
               is no launch fee and no subscription.
             </p>
             <div className="hero-actions">
-              <a className="btn btn-primary" href="#connect">
-                Add the MCP
-              </a>
-              <Link className="btn btn-ghost" href="/x">
+              <Button href="#connect">Add the MCP</Button>
+              <Button href="/x" variant="ghost">
                 Connect X
-              </Link>
+              </Button>
             </div>
           </div>
           <LaunchTranscript />
@@ -243,7 +242,7 @@ export default function Home() {
             <p>Launches and trades need no API key. Posting uses the personal key from the account you connect.</p>
           </header>
           <div className="connect-grid">
-            <article className="panel">
+            <Panel>
               <p className="step-kicker">
                 <span>01</span> Add the MCP
               </p>
@@ -252,20 +251,20 @@ export default function Home() {
                 Claude: Settings → Connectors → Add custom connector. ChatGPT: Settings → Connectors → Advanced →
                 Add. Grok: add it as a custom MCP server. Launches and trades need no API key.
               </p>
-            </article>
-            <article className="panel panel-accent">
+            </Panel>
+            <Panel accent>
               <p className="step-kicker">
                 <span>02</span> Connect your X account
               </p>
               <p>Each user connects their own account and gets a personal key.</p>
-              <Link className="btn btn-primary btn-lg" href="/x">
+              <Button href="/x" size="lg">
                 Connect X
-              </Link>
+              </Button>
               <p className="panel-note">
                 The key is shown once on that page. The client sends it as <code>Authorization: Bearer</code> on the
                 MCP request. A missing key cannot post.
               </p>
-            </article>
+            </Panel>
           </div>
         </section>
 
@@ -275,45 +274,34 @@ export default function Home() {
             <h2 id="trust-title">Your keys stay yours</h2>
           </header>
           <div className="trust-grid">
-            <article>
-              <h3>Wallet</h3>
+            <Panel title="Wallet">
               <p>
                 labs never asks for a wallet private key. Your wallet signs every transaction, and that signature is
                 what authorises the launch, the trade, and the perp.
               </p>
-            </article>
-            <article>
-              <h3>Mint and maker</h3>
+            </Panel>
+            <Panel title="Mint and maker">
               <p>
                 The new token&apos;s mint key is generated here, sealed until you have signed, and then used only to
                 co-sign the create. It holds no funds. A maker session can hold the throwaway quoting key you generate
                 in your browser. That key is capped and expires.
               </p>
-            </article>
-            <article>
-              <h3>X tokens</h3>
+            </Panel>
+            <Panel title="X tokens">
               <p>
                 An X connection seals that account&apos;s access and refresh tokens on the server. Each person who
                 connects at <Link href="/x">/x</Link> gets their own personal key, shown once.
               </p>
-            </article>
-            <article>
-              <h3>Confirm, then post</h3>
+            </Panel>
+            <Panel title="Confirm, then post">
               <p>
                 A draft is posted only after that person confirms it, and only as their account. Replies are capped.
                 Nothing posts or replies on its own.
               </p>
-            </article>
+            </Panel>
           </div>
         </section>
       </main>
-      <footer className="mkt-foot">
-        <p>
-          source <a href={GITHUB_REPO_URL}>github.com/koynlabs/labs-mcp</a>
-          <span className="sep">·</span>
-          <a href="/.well-known/security.txt">security</a>
-        </p>
-      </footer>
     </SiteChrome>
   );
 }

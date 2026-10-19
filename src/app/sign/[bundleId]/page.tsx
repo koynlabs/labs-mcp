@@ -1,4 +1,5 @@
 import { connection } from "next/server";
+import SiteChrome from "@/components/site/SiteChrome";
 import { siteHost } from "@/lib/config";
 import { launchDisclosure } from "@/lib/launch/disclosure";
 import { getBundle } from "@/lib/store";
@@ -20,5 +21,11 @@ export default async function Page({
   const { bundleId } = await params;
   const bundle = await getBundle(bundleId);
   const facts = bundle ? launchDisclosure(bundle, siteHost()) : null;
-  return <SignClient bundleId={bundleId} facts={facts} />;
+  return (
+    <SiteChrome>
+      <main id="content" className="sheet">
+        <SignClient bundleId={bundleId} facts={facts} />
+      </main>
+    </SiteChrome>
+  );
 }

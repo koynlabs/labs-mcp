@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import Link from "next/link";
+import { Button } from "@/components/site/Button";
 import CopyField from "@/components/site/CopyField";
+import { Panel } from "@/components/site/Panel";
 import SiteChrome from "@/components/site/SiteChrome";
 import { xConfigFromEnv } from "@/lib/x/config";
 import { xCallbackUrl, xConnectUrl, xWebhookUrl, X_OWNER_COOKIE, X_SCOPES } from "@/lib/x/constants";
@@ -58,18 +60,18 @@ export default async function XPage({
               <div className="x-account">
                 <strong>Connected as @{account.username}</strong>
                 <form method="post" action="/api/x/disconnect">
-                  <button className="btn btn-ghost" type="submit">
+                  <Button type="submit" variant="ghost">
                     Disconnect
-                  </button>
+                  </Button>
                 </form>
-                <a className="btn btn-ghost" href={xConnectUrl()}>
+                <Button href={xConnectUrl()} variant="ghost">
                   Connect again
-                </a>
+                </Button>
               </div>
             ) : (
-              <a className="btn btn-primary btn-lg" href={xConnectUrl()}>
+              <Button href={xConnectUrl()} size="lg">
                 Connect X
-              </a>
+              </Button>
             )}
           </div>
         </section>
@@ -139,27 +141,24 @@ export default async function XPage({
             <h2 id="endpoints-title">Endpoints</h2>
           </header>
           <div className="endpoint-grid">
-            <article className="panel">
-              <h3>Sign-in URL</h3>
+            <Panel title="Sign-in URL">
               <CopyField value={xConnectUrl()} label="Sign-in URL" />
               {configured ? null : <p className="panel-note">Set the X env vars, then use Connect X.</p>}
-            </article>
-            <article className="panel">
-              <h3>Callback</h3>
+            </Panel>
+            <Panel title="Callback">
               <p className="panel-note">
                 Add this exact URL to the X app&apos;s allowed callbacks. The same app KOYN FX uses can list both.
               </p>
               <CopyField value={xCallbackUrl()} label="OAuth callback URL" />
-            </article>
-            <article className="panel">
-              <h3>Webhook</h3>
+            </Panel>
+            <Panel title="Webhook">
               <p className="panel-note">
                 Account Activity delivers mentions and replies here. The CRC response is HMAC-SHA256 of crc_token with
                 the app API Key Secret in X_CONSUMER_SECRET.
                 {webhookReady ? " That secret is set." : " That secret is not set, so CRC checks fail until it is."}
               </p>
               <CopyField value={xWebhookUrl()} label="Webhook URL" />
-            </article>
+            </Panel>
           </div>
         </section>
 
