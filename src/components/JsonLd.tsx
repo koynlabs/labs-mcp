@@ -1,3 +1,4 @@
+import { KOYNLABS_DISCORD_URL, KOYNLABS_TELEGRAM_URL } from "@/lib/community";
 import { SITE_URL } from "@/lib/config";
 import { FAQ, SITE } from "@/lib/site";
 
@@ -12,7 +13,9 @@ export default function JsonLd() {
         url: SITE_URL,
         description: SITE.description,
         inLanguage: "en-US",
-        ...(SITE.x ? { sameAs: [SITE.x.url] } : {}),
+        sameAs: [SITE.x?.url, KOYNLABS_TELEGRAM_URL, KOYNLABS_DISCORD_URL].filter(
+          (url): url is string => Boolean(url),
+        ),
       },
       {
         "@type": "SoftwareApplication",
