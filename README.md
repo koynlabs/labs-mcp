@@ -304,6 +304,7 @@ OAuth is the confidential-client user-context flow with PKCE (S256). The token r
 
 | Env | Purpose |
 | --- | --- |
+| `LABS_X_API_KEY` | Bearer the MCP client must send before any `x_*` tool or `/api/x/media` upload. If unset, those calls are disabled |
 | `X_CLIENT_ID` | X app client id. Reuse the KOYN FX app |
 | `X_CLIENT_SECRET` | X app client secret. Never commit it |
 | `X_TOKEN_ENCRYPTION_KEY` | Optional. AES-GCM key for the token bundle. Falls back to `X_CLIENT_SECRET` |
@@ -317,6 +318,27 @@ Callback to add on that X app, alongside the KOYN FX callback:
 
 ```
 https://labs.levercoin.lol/api/x/oauth/callback
+```
+
+The MCP URL is public. Launches stay unauthenticated. X does not. Every `x_*` tool, and `POST` or `PUT` `/api/x/media`, checks this header in constant time:
+
+```
+Authorization: Bearer <LABS_X_API_KEY>
+```
+
+Send it on the HTTP request to `https://labs.levercoin.lol/mcp`. Do not pass the key as a tool argument. A missing or wrong key is refused before any draft, upload, or post. If `LABS_X_API_KEY` is unset, the X tools are disabled. `x_connection_status` without the header returns only `configured` and `connected`. The webhook stays on X's CRC and body signature. OAuth start and callback stay open. Disconnect only succeeds for the browser cookie set when that account connected. A different X account cannot replace the connected one.
+
+```json
+{
+  "mcpServers": {
+    "labs": {
+      "url": "https://labs.levercoin.lol/mcp",
+      "headers": {
+        "Authorization": "Bearer <LABS_X_API_KEY>"
+      }
+    }
+  }
+}
 ```
 
 Connect @cyberpsychoxx78:
@@ -378,6 +400,7 @@ If Account Activity is not on the app's plan, skip the webhook. `x_sync_mentions
 - X posting is one connected account, two steps (prepare, then publish), and
   one post at a time. Video is MP4 up to 25MB. Replies use those same two
   steps, with a per-author cap and a global daily cap. There is no auto-reply.
+  X tools and media uploads require `Authorization: Bearer <LABS_X_API_KEY>`.
 
 ## License
 

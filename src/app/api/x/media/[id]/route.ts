@@ -1,3 +1,4 @@
+import { rejectXHttp } from "@/lib/x/api-key";
 import { XError } from "@/lib/x/config";
 import { appendStage } from "@/lib/x/stage";
 import { xStore } from "@/lib/x/store";
@@ -10,6 +11,8 @@ export async function PUT(
   request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const denied = rejectXHttp(request.headers.get("authorization"));
+  if (denied) return denied;
   try {
     const { id } = await params;
     const index = Number(request.headers.get("x-segment-index"));

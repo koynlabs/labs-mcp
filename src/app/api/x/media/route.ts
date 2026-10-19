@@ -1,4 +1,5 @@
 import { clientAddress, allow } from "@/lib/rate-limit";
+import { rejectXHttp } from "@/lib/x/api-key";
 import { XError } from "@/lib/x/config";
 import { STAGE_CHUNK_BYTES } from "@/lib/x/constants";
 import { stageBytes, startStage } from "@/lib/x/stage";
@@ -20,6 +21,8 @@ function fail(error: unknown) {
  * than a 20MB MP4. PUT each segment to /api/x/media/:stageId, then POST finish.
  */
 export async function POST(request: Request) {
+  const denied = rejectXHttp(request.headers.get("authorization"));
+  if (denied) return denied;
   try {
     if (!(await allow(`x-media:${clientAddress(request)}`, 30, 600))) {
       return Response.json({ error: "Too many uploads. Wait a few minutes." }, { status: 429 });

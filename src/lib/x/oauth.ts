@@ -1,4 +1,4 @@
-import { createHash, randomBytes } from "node:crypto";
+import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
 import { XError, type XConfig } from "./config";
 import {
   OAUTH_TTL_SECONDS,
@@ -120,7 +120,10 @@ export function connectionStatus(account: StoredXAccount | null, configured: boo
 
 export function cookieCanManage(account: StoredXAccount | null, cookie: string | null): boolean {
   if (!account || !cookie) return false;
-  return hashOwnerCookie(cookie) === account.ownerCookieHash;
+  const actual = hashOwnerCookie(cookie);
+  const expected = account.ownerCookieHash;
+  if (!/^[0-9a-f]{64}$/i.test(actual) || !/^[0-9a-f]{64}$/i.test(expected)) return false;
+  return timingSafeEqual(Buffer.from(actual, "hex"), Buffer.from(expected, "hex"));
 }
 
 async function xJson(res: Response): Promise<unknown> {

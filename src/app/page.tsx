@@ -101,7 +101,8 @@ export default function Home() {
         session can also hold the throwaway quoting key you generate in your
         browser, and that key is capped and expires. An X connection stores that
         account&apos;s tokens sealed on the server. A post is published only after
-        a draft is prepared and then confirmed.
+        a draft is prepared and then confirmed, and only for a client that sends
+        the deployment&apos;s X API key.
       </p>
 
       <p className="revision muted">

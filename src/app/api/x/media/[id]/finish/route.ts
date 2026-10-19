@@ -1,3 +1,4 @@
+import { rejectXHttp } from "@/lib/x/api-key";
 import { XError } from "@/lib/x/config";
 import { finishStage } from "@/lib/x/stage";
 import { xStore } from "@/lib/x/store";
@@ -7,9 +8,11 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
 export async function POST(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const denied = rejectXHttp(request.headers.get("authorization"));
+  if (denied) return denied;
   try {
     const { id } = await params;
     const upload = await finishStage(xStore, id);

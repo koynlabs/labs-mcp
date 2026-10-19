@@ -317,6 +317,12 @@ describe("disconnect", () => {
     assert.deepEqual(denied, { type: "forbidden" });
     assert.ok(await readAccount(store));
 
+    const wrongCookie = await disconnectAccount(store, config, `${cookie}-no`, async () => {
+      throw new Error("should not revoke");
+    });
+    assert.deepEqual(wrongCookie, { type: "forbidden" });
+    assert.equal((await readAccount(store))?.username, "cyberpsychoxx78");
+
     let revoked = "";
     const ok = await disconnectAccount(store, config, cookie, async (_target, init) => {
       revoked = form(init).get("token") ?? "";
