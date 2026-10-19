@@ -56,7 +56,7 @@ export function SiteFrame({
           <a href="/#tools">Tools</a>
           <a href="https://levercoin.lol/trade">DEX</a>
           {connectHref ? (
-            <Button href={connectHref} size="sm">
+            <Button href={connectHref} size="sm" variant="ghost">
               Connect X
             </Button>
           ) : null}
