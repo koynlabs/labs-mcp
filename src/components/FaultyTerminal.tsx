@@ -25,6 +25,8 @@ export interface FaultyTerminalProps extends React.HTMLAttributes<HTMLDivElement
   pageLoadAnimation?: boolean;
   brightness?: number;
   lightMode?: boolean;
+  /** Caps how often the shader draws. The loop still stops when the tab is hidden. */
+  maxFps?: number;
 }
 
 const vertexShader = `
@@ -272,6 +274,7 @@ export default function FaultyTerminal({
   pageLoadAnimation = true,
   brightness = 1,
   lightMode = false,
+  maxFps = 30,
   className,
   style,
   ...rest
@@ -285,6 +288,9 @@ export default function FaultyTerminal({
   const rafRef = useRef<number>(0);
   const loadAnimationStartRef = useRef<number>(0);
   const timeOffsetRef = useRef<number>(Math.random() * 100);
+  const pauseRef = useRef(pause);
+  const kickRef = useRef<(() => void) | null>(null);
+  pauseRef.current = pause;
 
   const tintVec = useMemo(() => hexToRgb(tint), [tint]);
 
@@ -303,8 +309,8 @@ export default function FaultyTerminal({
     const ctn = containerRef.current;
     if (!ctn) return;
 
-    const resolvedDpr =
-      dpr ?? Math.min(typeof window !== "undefined" ? window.devicePixelRatio || 1 : 1, 2);
+    const deviceDpr = dpr ?? (typeof window !== "undefined" ? window.devicePixelRatio || 1 : 1);
+    const resolvedDpr = Math.min(deviceDpr, 1.5);
     const renderer = new Renderer({ dpr: resolvedDpr });
     rendererRef.current = renderer;
     const gl = renderer.gl;
@@ -361,35 +367,38 @@ export default function FaultyTerminal({
     resizeObserver.observe(ctn);
     resize();
 
-    const update = (t: number) => {
-      rafRef.current = requestAnimationFrame(update);
+    const frameMs = 1000 / Math.min(60, Math.max(1, maxFps));
+    let lastRender = 0;
+    let visible = document.visibilityState !== "hidden";
+    let reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    let staticDrawn = false;
 
-      if (pageLoadAnimation && loadAnimationStartRef.current === 0) {
+    const draw = (t: number, frozen: boolean) => {
+      if (pageLoadAnimation && !frozen && loadAnimationStartRef.current === 0) {
         loadAnimationStartRef.current = t;
       }
 
-      if (!pause) {
+      if (frozen) {
+        program.uniforms.uUsePageLoadAnimation.value = 0;
+        program.uniforms.uPageLoadProgress.value = 1;
+        program.uniforms.iTime.value = frozenTimeRef.current;
+      } else {
         const elapsed = (t * 0.001 + timeOffsetRef.current) * timeScale;
         program.uniforms.iTime.value = elapsed;
         frozenTimeRef.current = elapsed;
-      } else {
-        program.uniforms.iTime.value = frozenTimeRef.current;
+        program.uniforms.uUsePageLoadAnimation.value = pageLoadAnimation ? 1 : 0;
+        if (pageLoadAnimation && loadAnimationStartRef.current > 0) {
+          const progress = Math.min((t - loadAnimationStartRef.current) / 2000, 1);
+          program.uniforms.uPageLoadProgress.value = progress;
+        }
       }
 
-      if (pageLoadAnimation && loadAnimationStartRef.current > 0) {
-        const animationDuration = 2000;
-        const animationElapsed = t - loadAnimationStartRef.current;
-        const progress = Math.min(animationElapsed / animationDuration, 1);
-        program.uniforms.uPageLoadProgress.value = progress;
-      }
-
-      if (mouseReact) {
+      if (mouseReact && !frozen) {
         const dampingFactor = 0.08;
         const smoothMouse = smoothMouseRef.current;
         const mouse = mouseRef.current;
         smoothMouse.x += (mouse.x - smoothMouse.x) * dampingFactor;
         smoothMouse.y += (mouse.y - smoothMouse.y) * dampingFactor;
-
         const mouseUniform = program.uniforms.uMouse.value as Float32Array;
         mouseUniform[0] = smoothMouse.x;
         mouseUniform[1] = smoothMouse.y;
@@ -397,23 +406,66 @@ export default function FaultyTerminal({
 
       renderer.render({ scene: mesh });
     };
+
+    const update = (t: number) => {
+      const frozen = pauseRef.current || !visible || reduced;
+      if (frozen) {
+        if (!staticDrawn) {
+          draw(t, true);
+          staticDrawn = true;
+        }
+        rafRef.current = 0;
+        return;
+      }
+
+      staticDrawn = false;
+      if (t - lastRender < frameMs) {
+        rafRef.current = requestAnimationFrame(update);
+        return;
+      }
+      lastRender = t;
+      draw(t, false);
+      rafRef.current = requestAnimationFrame(update);
+    };
+
+    const kick = () => {
+      if (rafRef.current) return;
+      staticDrawn = false;
+      rafRef.current = requestAnimationFrame(update);
+    };
+    kickRef.current = kick;
+
+    const onVisibility = () => {
+      visible = document.visibilityState !== "hidden";
+      if (visible) kick();
+    };
+    const onMotion = (event: MediaQueryListEvent) => {
+      reduced = event.matches;
+      kick();
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+    const motion = window.matchMedia("(prefers-reduced-motion: reduce)");
+    motion.addEventListener("change", onMotion);
+
     rafRef.current = requestAnimationFrame(update);
     ctn.appendChild(gl.canvas);
 
-    if (mouseReact) ctn.addEventListener('mousemove', handleMouseMove);
+    if (mouseReact) ctn.addEventListener("mousemove", handleMouseMove);
 
     return () => {
+      kickRef.current = null;
       cancelAnimationFrame(rafRef.current);
+      document.removeEventListener("visibilitychange", onVisibility);
+      motion.removeEventListener("change", onMotion);
       resizeObserver.disconnect();
-      if (mouseReact) ctn.removeEventListener('mousemove', handleMouseMove);
+      if (mouseReact) ctn.removeEventListener("mousemove", handleMouseMove);
       if (gl.canvas.parentElement === ctn) ctn.removeChild(gl.canvas);
-      gl.getExtension('WEBGL_lose_context')?.loseContext();
+      gl.getExtension("WEBGL_lose_context")?.loseContext();
       loadAnimationStartRef.current = 0;
       timeOffsetRef.current = Math.random() * 100;
     };
   }, [
     dpr,
-    pause,
     timeScale,
     scale,
     gridMul,
@@ -431,8 +483,13 @@ export default function FaultyTerminal({
     pageLoadAnimation,
     brightness,
     lightMode,
+    maxFps,
     handleMouseMove
   ]);
+
+  useEffect(() => {
+    if (!pause) kickRef.current?.();
+  }, [pause]);
 
   return (
     <div

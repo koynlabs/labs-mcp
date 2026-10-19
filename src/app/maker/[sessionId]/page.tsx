@@ -1,3 +1,4 @@
+import SiteChrome from "@/components/site/SiteChrome";
 import { MakerClient } from "./maker-client";
 
 export const metadata = {
@@ -11,5 +12,11 @@ export default async function Page({
   params: Promise<{ sessionId: string }>;
 }) {
   const { sessionId } = await params;
-  return <MakerClient sessionId={sessionId} />;
+  return (
+    <SiteChrome>
+      <main id="content" className="sheet">
+        <MakerClient sessionId={sessionId} />
+      </main>
+    </SiteChrome>
+  );
 }

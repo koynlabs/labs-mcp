@@ -1,3 +1,4 @@
+import SiteChrome from "@/components/site/SiteChrome";
 import { DemoClient } from "./demo-client";
 
 export const metadata = {
@@ -6,5 +7,11 @@ export const metadata = {
 };
 
 export default function Page() {
-  return <DemoClient />;
+  return (
+    <SiteChrome>
+      <main id="content" className="sheet">
+        <DemoClient />
+      </main>
+    </SiteChrome>
+  );
 }

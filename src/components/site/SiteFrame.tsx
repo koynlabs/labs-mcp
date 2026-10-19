@@ -1,0 +1,72 @@
+"use client";
+
+import Link from "next/link";
+import type { ReactNode } from "react";
+import { Button } from "@/components/site/Button";
+import { GITHUB_REPO_URL } from "@/lib/revision";
+
+export function SiteFrame({
+  children,
+  version,
+  shaShort,
+  commitUrl,
+  connectHref = "/x",
+}: {
+  children: ReactNode;
+  version?: string;
+  shaShort?: string;
+  commitUrl?: string;
+  connectHref?: string | null;
+}) {
+  return (
+    <div className="mkt">
+      <a className="skip" href="#content">
+        Skip to content
+      </a>
+      <div className="mkt-atmo" aria-hidden="true">
+        <div className="mkt-glow" />
+        <div className="mkt-grid" />
+      </div>
+      <header className="mkt-bar">
+        <Link className="mkt-logo" href="/" aria-label="labs, home">
+          &lt; labs &gt;
+        </Link>
+        <p className="strip">
+          <span className="dot" aria-hidden="true" />
+          <span className="ok">live</span>
+          {version ? (
+            <>
+              <span className="sep">·</span>
+              <span>{version}</span>
+            </>
+          ) : null}
+          {shaShort && commitUrl ? (
+            <>
+              <span className="sep">·</span>
+              <a href={commitUrl}>{shaShort}</a>
+            </>
+          ) : null}
+          <span className="sep">·</span>
+          <Link href="/status">status</Link>
+        </p>
+        <nav className="mkt-nav" aria-label="Page">
+          <a href="/#flow">Flow</a>
+          <a href="/#tools">Tools</a>
+          {connectHref ? (
+            <Button href={connectHref} size="sm">
+              Connect X
+            </Button>
+          ) : null}
+        </nav>
+      </header>
+      {children}
+      <footer className="mkt-foot">
+        <p>
+          source <a href={GITHUB_REPO_URL}>github.com/koynlabs/labs-mcp</a>
+          <span className="sep">·</span>
+          <Link href="/security">security</Link>
+        </p>
+      </footer>
+    </div>
+  );
+}

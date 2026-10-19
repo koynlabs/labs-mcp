@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import Wordmark from "@/components/Wordmark";
+import Link from "next/link";
+import { PageIntro } from "@/components/site/PageIntro";
 
 type RiveHandle = {
   resizeDrawingSurfaceToCanvas(): void;
@@ -57,9 +58,11 @@ export function DemoClient() {
   }, []);
 
   return (
-    <main className="wrap">
-      <Wordmark />
-      <p className="muted">Grok bot · MCP chat</p>
+    <>
+      <PageIntro eyebrow="Demo" title="Grok bot · MCP chat">
+        The Rive file Grok exported for the tool chat. Ask Claude, ChatGPT or Grok to launch, then sign in your own
+        wallet.
+      </PageIntro>
       <canvas
         ref={canvas}
         width={720}
@@ -67,17 +70,13 @@ export function DemoClient() {
         className="rive"
         aria-label="Grok bot talking to labs over MCP"
       />
-      <p>
-        The Rive file Grok exported for the tool chat. Ask Claude, ChatGPT or
-        Grok to launch, then sign in your own wallet.
-      </p>
-      <p className="muted">
-        <a href="/">labs</a>
+      <p className="panel-note">
+        <Link href="/">labs</Link>
         {" · "}
         <a href="https://www.levercoin.lol">$LEVERCOIN</a>
         {" · "}
         <a href="/mcp">MCP</a>
       </p>
-    </main>
+    </>
   );
 }

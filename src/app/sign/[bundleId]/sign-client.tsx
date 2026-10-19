@@ -2,8 +2,9 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { VersionedTransaction } from "@solana/web3.js";
-import Wordmark from "@/components/Wordmark";
 import { SignFacts } from "@/components/SignFacts";
+import { Button } from "@/components/site/Button";
+import { PageIntro } from "@/components/site/PageIntro";
 import type { LaunchView } from "@/lib/launch/disclosure";
 import { assertUnsignedForWallet, prepareForSigning } from "@/lib/prepare-tx";
 
@@ -166,26 +167,20 @@ export function SignClient({ bundleId, facts }: { bundleId: string; facts: Launc
   };
 
   if (!bundle) {
-    return (
-      <main className="wrap">
-        <Wordmark />
-        <p>{note ?? "Loading…"}</p>
-      </main>
-    );
+    return <p className="lede page-actions">{note ?? "Loading…"}</p>;
   }
 
   const waiting = bundle.txs.filter((tx) => !tx.signed);
   const mine = bundle.txs.filter((tx) => tx.signer === connected && !tx.signed);
 
   return (
-    <main className="wrap">
-      <Wordmark />
-      <h1>
-        Launch {bundle.name} ({bundle.symbol})
-      </h1>
-      <p className="muted">
-        {bundle.venue === "pump" ? "pump.fun" : "StonkFun"} · mint {bundle.mint}
-      </p>
+    <>
+      <PageIntro
+        eyebrow={bundle.venue === "pump" ? "pump.fun" : "StonkFun"}
+        title={`Launch ${bundle.name} (${bundle.symbol})`}
+      >
+        mint {bundle.mint}
+      </PageIntro>
       {bundle.banner ? (
         <p className="muted">
           Banner stored in the token metadata: <code>{bundle.banner}</code>.
@@ -236,17 +231,17 @@ export function SignClient({ bundleId, facts }: { bundleId: string; facts: Launc
       ) : bundle.status === "failed" ? (
         <p className="bad">Failed: {bundle.error}</p>
       ) : !connected ? (
-        <button onClick={connect}>Connect wallet</button>
+        <Button onClick={connect}>Connect wallet</Button>
       ) : (
         <>
           <p className="muted">Connected as {connected}</p>
-          <button onClick={signMine} disabled={busy || mine.length === 0}>
+          <Button onClick={signMine} disabled={busy || mine.length === 0}>
             {busy
               ? "Signing…"
               : mine.length > 0
                 ? `Sign ${mine.length} transaction${mine.length > 1 ? "s" : ""}`
                 : "Nothing for this wallet"}
-          </button>
+          </Button>
           {waiting.length > mine.length ? (
             <p className="muted">
               Other wallets still have to sign:{" "}
@@ -258,6 +253,6 @@ export function SignClient({ bundleId, facts }: { bundleId: string; facts: Launc
       )}
 
       {note ? <p className="note">{note}</p> : null}
-    </main>
+    </>
   );
 }
