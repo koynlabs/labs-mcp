@@ -38,6 +38,16 @@ export const STAGE_CHUNK_BYTES = 4 * 1024 * 1024;
 export const OAUTH_TTL_SECONDS = 10 * 60;
 export const DRAFT_TTL_SECONDS = 30 * 60;
 
+/** Inbox rows, the replied-to mark, and the mentions since_id. */
+export const MENTION_TTL_SECONDS = 14 * 24 * 60 * 60;
+export const MENTION_INDEX_CAP = 200;
+export const INBOUND_TEXT_CAP = 2_000;
+export const WEBHOOK_MAX_BYTES = 1_000_000;
+
+/** UTC-day reply limits. 0 refuses that class of reply. */
+export const DEFAULT_AUTHOR_DAILY_CAP = 5;
+export const DEFAULT_GLOBAL_DAILY_CAP = 30;
+
 /** Polls inside one publish call. A later publish resumes the same draft. */
 export const MEDIA_MAX_POLLS = 8;
 
@@ -49,6 +59,10 @@ export function xCallbackUrl(): string {
 
 export function xConnectUrl(): string {
   return `${SITE_URL}/api/x/oauth/start`;
+}
+
+export function xWebhookUrl(): string {
+  return `${SITE_URL}/api/x/webhook`;
 }
 
 export function xPostUrl(username: string, id: string): string {

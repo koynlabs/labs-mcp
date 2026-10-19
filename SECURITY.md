@@ -1,6 +1,6 @@
 # Security
 
-labs never asks for a wallet private key. A launch generates a mint keypair, seals it with `LABS_SESSION_SECRET`, and uses it only to co-sign the create after the creator's wallet has signed. That key holds no funds. An X connection seals the account's access and refresh tokens with `X_TOKEN_ENCRYPTION_KEY` (or `X_CLIENT_SECRET` when that key is unset). Report anything that would let the server move funds, serve a different binary than [github.com/koynlabs/labs-mcp](https://github.com/koynlabs/labs-mcp), or leak `LABS_PINATA_JWT`, `LABS_SESSION_SECRET`, `X_CLIENT_SECRET`, `X_TOKEN_ENCRYPTION_KEY`, or Redis credentials.
+labs never asks for a wallet private key. A launch generates a mint keypair, seals it with `LABS_SESSION_SECRET`, and uses it only to co-sign the create after the creator's wallet has signed. That key holds no funds. An X connection seals the account's access and refresh tokens with `X_TOKEN_ENCRYPTION_KEY` (or `X_CLIENT_SECRET` when that key is unset). Report anything that would let the server move funds, serve a different binary than [github.com/koynlabs/labs-mcp](https://github.com/koynlabs/labs-mcp), or leak `LABS_PINATA_JWT`, `LABS_SESSION_SECRET`, `X_CLIENT_SECRET`, `X_CONSUMER_SECRET`, `X_TOKEN_ENCRYPTION_KEY`, or Redis credentials.
 
 ## Wallet domain review
 

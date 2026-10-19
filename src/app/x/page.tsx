@@ -3,9 +3,10 @@ import { cookies } from "next/headers";
 import Link from "next/link";
 import Wordmark from "@/components/Wordmark";
 import { xConfigFromEnv } from "@/lib/x/config";
-import { xCallbackUrl, xConnectUrl, X_OWNER_COOKIE, X_SCOPES } from "@/lib/x/constants";
+import { xCallbackUrl, xConnectUrl, xWebhookUrl, X_OWNER_COOKIE, X_SCOPES } from "@/lib/x/constants";
 import { cookieCanManage, readAccount } from "@/lib/x/oauth";
 import { xStore } from "@/lib/x/store";
+import { consumerSecretFromEnv } from "@/lib/x/webhook";
 
 export const dynamic = "force-dynamic";
 
@@ -40,13 +41,32 @@ export default async function XPage({
   const configured = xConfigFromEnv() !== null;
   const account = configured ? await readAccount(xStore) : null;
   const canDisconnect = cookieCanManage(account, cookie);
+  const webhookReady = consumerSecretFromEnv() !== null;
   const error =
     errorCode === "occupied"
       ? `Already connected as @${accountName || account?.username || "another account"}. Sign in as that account to replace the token, or disconnect first.`
       : ERRORS[errorCode];
 
   return (
-    <main className="wrap">
+    <main className="wrap x-page">
+      <div className="x-cta">
+        {account ? (
+          <div className="x-account">
+            <strong>Connected as @{account.username}</strong>
+            {canDisconnect ? (
+              <form method="post" action="/api/x/disconnect" className="x-disconnect">
+                <button type="submit">Disconnect</button>
+              </form>
+            ) : (
+              <span className="muted">Disconnect is available in the browser that connected this account.</span>
+            )}
+          </div>
+        ) : (
+          <a className="x-connect" href={xConnectUrl()}>
+            Connect X
+          </a>
+        )}
+      </div>
       <Wordmark />
       <h1>X</h1>
       <p className="muted">
@@ -80,27 +100,23 @@ export default async function XPage({
         <p>Connect the account that should publish launch posts. For this deployment that is @cyberpsychoxx78.</p>
       )}
 
-      <h2>Connect</h2>
+      <h2>Sign-in URL</h2>
       <pre>{xConnectUrl()}</pre>
-      {configured ? (
-        <p>
-          <a href={xConnectUrl()}>Sign in with X</a>
-        </p>
-      ) : (
-        <p className="muted">Set the X env vars, then open the URL above.</p>
-      )}
-
-      {canDisconnect ? (
-        <form method="post" action="/api/x/disconnect">
-          <button type="submit">Disconnect and revoke</button>
-        </form>
-      ) : null}
+      {configured ? null : <p className="muted">Set the X env vars, then use Connect X.</p>}
 
       <h2>Callback</h2>
       <p className="muted">
         Add this exact URL to the X app&apos;s allowed callbacks. The same app KOYN FX uses can list both.
       </p>
       <pre>{xCallbackUrl()}</pre>
+
+      <h2>Webhook</h2>
+      <p className="muted">
+        Account Activity delivers mentions and replies here. The CRC response is HMAC-SHA256 of crc_token with the
+        app API Key Secret in X_CONSUMER_SECRET.
+        {webhookReady ? " That secret is set." : " That secret is not set, so CRC checks fail until it is."}
+      </p>
+      <pre>{xWebhookUrl()}</pre>
 
       <h2>Scopes</h2>
       <pre>{X_SCOPES.join(" ")}</pre>

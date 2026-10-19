@@ -86,6 +86,56 @@ body {
   padding: 4rem 1.5rem 6rem;
 }
 
+.x-page {
+  padding-top: 1.25rem;
+}
+
+.x-cta {
+  margin: 0 0 1.75rem;
+}
+
+a.x-connect {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: min(100%, 16rem);
+  background: #f4f4f5;
+  color: #09090b;
+  text-decoration: none;
+  border-radius: 8px;
+  padding: 0.95rem 1.6rem;
+  font-weight: 600;
+  font-size: 1.15rem;
+  letter-spacing: 0.01em;
+}
+
+a.x-connect:hover {
+  background: #ffffff;
+}
+
+.x-account {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.35rem 1rem;
+}
+
+.x-account strong {
+  font-size: 1.35rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.x-disconnect {
+  margin: 0;
+}
+
+.x-disconnect button {
+  padding: 0.28rem 0.7rem;
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
 .wordmark {
   padding: 0.75rem 0 0.5rem;
 }
