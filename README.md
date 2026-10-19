@@ -157,25 +157,18 @@ that same transaction. Each extra wallet gets its own buy, which runs after the
 create inside the bundle. `npm run simulate:pump` builds one of these against
 mainnet and simulates it, and does not send it.
 
-`quoteMint` defaults to wSOL. Any other mint has to be one `pump_pairs` returns.
-That tool reads Global's whitelist and the QuoteControl account, which is the
-registry `create_v2` consults: xStocks, crypto, metals, PUMP, USDC, and eligible
-parent coins, whatever is listed on-chain at that moment. The create and the
-buys are built against that asset. `creatorBuySol` and each extra buy are then
-amounts of the quote asset, and the wallet has to hold it already. A swap from
-SOL into the quote asset does not fit in the same transaction as the create and
-the creator buy (that transaction is already about 1100 bytes, and a packet holds
-1232), and a swap in an earlier transaction cannot be simulated by the wallet.
-`npm run simulate:pump:pairs` builds one xStock pair and one non-xStock pair
-from that live list and simulates both, and does not send them.
+`quoteMint` has to be an xStock. Call `stonks_pairs` and pass a mint whose
+category is `xstock`. On pump.fun that mint also has to be one `pump_pairs`
+returns. The create and the buys spend that stock, which the wallet already
+holds. A swap from SOL into the stock does not fit in the same transaction as
+the create.
 
 **StonkFun** has no launch endpoint — `paidLaunchesEnabled` is off, and
 `launchLabEnabled` is on. So labs builds the Raydium LaunchLab
-`initialize_with_token_2022` itself against StonkFun's platform id, and StonkFun
-adopts the pool about a minute later. Standard mode only: a reward-mode launch
-writes a transfer-fee extension whose withheld tax cannot be recovered if the
-pool is never adopted. Call `stonks_pairs` first — a StonkFun token trades
-against another token, not necessarily SOL.
+`initialize_with_token_2022` itself. When StonkFun's reward mode is available
+for that stock, the launch uses it: a transfer fee whose withheld amount
+StonkFun distributes to holders. The launch is refused when the quote is not
+an xStock or reward mode is off for it. Call `stonks_pairs` first.
 
 ### Metadata
 
@@ -394,7 +387,7 @@ If Account Activity is not on the app's plan, skip the webhook. `x_sync_mentions
 ## Known limits
 
 - Three extra buyer wallets per launch.
-- StonkFun launches are standard mode only.
+- A launch has to be paired with an xStock, and holder fee distribution has to be enabled on that venue.
 - The quoter supports pump.fun only. StonkFun quoting is refused rather than
   guessed at, because an existing LaunchLab pool's state is not in the
   launch-time pricing response.

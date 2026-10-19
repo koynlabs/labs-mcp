@@ -59,8 +59,8 @@ export async function createLaunch(input: LaunchInput): Promise<LaunchBundle> {
 
   const built: BuiltLaunch =
     input.venue === "pump"
-      ? await buildPumpLaunch(input)
-      : await buildStonksLaunch(input);
+      ? await buildPumpLaunch(input, { stockPairing: true, holderFees: true })
+      : await buildStonksLaunch(input, { stockPairing: true, holderFees: true });
 
   const bundle: LaunchBundle = {
     id: randomUUID(),
@@ -76,6 +76,7 @@ export async function createLaunch(input: LaunchInput): Promise<LaunchBundle> {
     buyers: built.buyers,
     feeSol: 0,
     ...(built.quoteMint ? { quoteMint: built.quoteMint } : {}),
+    ...(built.features ? { features: built.features } : {}),
     txs: built.txs,
     signed: {},
     sealedMint: encrypt(built.mintSecret),

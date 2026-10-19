@@ -47,7 +47,9 @@ export function registerTools(server: McpServer): void {
       title: "Launch a token",
       description: [
         "Builds a token launch on pump.fun or StonkFun and returns a link where",
-        "the creator's wallet signs it. Up to",
+        "the creator's wallet signs it. The quote mint has to be an xStock, and",
+        "the venue has to have holder fee distribution enabled. Both are checked",
+        "before a transaction is built. Up to",
         `${MAX_BUYERS} additional wallets the creator controls can buy in the same`,
         "atomic bundle as the create, which is how a launch is seeded.",
         "labs does not charge a fee. No private key is ever sent to this server.",
@@ -99,7 +101,7 @@ export function registerTools(server: McpServer): void {
         quoteMint: publicKey
           .optional()
           .describe(
-            "What the token trades against. Default wSOL. On pump.fun, call pump_pairs and pass any mint it returns (xStocks, crypto, metals, PUMP, USDC, or an eligible parent coin). The list is the live on-chain registry, not a fixed set. A non-SOL pump buy spends that asset, which the wallet already holds. A SOL swap does not fit in the create transaction, so one is not added. On StonkFun the mint must be a launchable pair from stonks_pairs.",
+            "What the token trades against. Has to be an xStock. Call stonks_pairs and pass a mint whose category is xstock. On pump.fun that mint also has to be one pump_pairs returns. The buy spends that stock, which the wallet already holds. A SOL swap does not fit in the create transaction, so one is not added.",
           ),
         metadataUri: z
           .string()
@@ -169,6 +171,7 @@ export function registerTools(server: McpServer): void {
             wallet: tx.signer,
             sol: tx.sol,
           })),
+          features: bundle.features,
           nextStep:
             "Open signUrl, connect each listed wallet, and sign. The launch is submitted as one atomic bundle once every signature is in.",
         });
@@ -285,7 +288,7 @@ export function registerTools(server: McpServer): void {
     {
       title: "StonkFun quote tokens",
       description:
-        "Quote tokens a StonkFun launch can be paired against right now. Call before launching there.",
+        "Quote tokens a StonkFun launch can be paired against right now. A launch has to use one whose category is xstock. Call before launching there.",
       inputSchema: z.object({
         search: z.string().optional().describe("filter by symbol or name"),
       }),

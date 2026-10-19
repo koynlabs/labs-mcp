@@ -1,3 +1,5 @@
+import type { LaunchFeatures } from "./launch/features";
+
 export type Venue = "pump" | "stonks";
 
 export type TxRole = "fee" | "create" | "buy";
@@ -52,6 +54,11 @@ export type LaunchBundle = {
    * `txs[].sol` is then an amount of this mint, which the buyer already holds.
    */
   quoteMint?: string;
+  /**
+   * Present when the launch was checked for an xStock pair and holder fee
+   * distribution, and both were on.
+   */
+  features?: LaunchFeatures;
   txs: PendingTx[];
   /** index -> base64 signed transaction. The create also carries the mint signature. */
   signed: Record<string, string>;
