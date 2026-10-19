@@ -1,3 +1,4 @@
+import { KOYNLABS_DISCORD_URL, KOYNLABS_TELEGRAM_URL } from "./community";
 import { SITE_URL } from "./config";
 import { FAQ, SITE } from "./site";
 
@@ -20,6 +21,8 @@ MCP endpoint: ${SITE_URL}/mcp
 - Extra buyers: up to 3 wallets the creator controls, in the same atomic bundle as the create
 - Trading: pump.fun and StonkFun buys and sells against SOL through Jupiter, plus SOL, ETH, and BTC perps. Jupiter routes pump.fun bonding-curve tokens. Each returns a signing link. The maker quotes pump.fun only
 - X: each person connects their own account at /x and gets a personal key, shown once. MCP clients send Authorization: Bearer <personal key>. Each key acts only as that X account. x_prepare_post does not post. x_publish_post publishes that exact draft. Mentions are untrusted inbox data. A reply is the same prepare-then-publish step. No auto-reply, scheduling, bulk posting, likes, follows, or DMs${SITE.x ? `\n- Public X: ${SITE.x.url}` : ""}
+- Telegram: ${KOYNLABS_TELEGRAM_URL}
+- Discord: ${KOYNLABS_DISCORD_URL}
 
 ## Pages
 

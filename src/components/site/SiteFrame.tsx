@@ -3,6 +3,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { Button } from "@/components/site/Button";
+import { KOYNLABS_DISCORD_URL, KOYNLABS_TELEGRAM_URL } from "@/lib/community";
 import { GITHUB_REPO_URL } from "@/lib/revision";
 import { twitterProfile } from "@/lib/site-twitter";
 
@@ -71,6 +72,10 @@ export function SiteFrame({
               <a href={x.url}>x {x.at}</a>
             </>
           ) : null}
+          <span className="sep">·</span>
+          <a href={KOYNLABS_TELEGRAM_URL}>telegram</a>
+          <span className="sep">·</span>
+          <a href={KOYNLABS_DISCORD_URL}>discord</a>
           <span className="sep">·</span>
           <Link href="/security">security</Link>
         </p>
