@@ -5,6 +5,8 @@ export interface XStore {
   set(key: string, value: string, ttlSeconds?: number): Promise<void>;
   setNx(key: string, value: string, ttlSeconds: number): Promise<boolean>;
   del(key: string): Promise<void>;
+  incr(key: string): Promise<number>;
+  expire(key: string, ttlSeconds: number): Promise<void>;
 }
 
 type MemoryRow = { value: string; expiresAt: number };
@@ -40,6 +42,25 @@ export function createMemoryXStore(clock: () => number = Date.now): XStore {
     async del(key) {
       rows.delete(key);
     },
+    async incr(key) {
+      const row = rows.get(key);
+      const alive = row !== undefined && row.expiresAt > clock();
+      const current = alive ? Number(row.value) : 0;
+      const next = Number.isFinite(current) ? current + 1 : 1;
+      rows.set(key, {
+        value: String(next),
+        expiresAt: alive && row ? row.expiresAt : Number.MAX_SAFE_INTEGER,
+      });
+      return next;
+    },
+    async expire(key, ttlSeconds) {
+      const row = rows.get(key);
+      if (!row || row.expiresAt <= clock()) {
+        rows.delete(key);
+        return;
+      }
+      row.expiresAt = clock() + ttlSeconds * 1000;
+    },
   };
   return store;
 }
@@ -59,6 +80,27 @@ function recall(key: string): string | null {
     return null;
   }
   return row.value;
+}
+
+function memoryIncr(key: string): number {
+  const row = memory.get(key);
+  const alive = row !== undefined && row.expiresAt > Date.now();
+  const current = alive ? Number(row.value) : 0;
+  const next = Number.isFinite(current) ? current + 1 : 1;
+  memory.set(key, {
+    value: String(next),
+    expiresAt: alive && row ? row.expiresAt : Number.MAX_SAFE_INTEGER,
+  });
+  return next;
+}
+
+function memoryExpire(key: string, ttlSeconds: number): void {
+  const row = memory.get(key);
+  if (!row || row.expiresAt <= Date.now()) {
+    memory.delete(key);
+    return;
+  }
+  row.expiresAt = Date.now() + ttlSeconds * 1000;
 }
 
 /**
@@ -88,6 +130,18 @@ export const xStore: XStore = {
     memory.delete(key);
     if (stored === "missing") return;
   },
+  async incr(key) {
+    const stored = await withRedis((db) => db.incr(key));
+    if (stored === "missing") return memoryIncr(key);
+    return stored;
+  },
+  async expire(key, ttlSeconds) {
+    const stored = await withRedis(async (db) => {
+      await db.expire(key, ttlSeconds);
+      return true as const;
+    });
+    if (stored === "missing") memoryExpire(key, ttlSeconds);
+  },
 };
 
 export const KEYS = {
@@ -99,4 +153,12 @@ export const KEYS = {
   blob: (id: string) => `x:blob:${id}`,
   stage: (id: string) => `x:stage:${id}`,
   stageChunk: (id: string, index: number) => `x:stage:${id}:${index}`,
+  mention: (id: string) => `x:mention:${id}`,
+  mentionSeen: (id: string) => `x:mention-seen:${id}`,
+  mentionIndex: "x:mentions",
+  mentionLock: "x:mentions-lock",
+  replied: (id: string) => `x:replied:${id}`,
+  replyDay: (day: string) => `x:reply-day:${day}`,
+  replyAuthorDay: (authorId: string, day: string) => `x:reply-author:${authorId}:${day}`,
+  mentionsSince: (userId: string) => `x:mentions-since:${userId}`,
 };

@@ -28,6 +28,8 @@ export const TOOL_NAMES = [
   "perp_exit",
   "x_connection_status",
   "x_connect_link",
+  "x_get_mentions",
+  "x_sync_mentions",
   "x_prepare_post",
   "x_publish_post",
 ] as const;

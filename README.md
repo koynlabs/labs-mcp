@@ -115,7 +115,9 @@ Then: *“Launch a token on pump.fun called …”*
 | `perp_exit` | Sets or cancels a take profit, stop, or limit |
 | `x_connection_status` | Which X account is connected, if any |
 | `x_connect_link` | URL the owner opens to authorize X |
-| `x_prepare_post` | Validates a post and returns a draft. Does not post |
+| `x_get_mentions` | Unhandled mentions and replies from the inbox. Does not reply |
+| `x_sync_mentions` | Pulls @mentions from X when the webhook is not registered. Does not reply |
+| `x_prepare_post` | Validates a post or reply and returns a draft. Does not post |
 | `x_publish_post` | Publishes exactly that draft and returns the post URL |
 
 ## How a launch works
@@ -306,7 +308,10 @@ OAuth is the confidential-client user-context flow with PKCE (S256). The token r
 | `X_CLIENT_SECRET` | X app client secret. Never commit it |
 | `X_TOKEN_ENCRYPTION_KEY` | Optional. AES-GCM key for the token bundle. Falls back to `X_CLIENT_SECRET` |
 | `LABS_SITE_URL` | Public origin baked into the callback. Production is `https://labs.levercoin.lol` |
-| `REDIS_URL` | Keeps the connection across cold starts. Memory is only for local dev |
+| `REDIS_URL` | Keeps the connection and the mention inbox across cold starts. Memory is only for local dev |
+| `X_CONSUMER_SECRET` | App API Key Secret. Signs the Account Activity CRC and webhook bodies. Not the OAuth client secret |
+| `X_REPLY_AUTHOR_DAILY_CAP` | Replies per author per UTC day. Default 5. 0 refuses those replies |
+| `X_REPLY_DAILY_CAP` | Replies per UTC day for the whole account. Default 30. 0 refuses replies |
 
 Callback to add on that X app, alongside the KOYN FX callback:
 
@@ -326,6 +331,38 @@ Media is a JPEG, PNG, WEBP, GIF, or MP4 (H.264 video, AAC audio). Images use `PO
 
 Disconnect from the browser that connected the account, at `/x`. That revokes the refresh token. Signing in again as the same @username replaces the token. A different account is refused until then. Posts are 280 weighted characters. A URL counts as 23.
 
+### Mentions and replies
+
+The webhook is:
+
+```
+https://labs.levercoin.lol/api/x/webhook
+```
+
+X calls `GET /api/x/webhook?crc_token=...` when the webhook is registered, when it is revalidated, and about hourly. The response is `{"response_token":"sha256=<base64>"}`, where the digest is HMAC-SHA256 of `crc_token` using `X_CONSUMER_SECRET` (the app's API Key Secret). The same secret checks `x-twitter-webhooks-signature` on `POST` bodies. Inbound text is stored as data and is not treated as instructions.
+
+Account Activity is an Enterprise / pay-per-use product, and X is replacing it with the X Activity API. Register the webhook with an app-only bearer token:
+
+```bash
+curl --request POST \
+  --url 'https://api.x.com/2/webhooks' \
+  --header "Authorization: Bearer $BEARER_TOKEN" \
+  --header 'Content-Type: application/json' \
+  --data '{"url":"https://labs.levercoin.lol/api/x/webhook"}'
+```
+
+Subscribe @cyberpsychoxx78 with OAuth 1.0a user context for that account (consumer key, consumer secret, and that account's access token). The labs OAuth 2.0 user token is not the credential this call uses:
+
+```bash
+curl --request POST \
+  --url "https://api.x.com/2/account_activity/webhooks/$WEBHOOK_ID/subscriptions/all" \
+  --header 'Authorization: OAuth oauth_consumer_key="...", oauth_token="...", oauth_signature_method="HMAC-SHA1", oauth_signature="...", oauth_timestamp="...", oauth_nonce="...", oauth_version="1.0"'
+```
+
+If Account Activity is not on the app's plan, skip the webhook. `x_sync_mentions` pulls `GET /2/users/:id/mentions` from the stored `since_id`. That timeline only includes posts that @mention the account. Replies that do not mention it arrive through the webhook.
+
+`x_get_mentions` reads the inbox. It leaves out threads already replied to and authors at the daily cap. A reply is `x_prepare_post` with `reply_to` set to that numeric post id (and optional media), then `x_publish_post` with the draft id. Nothing replies in the background.
+
 ## Known limits
 
 - Three extra buyer wallets per launch.
@@ -339,7 +376,8 @@ Disconnect from the browser that connected the account, at `/x`. That revokes th
   Buys that follow the create in the same bundle spend a mint that does not
   exist yet, so they cannot be simulated on their own.
 - X posting is one connected account, two steps (prepare, then publish), and
-  one post at a time. Video is MP4 up to 25MB.
+  one post at a time. Video is MP4 up to 25MB. Replies use those same two
+  steps, with a per-author cap and a global daily cap. There is no auto-reply.
 
 ## License
 
