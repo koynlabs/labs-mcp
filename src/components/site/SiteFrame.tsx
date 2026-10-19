@@ -4,6 +4,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { Button } from "@/components/site/Button";
 import { GITHUB_REPO_URL } from "@/lib/revision";
+import { twitterProfile } from "@/lib/site-twitter";
 
 export function SiteFrame({
   children,
@@ -18,6 +19,7 @@ export function SiteFrame({
   commitUrl?: string;
   connectHref?: string | null;
 }) {
+  const x = twitterProfile();
   return (
     <div className="mkt">
       <a className="skip" href="#content">
@@ -63,6 +65,12 @@ export function SiteFrame({
       <footer className="mkt-foot">
         <p>
           source <a href={GITHUB_REPO_URL}>github.com/koynlabs/labs-mcp</a>
+          {x ? (
+            <>
+              <span className="sep">·</span>
+              <a href={x.url}>x {x.at}</a>
+            </>
+          ) : null}
           <span className="sep">·</span>
           <Link href="/security">security</Link>
         </p>
