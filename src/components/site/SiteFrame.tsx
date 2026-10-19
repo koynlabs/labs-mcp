@@ -54,6 +54,7 @@ export function SiteFrame({
         <nav className="mkt-nav" aria-label="Page">
           <a href="/#flow">Flow</a>
           <a href="/#tools">Tools</a>
+          <a href="https://levercoin.lol/trade">DEX</a>
           {connectHref ? (
             <Button href={connectHref} size="sm" variant="ghost">
               Connect X
