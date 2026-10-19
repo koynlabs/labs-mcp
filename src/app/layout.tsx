@@ -50,6 +50,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "labs — launch a token and announce it on X",
     description: SITE.ogDescription,
+    ...(SITE.x ? { site: SITE.x.at, creator: SITE.x.at } : {}),
   },
   other: { "theme-color": "#070708" },
 };

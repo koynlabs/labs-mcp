@@ -12,6 +12,7 @@ export default function JsonLd() {
         url: SITE_URL,
         description: SITE.description,
         inLanguage: "en-US",
+        ...(SITE.x ? { sameAs: [SITE.x.url] } : {}),
       },
       {
         "@type": "SoftwareApplication",

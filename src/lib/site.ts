@@ -1,4 +1,5 @@
 import { SITE_URL } from "./config";
+import { twitterProfile } from "./site-twitter";
 
 export const SITE = {
   name: "labs",
@@ -9,6 +10,8 @@ export const SITE = {
   ogDescription:
     "Launch a token on pump.fun or StonkFun and announce it on your X account. Your wallet signs. A post goes out only after you confirm.",
   locale: "en_US",
+  /** Public X profile. Null when NEXT_PUBLIC_TWITTER is unset or a placeholder. */
+  x: twitterProfile(),
 } as const;
 
 export const FAQ = [
