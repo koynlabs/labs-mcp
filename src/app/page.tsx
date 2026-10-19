@@ -86,8 +86,9 @@ export default function Home() {
           <code>perp_close</code>, <code>perp_exit</code> — SOL, ETH, and BTC perps
         </li>
         <li>
-          <code>x_connect_link</code>, <code>x_connection_status</code>, <code>x_prepare_post</code>,{" "}
-          <code>x_publish_post</code> — connect one X account, then publish a confirmed post as that account
+          <code>x_connect_link</code>, <code>x_connection_status</code>, <code>x_get_mentions</code>,{" "}
+          <code>x_sync_mentions</code>, <code>x_prepare_post</code>, <code>x_publish_post</code> — connect one X
+          account, then publish a confirmed post or reply as that account
         </li>
       </ul>
 

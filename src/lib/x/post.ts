@@ -8,6 +8,7 @@ import { readUpload } from "./stage";
 import { KEYS, type XStore } from "./store";
 import { assertPostLength } from "./text";
 import { uploadMedia } from "./upload";
+import { loadReplyTarget, recordPublishedReply, replyCapsFromEnv, type ReplyCaps } from "./webhook";
 
 export type DraftSource =
   | { type: "url"; url: string }
@@ -18,6 +19,8 @@ export type XDraft = {
   text: string;
   replyTo?: string;
   quote?: string;
+  replyAuthorId?: string;
+  replyAuthorHandle?: string;
   media?: {
     kind: ClassifiedMedia["kind"];
     mime: string;
@@ -65,6 +68,7 @@ export type PostDeps = {
   sleep?: (seconds: number) => Promise<void>;
   chunkBytes?: number;
   maxPolls?: number;
+  caps?: ReplyCaps;
 };
 
 export async function preparePost(
@@ -79,6 +83,20 @@ export async function preparePost(
   const length = assertPostLength(text);
   const source = input.media ? parseMediaRef(input.media) : undefined;
   if (!text.trim() && !source) throw new XError("A post needs text, media, or both.");
+  const now = deps.now ?? Date.now();
+  let replyAuthorId: string | undefined;
+  let replyAuthorHandle: string | undefined;
+  if (input.replyTo) {
+    const target = await loadReplyTarget(
+      deps.store,
+      input.replyTo,
+      account.userId,
+      now,
+      deps.caps ?? replyCapsFromEnv(),
+    );
+    replyAuthorId = target.authorId;
+    replyAuthorHandle = target.authorHandle;
+  }
 
   let media: XDraft["media"];
   if (source) {
@@ -98,8 +116,10 @@ export async function preparePost(
     text,
     replyTo: input.replyTo,
     quote: input.quote,
+    replyAuthorId,
+    replyAuthorHandle,
     media,
-    createdAt: deps.now ?? Date.now(),
+    createdAt: now,
   };
   await deps.store.set(KEYS.draft(draft.id), JSON.stringify(draft), DRAFT_TTL_SECONDS);
   return { draft, preview: previewOf(draft, account.username, length) };
@@ -123,6 +143,7 @@ export function previewOf(draft: XDraft, username: string, weightedLength: numbe
       text: draft.text,
       weightedLength,
       replyTo: draft.replyTo ?? null,
+      replyToAuthor: draft.replyAuthorHandle ? `@${draft.replyAuthorHandle}` : null,
       quote: draft.quote ?? null,
       media: draft.media
         ? {
@@ -161,8 +182,17 @@ export async function publishPost(
     };
   }
   assertPostLength(draft.text);
+  const now = deps.now ?? Date.now();
+  const caps = deps.caps ?? replyCapsFromEnv();
+  let replyAuthorId = draft.replyAuthorId;
+  if (draft.replyTo) {
+    const current = await readAccount(deps.store);
+    if (!current) throw new XError("X is not connected. Call x_connect_link and authorize the account.");
+    const target = await loadReplyTarget(deps.store, draft.replyTo, current.userId, now, caps);
+    replyAuthorId = target.authorId ?? draft.replyAuthorId;
+  }
 
-  const { accessToken, account } = await ensureAccessToken(deps.store, deps.config, deps.http, deps.now ?? Date.now());
+  const { accessToken, account } = await ensureAccessToken(deps.store, deps.config, deps.http, now);
   let mediaId = draft.mediaReady ? draft.pendingMediaId : undefined;
   if (draft.media && !mediaId) {
     const bytes = draft.pendingMediaId ? null : await loadSource(deps, draft.media.source);
@@ -248,6 +278,7 @@ export async function publishPost(
   const url = xPostUrl(account.username, body.data.id);
   draft.published = { id: body.data.id, url };
   await deps.store.set(KEYS.draft(draft.id), JSON.stringify(draft), DRAFT_TTL_SECONDS);
+  if (draft.replyTo) await recordPublishedReply(deps.store, draft.replyTo, replyAuthorId, now);
   return {
     id: body.data.id,
     url,
