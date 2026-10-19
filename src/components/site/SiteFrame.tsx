@@ -55,7 +55,7 @@ export function SiteFrame({
           <a href="/#flow">Flow</a>
           <a href="/#tools">Tools</a>
           {connectHref ? (
-            <Button href={connectHref} size="sm">
+            <Button href={connectHref} size="sm" variant="ghost">
               Connect X
             </Button>
           ) : null}
