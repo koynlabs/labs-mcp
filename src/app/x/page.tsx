@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import Link from "next/link";
-import Wordmark from "@/components/Wordmark";
+import CopyField from "@/components/site/CopyField";
+import SiteChrome from "@/components/site/SiteChrome";
 import { xConfigFromEnv } from "@/lib/x/config";
 import { xCallbackUrl, xConnectUrl, xWebhookUrl, X_OWNER_COOKIE, X_SCOPES } from "@/lib/x/constants";
 import { consumePersonalKey, readAccountByCookie } from "@/lib/x/oauth";
@@ -11,8 +12,8 @@ import { consumerSecretFromEnv } from "@/lib/x/webhook";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "X",
-  description: "Connect your X account and copy the personal key for the labs MCP.",
+  title: "Connect X",
+  description: "Connect your own X account and copy the personal key for the labs MCP. The key is shown once.",
   robots: { index: false, follow: false },
 };
 
@@ -43,98 +44,143 @@ export default async function XPage({
   const error = ERRORS[errorCode];
 
   return (
-    <main className="wrap x-page">
-      <div className="x-cta">
-        {account ? (
-          <div className="x-account">
-            <strong>Connected as @{account.username}</strong>
-            <form method="post" action="/api/x/disconnect" className="x-disconnect">
-              <button type="submit">Disconnect</button>
-            </form>
-            <a href={xConnectUrl()}>Connect again</a>
+    <SiteChrome connectHref={null}>
+      <main id="content" className="x-main">
+        <section className="hero x-hero" aria-labelledby="x-title">
+          <div className="hero-copy">
+            <p className="eyebrow">Your account</p>
+            <h1 id="x-title">Connect the X account this assistant posts as.</h1>
+            <p className="lede">
+              Each person connects their own account. The MCP posts only as the account for the personal key on that
+              request. A post goes out only after it is prepared and then published.
+            </p>
+            {account ? (
+              <div className="x-account">
+                <strong>Connected as @{account.username}</strong>
+                <form method="post" action="/api/x/disconnect">
+                  <button className="btn btn-ghost" type="submit">
+                    Disconnect
+                  </button>
+                </form>
+                <a className="btn btn-ghost" href={xConnectUrl()}>
+                  Connect again
+                </a>
+              </div>
+            ) : (
+              <a className="btn btn-primary btn-lg" href={xConnectUrl()}>
+                Connect X
+              </a>
+            )}
           </div>
-        ) : (
-          <a className="x-connect" href={xConnectUrl()}>
-            Connect X
-          </a>
-        )}
-      </div>
-      <Wordmark />
-      <h1>X</h1>
-      <p className="muted">
-        Each person connects their own account. The MCP posts only as the account for the personal key on that request.
-        A post goes out only after it is prepared and then published.
-      </p>
+        </section>
 
-      {personalKey ? (
-        <div className="x-key-block">
-          <p className="ok">Connected. Copy this personal key now. It is shown once.</p>
-          <pre className="x-key">{personalKey}</pre>
-          <p className="muted">
-            Send it on the MCP request as <code>Authorization: Bearer</code> followed by the key. Do not put it in a
-            tool argument. Connecting again as @{account?.username} rotates the key and the previous one stops working.
+        {personalKey ? (
+          <div className="banner banner-ok" role="status">
+            <p>Connected. Copy this personal key now. It is shown once.</p>
+            <CopyField value={personalKey} label="Personal key" />
+            <p>
+              Send it on the MCP request as <code>Authorization: Bearer</code> followed by the key. Do not put it in a
+              tool argument. Connecting again as @{account?.username} rotates the key and the previous one stops
+              working.
+            </p>
+          </div>
+        ) : params.connected === "1" ? (
+          <p className="banner banner-ok" role="status">
+            Connected. The personal key was already shown. Connect again to issue a new one.
           </p>
-        </div>
-      ) : params.connected === "1" ? (
-        <p className="ok">Connected. The personal key was already shown. Connect again to issue a new one.</p>
-      ) : null}
-      {account && !account.keyHash && !personalKey ? (
-        <p className="warn">
-          Connected as @{account.username}, but this connection has no personal key yet. Connect again as that account.
-          That visit issues a key and replaces the token. Until then, MCP calls for this account are refused.
-        </p>
-      ) : null}
-      {params.disconnected === "1" ? <p className="ok">Disconnected.</p> : null}
-      {error ? <p className="warn">{error}</p> : null}
+        ) : null}
+        {account && !account.keyHash && !personalKey ? (
+          <p className="banner warn" role="alert">
+            Connected as @{account.username}, but this connection has no personal key yet. Connect again as that
+            account. That visit issues a key and replaces the token. Until then, MCP calls for this account are
+            refused.
+          </p>
+        ) : null}
+        {params.disconnected === "1" ? (
+          <p className="banner banner-ok" role="status">
+            Disconnected.
+          </p>
+        ) : null}
+        {error ? (
+          <p className="banner warn" role="alert">
+            {error}
+          </p>
+        ) : null}
 
-      <ul className="caps">
-        <li>
-          status
-          <span className={`state ${account ? "ok" : ""}`}>{account ? "connected" : "not connected"}</span>
-        </li>
-        <li>
-          account
-          <span className="state">{account ? `@${account.username}` : "none"}</span>
-        </li>
-        <li>
-          app
-          <span className={`state ${configured ? "ok" : "bad"}`}>{configured ? "configured" : "missing env"}</span>
-        </li>
-      </ul>
+        <dl className="stats">
+          <div>
+            <dt>Status</dt>
+            <dd className={account ? "ok" : undefined}>{account ? "Connected" : "Not connected"}</dd>
+          </div>
+          <div>
+            <dt>Account</dt>
+            <dd>{account ? `@${account.username}` : "None"}</dd>
+          </div>
+          <div>
+            <dt>App</dt>
+            <dd className={configured ? "ok" : "bad"}>{configured ? "Configured" : "Missing env"}</dd>
+          </div>
+        </dl>
 
-      {account ? (
-        <p>
-          Posts from a client using this browser&apos;s key go out as @{account.username}.{" "}
-          {account.name !== account.username ? account.name : ""}
-        </p>
-      ) : (
-        <p>Connect the X account this client should post as. The next page shows a personal key once.</p>
-      )}
+        {account ? (
+          <p className="lede x-follow">
+            Posts from a client using this browser&apos;s key go out as @{account.username}.
+            {account.name !== account.username ? ` ${account.name}` : ""}
+          </p>
+        ) : (
+          <p className="lede x-follow">
+            Connect the X account this client should post as. The next page shows a personal key once.
+          </p>
+        )}
 
-      <h2>Sign-in URL</h2>
-      <pre>{xConnectUrl()}</pre>
-      {configured ? null : <p className="muted">Set the X env vars, then use Connect X.</p>}
+        <section className="band" aria-labelledby="endpoints-title">
+          <header className="section-head">
+            <p className="eyebrow">Setup</p>
+            <h2 id="endpoints-title">Endpoints</h2>
+          </header>
+          <div className="endpoint-grid">
+            <article className="panel">
+              <h3>Sign-in URL</h3>
+              <CopyField value={xConnectUrl()} label="Sign-in URL" />
+              {configured ? null : <p className="panel-note">Set the X env vars, then use Connect X.</p>}
+            </article>
+            <article className="panel">
+              <h3>Callback</h3>
+              <p className="panel-note">
+                Add this exact URL to the X app&apos;s allowed callbacks. The same app KOYN FX uses can list both.
+              </p>
+              <CopyField value={xCallbackUrl()} label="OAuth callback URL" />
+            </article>
+            <article className="panel">
+              <h3>Webhook</h3>
+              <p className="panel-note">
+                Account Activity delivers mentions and replies here. The CRC response is HMAC-SHA256 of crc_token with
+                the app API Key Secret in X_CONSUMER_SECRET.
+                {webhookReady ? " That secret is set." : " That secret is not set, so CRC checks fail until it is."}
+              </p>
+              <CopyField value={xWebhookUrl()} label="Webhook URL" />
+            </article>
+          </div>
+        </section>
 
-      <h2>Callback</h2>
-      <p className="muted">
-        Add this exact URL to the X app&apos;s allowed callbacks. The same app KOYN FX uses can list both.
-      </p>
-      <pre>{xCallbackUrl()}</pre>
-
-      <h2>Webhook</h2>
-      <p className="muted">
-        Account Activity delivers mentions and replies here. The CRC response is HMAC-SHA256 of crc_token with the
-        app API Key Secret in X_CONSUMER_SECRET.
-        {webhookReady ? " That secret is set." : " That secret is not set, so CRC checks fail until it is."}
-      </p>
-      <pre>{xWebhookUrl()}</pre>
-
-      <h2>Scopes</h2>
-      <pre>{X_SCOPES.join(" ")}</pre>
-      <p className="muted">
-        Media can be an https URL or a file uploaded to <code>/api/x/media</code>. A video is an MP4, H.264 and AAC,
-        up to 25MB. <Link href="/">Back to labs</Link>.
-      </p>
-    </main>
+        <section className="band" aria-labelledby="scopes-title">
+          <header className="section-head">
+            <p className="eyebrow">Access</p>
+            <h2 id="scopes-title">Scopes</h2>
+          </header>
+          <ul className="scope-list">
+            {X_SCOPES.map((scope) => (
+              <li key={scope}>
+                <code>{scope}</code>
+              </li>
+            ))}
+          </ul>
+          <p className="panel-note">
+            Media can be an https URL or a file uploaded to <code>/api/x/media</code>. A video is an MP4, H.264 and
+            AAC, up to 25MB. <Link href="/">Back to labs</Link>.
+          </p>
+        </section>
+      </main>
+    </SiteChrome>
   );
 }
