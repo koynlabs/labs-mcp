@@ -266,6 +266,13 @@ h1 {
   margin: 0 0 0.25rem;
 }
 
+.home-hero {
+  font-size: 1.35rem;
+  font-weight: 500;
+  line-height: 1.35;
+  margin: 0 0 1rem;
+}
+
 h2 {
   font-size: 1.05rem;
   margin: 2.5rem 0 0.5rem;
@@ -403,6 +410,85 @@ button:disabled {
 
 .state a {
   color: inherit;
+}
+
+.flow {
+  list-style: none;
+  padding: 0;
+  margin: 0.25rem 0 0;
+  border-top: 1px solid var(--line);
+}
+
+.flow li {
+  display: grid;
+  grid-template-columns: 2.25rem minmax(0, 1fr);
+  gap: 0.75rem;
+  align-items: baseline;
+  border-bottom: 1px solid var(--line);
+  padding: 0.7rem 0;
+  font-size: 0.9rem;
+}
+
+.flow li > span:first-child,
+.step-label span {
+  color: var(--muted);
+  font-size: 0.75rem;
+  letter-spacing: 0.06em;
+}
+
+.connect {
+  display: grid;
+  gap: 1.5rem;
+}
+
+.connect p {
+  margin: 0 0 0.6rem;
+}
+
+.step-label {
+  margin: 0 0 0.55rem;
+  font-size: 0.95rem;
+}
+
+.step-label span {
+  margin-right: 0.55rem;
+}
+
+a.step-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.5rem;
+  margin: 0.15rem 0 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0.4rem 0.9rem;
+  color: var(--fg);
+  text-decoration: none;
+}
+
+a.step-link:hover {
+  border-color: var(--fg);
+}
+
+@media (min-width: 720px) {
+  .connect {
+    grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+    gap: 1.5rem 2rem;
+    align-items: start;
+  }
+}
+
+.tool-group h3 {
+  margin: 1.35rem 0 0.15rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.tool-group .muted {
+  margin: 0.35rem 0 0;
 }
 
 .tools {
