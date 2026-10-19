@@ -19,6 +19,7 @@ MCP endpoint: ${SITE_URL}/mcp
 - Connectors: Claude, ChatGPT, Grok. Add ${SITE_URL}/mcp. No API key
 - Extra buyers: up to 3 wallets the creator controls, in the same atomic bundle as the create
 - Trading: pump.fun and StonkFun buys and sells against SOL through Jupiter, plus SOL, ETH, and BTC perps. Jupiter routes pump.fun bonding-curve tokens. Each returns a signing link. The maker quotes pump.fun only
+- X: one connected account can publish a confirmed post. x_prepare_post does not post. x_publish_post publishes that exact draft. No scheduling, bulk posting, likes, follows, or DMs
 
 ## Pages
 
@@ -47,6 +48,9 @@ export function llmsFullTxt(): string {
 - perp_positions: a wallet's open perps and working limits
 - trade_swap, trade_order: market buy or sell, or limit, stop, take-profit/stop, and DCA, of a pump.fun or StonkFun mint against SOL. Optional venue is pump or stonks. Each returns a signing link. Routing is Jupiter, not the pump SDK
 - perp_open, perp_close, perp_exit: open, close, or set and cancel exits on SOL, ETH, and BTC perps
+- x_connection_status, x_connect_link: which X account is connected, and the URL the owner opens to authorize one
+- x_prepare_post: validate text and media (https URL or an upload id) and return a draft. Does not post
+- x_publish_post: publish exactly that draft as the connected account and return the post URL. Only after the user confirms the preview
 
 ## Copy for answers
 

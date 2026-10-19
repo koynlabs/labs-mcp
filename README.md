@@ -113,6 +113,10 @@ Then: *“Launch a token on pump.fun called …”*
 | `perp_open` | Long or short SOL, ETH, or BTC, returns a signing link |
 | `perp_close` | Closes one perp position back to USDC |
 | `perp_exit` | Sets or cancels a take profit, stop, or limit |
+| `x_connection_status` | Which X account is connected, if any |
+| `x_connect_link` | URL the owner opens to authorize X |
+| `x_prepare_post` | Validates a post and returns a draft. Does not post |
+| `x_publish_post` | Publishes exactly that draft and returns the post URL |
 
 ## How a launch works
 
@@ -290,6 +294,38 @@ cold start on the heaviest route in the app every time a badge refreshed.
 The Grok bot Rive lives at [`public/demo`](public/demo) and is served at
 [`/demo`](https://labs.levercoin.lol/demo/) after deploy.
 
+## Posting to X
+
+Launch and promo posts go out as one connected account. The owner signs in with X. labs stores the access and refresh tokens sealed, and the MCP publishes only a draft the caller has already prepared. There is no scheduler, no bulk posting, and no follow, like, or DM tooling.
+
+OAuth is the confidential-client user-context flow with PKCE (S256). The token request sends the client id and secret as Basic auth. Scopes: `tweet.read tweet.write users.read offline.access media.write`. Refresh tokens rotate. Every refresh stores the new refresh token.
+
+| Env | Purpose |
+| --- | --- |
+| `X_CLIENT_ID` | X app client id. Reuse the KOYN FX app |
+| `X_CLIENT_SECRET` | X app client secret. Never commit it |
+| `X_TOKEN_ENCRYPTION_KEY` | Optional. AES-GCM key for the token bundle. Falls back to `X_CLIENT_SECRET` |
+| `LABS_SITE_URL` | Public origin baked into the callback. Production is `https://labs.levercoin.lol` |
+| `REDIS_URL` | Keeps the connection across cold starts. Memory is only for local dev |
+
+Callback to add on that X app, alongside the KOYN FX callback:
+
+```
+https://labs.levercoin.lol/api/x/oauth/callback
+```
+
+Connect @cyberpsychoxx78:
+
+1. Set the env vars on the deployment. Do not put them in the repo.
+2. Add the callback above to the X app's allowed callback URLs.
+3. Call `x_connect_link`, or open [https://labs.levercoin.lol/x](https://labs.levercoin.lol/x), and sign in as @cyberpsychoxx78.
+4. `x_connection_status` should report `@cyberpsychoxx78`.
+5. `x_prepare_post` returns a draft and the exact preview. `x_publish_post` with that draft id is what publishes it.
+
+Media is a JPEG, PNG, WEBP, GIF, or MP4 (H.264 video, AAC audio). Images use `POST https://api.x.com/2/media/upload`. GIF and video use the chunked v2 flow: `POST /2/media/upload/initialize`, `POST /2/media/upload/{id}/append`, `POST /2/media/upload/{id}/finalize`, then `GET /2/media/upload?command=STATUS` until processing succeeds. Pass an https URL, or upload a file to `POST /api/x/media`. A file around 20MB is over the host's single-request body limit, so start a stage, `PUT` 4MB segments to `/api/x/media/<stageId>` with `x-segment-index`, then `POST /api/x/media/<stageId>/finish`, and pass the returned upload id as `media`. The cap on this server is 25MB.
+
+Disconnect from the browser that connected the account, at `/x`. That revokes the refresh token. Signing in again as the same @username replaces the token. A different account is refused until then. Posts are 280 weighted characters. A URL counts as 23.
+
 ## Known limits
 
 - Three extra buyer wallets per launch.
@@ -302,6 +338,8 @@ The Grok bot Rive lives at [`public/demo`](public/demo) and is served at
 - A launch is refused before you sign if the create transaction fails simulation.
   Buys that follow the create in the same bundle spend a mint that does not
   exist yet, so they cannot be simulated on their own.
+- X posting is one connected account, two steps (prepare, then publish), and
+  one post at a time. Video is MP4 up to 25MB.
 
 ## License
 

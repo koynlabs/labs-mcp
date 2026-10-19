@@ -8,6 +8,9 @@ import { Redis as Upstash } from "@upstash/redis";
 type Kv = {
   get(key: string): Promise<string | null>;
   set(key: string, value: string, ttlSeconds?: number): Promise<void>;
+  /** Set only when the key is absent. True when this caller won. */
+  setNx(key: string, value: string, ttlSeconds: number): Promise<boolean>;
+  del(key: string): Promise<void>;
   incr(key: string): Promise<number>;
   expire(key: string, seconds: number): Promise<void>;
 };
@@ -61,6 +64,11 @@ export async function withRedis<T>(
           if (ttlSeconds) await client.set(key, value, "EX", ttlSeconds);
           else await client.set(key, value);
         },
+        setNx: async (key, value, ttlSeconds) =>
+          (await client.set(key, value, "EX", ttlSeconds, "NX")) === "OK",
+        del: async (key) => {
+          await client.del(key);
+        },
         incr: (key) => client.incr(key),
         expire: async (key, seconds) => {
           await client.expire(key, seconds);
@@ -86,6 +94,11 @@ export async function withRedis<T>(
       set: async (key, value, ttlSeconds) => {
         if (ttlSeconds) await client.set(key, value, { ex: ttlSeconds });
         else await client.set(key, value);
+      },
+      setNx: async (key, value, ttlSeconds) =>
+        (await client.set(key, value, { ex: ttlSeconds, nx: true })) === "OK",
+      del: async (key) => {
+        await client.del(key);
       },
       incr: (key) => client.incr(key),
       expire: async (key, seconds) => {

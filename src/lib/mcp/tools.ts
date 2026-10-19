@@ -18,6 +18,7 @@ import { getBundle, getSession, isPersistent } from "../store";
 import { isPublicKey } from "../solana";
 import { makerSession } from "../../../workflows/maker";
 import { registerTradeTools } from "./trade-tools";
+import { registerXTools } from "./x-tools";
 
 const venue = z.enum(["pump", "stonks"]);
 
@@ -429,6 +430,7 @@ export function registerTools(server: McpServer): void {
   );
 
   registerTradeTools(server);
+  registerXTools(server);
 }
 
 /** Called once a maker session is approved, to run the durable quote loop. */

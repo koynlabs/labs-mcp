@@ -117,7 +117,25 @@ export function assertPublicHttpUrl(raw: string): URL {
   return url;
 }
 
-function requestOnce(url: URL): Promise<{ status: number; headers: http.IncomingHttpHeaders; body: Buffer }> {
+type FetchLimits = {
+  maxBytes: number;
+  timeoutMs: number;
+  accept: string;
+  /** Used only in refusal messages. Launch images keep the original wording. */
+  label: string;
+};
+
+const IMAGE_LIMITS: FetchLimits = {
+  maxBytes: MAX_BYTES,
+  timeoutMs: TIMEOUT_MS,
+  accept: "image/*,*/*;q=0.8",
+  label: "image",
+};
+
+function requestOnce(
+  url: URL,
+  limits: FetchLimits,
+): Promise<{ status: number; headers: http.IncomingHttpHeaders; body: Buffer }> {
   const lib = url.protocol === "https:" ? https : http;
   return new Promise((resolve, reject) => {
     const req = lib.request(
@@ -125,23 +143,23 @@ function requestOnce(url: URL): Promise<{ status: number; headers: http.Incoming
       {
         method: "GET",
         lookup: safeLookup,
-        timeout: TIMEOUT_MS,
-        headers: { accept: "image/*,*/*;q=0.8", "user-agent": "labs" },
+        timeout: limits.timeoutMs,
+        headers: { accept: limits.accept, "user-agent": "labs" },
       },
       (res) => {
         const chunks: Buffer[] = [];
         let size = 0;
         const declared = Number(res.headers["content-length"] ?? 0);
-        if (Number.isFinite(declared) && declared > MAX_BYTES) {
+        if (Number.isFinite(declared) && declared > limits.maxBytes) {
           req.destroy();
-          reject(new SsrfError("image is too large"));
+          reject(new SsrfError(`${limits.label} is too large`));
           return;
         }
         res.on("data", (chunk: Buffer) => {
           size += chunk.length;
-          if (size > MAX_BYTES) {
+          if (size > limits.maxBytes) {
             req.destroy();
-            reject(new SsrfError("image is too large"));
+            reject(new SsrfError(`${limits.label} is too large`));
             return;
           }
           chunks.push(chunk);
@@ -152,22 +170,25 @@ function requestOnce(url: URL): Promise<{ status: number; headers: http.Incoming
       },
     );
     req.on("error", (error) => {
-      if (error.message.includes("non-public")) reject(new SsrfError("refusing a non-public image URL"));
-      else reject(error);
+      if (error.message.includes("non-public")) {
+        reject(new SsrfError(`refusing a non-public ${limits.label} URL`));
+      } else reject(error);
     });
     req.on("timeout", () => {
       req.destroy();
-      reject(new SsrfError("image fetch timed out"));
+      reject(new SsrfError(`${limits.label} fetch timed out`));
     });
     req.end();
   });
 }
 
-/** Fetches an image URL, refusing private, link-local, and loopback targets on every hop. */
-export async function fetchPublic(raw: string): Promise<Response> {
+async function fetchLimited(
+  raw: string,
+  limits: FetchLimits,
+): Promise<{ status: number; contentType: string | null; body: Buffer; finalUrl: string }> {
   let current = assertPublicHttpUrl(raw);
   for (let hop = 0; hop <= MAX_REDIRECTS; hop += 1) {
-    const result = await requestOnce(current);
+    const result = await requestOnce(current, limits);
     const location = result.headers.location;
     if (result.status >= 300 && result.status < 400 && location && hop < MAX_REDIRECTS) {
       const next = Array.isArray(location) ? location[0] : location;
@@ -176,10 +197,41 @@ export async function fetchPublic(raw: string): Promise<Response> {
     }
     const contentType = result.headers["content-type"];
     const type = Array.isArray(contentType) ? contentType[0] : contentType;
-    return new Response(new Uint8Array(result.body), {
+    return {
       status: result.status,
-      headers: type ? { "content-type": type } : undefined,
-    });
+      contentType: type ?? null,
+      body: result.body,
+      finalUrl: current.href,
+    };
   }
   throw new SsrfError("too many redirects");
+}
+
+/** Fetches an image URL, refusing private, link-local, and loopback targets on every hop. */
+export async function fetchPublic(raw: string): Promise<Response> {
+  const result = await fetchLimited(raw, IMAGE_LIMITS);
+  return new Response(new Uint8Array(result.body), {
+    status: result.status,
+    headers: result.contentType ? { "content-type": result.contentType } : undefined,
+  });
+}
+
+/**
+ * Same refusal rules as `fetchPublic`, with a caller-chosen size cap. X video
+ * is larger than a token image, and still must not be fetched from a private address.
+ */
+export async function fetchPublicBuffer(
+  raw: string,
+  options: { maxBytes: number; timeoutMs?: number; accept?: string; label?: string },
+): Promise<{ body: Buffer; contentType: string | null; finalUrl: string }> {
+  const result = await fetchLimited(raw, {
+    maxBytes: options.maxBytes,
+    timeoutMs: options.timeoutMs ?? TIMEOUT_MS,
+    accept: options.accept ?? "*/*",
+    label: options.label ?? "media",
+  });
+  if (result.status < 200 || result.status >= 300) {
+    throw new SsrfError(`${options.label ?? "media"} fetch failed (${result.status})`);
+  }
+  return { body: result.body, contentType: result.contentType, finalUrl: result.finalUrl };
 }

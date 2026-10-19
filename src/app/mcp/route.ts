@@ -54,6 +54,12 @@ const handler = createMcpHandler(
       "This server does not generate trading volume, post comments or profiles,",
       "rotate proxies, or split activity across wallets to look like separate",
       "people. Do not describe it as doing any of those.",
+      "",
+      "X posting is separate and off until the owner connects an account.",
+      "x_prepare_post only stores a draft. Show the user that exact preview.",
+      "x_publish_post publishes that one draft as the connected account.",
+      "Do not publish unless the user confirmed that preview. Do not schedule,",
+      "bulk post, follow, like, or send DMs.",
     ].join("\n"),
   },
 );
