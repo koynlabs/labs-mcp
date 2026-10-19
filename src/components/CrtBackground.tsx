@@ -60,7 +60,7 @@ export default function CrtBackground() {
             mouseReact={false}
             mouseStrength={0.15}
             pageLoadAnimation
-            brightness={0.55}
+            brightness={0.8}
             maxFps={30}
           />
         </div>
