@@ -1,13 +1,27 @@
 import { SITE_URL } from "../config";
 
-/** Confidential-client OAuth 2.0 with PKCE. Each connected account posts only as itself. */
-export const X_SCOPES = [
+/**
+ * Scopes a stored token must keep so posting, media upload, and refresh still
+ * work. like.write is not in this list: a token issued before likes existed
+ * has to keep refreshing, or existing accounts could no longer post.
+ */
+export const X_REQUIRED_SCOPES = [
   "tweet.read",
   "tweet.write",
   "users.read",
   "offline.access",
   "media.write",
 ] as const;
+
+/**
+ * Like and unlike on behalf of the user. X API v2: POST /2/users/:id/likes
+ * and DELETE /2/users/:id/likes/:tweet_id. like.read only lists likes, so the
+ * connect flow does not request it.
+ */
+export const X_LIKE_SCOPE = "like.write";
+
+/** Confidential-client OAuth 2.0 with PKCE. Each connected account acts only as itself. */
+export const X_SCOPES = [...X_REQUIRED_SCOPES, X_LIKE_SCOPE] as const;
 
 export const X_AUTHORIZE_URL = "https://x.com/i/oauth2/authorize";
 export const X_TOKEN_URL = "https://api.x.com/2/oauth2/token";
@@ -50,6 +64,9 @@ export const WEBHOOK_MAX_BYTES = 1_000_000;
 /** UTC-day reply limits. 0 refuses that class of reply. */
 export const DEFAULT_AUTHOR_DAILY_CAP = 5;
 export const DEFAULT_GLOBAL_DAILY_CAP = 30;
+
+/** Likes and unlikes per account per UTC day. 0 refuses both. Same scale as the reply cap. */
+export const DEFAULT_LIKE_DAILY_CAP = 30;
 
 /** Polls inside one publish call. A later publish resumes the same draft. */
 export const MEDIA_MAX_POLLS = 8;

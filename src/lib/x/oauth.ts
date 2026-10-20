@@ -14,6 +14,7 @@ import {
   OAUTH_TTL_SECONDS,
   X_API,
   X_AUTHORIZE_URL,
+  X_REQUIRED_SCOPES,
   X_REVOKE_URL,
   X_SCOPES,
   X_TOKEN_URL,
@@ -57,8 +58,6 @@ type TokenResponse = {
   error?: string;
   error_description?: string;
 };
-
-const REQUIRED_SCOPES = X_SCOPES;
 
 export function hashOwnerCookie(value: string): string {
   return createHash("sha256").update(value).digest("hex");
@@ -317,7 +316,10 @@ export async function refreshGrant(
   // Rotation invalidates the refresh token we just sent. Keep the previous
   // one only when X did not issue a replacement.
   const scope = next.scope || previousScope;
-  if (next.scope) assertScopes(next.scope);
+  // A refresh echoes the scopes originally granted. Requiring like.write here
+  // would reject every token connected before that scope was requested, and
+  // posting would stop. New connects still require it in exchangeCode.
+  if (next.scope) assertScopes(next.scope, X_REQUIRED_SCOPES);
   return {
     accessToken: next.accessToken,
     refreshToken: next.refreshToken ?? refreshToken,
@@ -356,9 +358,9 @@ function bundleFromResponse(parsed: TokenResponse, now: number): TokenBundle {
   };
 }
 
-export function assertScopes(scope: string): void {
+export function assertScopes(scope: string, required: readonly string[] = X_SCOPES): void {
   const granted = new Set(scope.split(/[\s,]+/).filter(Boolean));
-  const missing = REQUIRED_SCOPES.filter((name) => !granted.has(name));
+  const missing = required.filter((name) => !granted.has(name));
   if (missing.length > 0) {
     throw new XError(`X did not grant ${missing.join(" ")}. Add those scopes on the app and connect again.`);
   }

@@ -32,6 +32,8 @@ export const TOOL_NAMES = [
   "x_sync_mentions",
   "x_prepare_post",
   "x_publish_post",
+  "x_like_post",
+  "x_unlike_post",
 ] as const;
 
 export type Status = {

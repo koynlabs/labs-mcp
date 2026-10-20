@@ -119,6 +119,8 @@ Then: *“Launch a token on pump.fun called …”*
 | `x_sync_mentions` | Pulls @mentions from X when the webhook is not registered. Does not reply |
 | `x_prepare_post` | Validates a post or reply and returns a draft. Does not post |
 | `x_publish_post` | Publishes exactly that draft and returns the post URL |
+| `x_like_post` | Likes one post by id or status URL as the connected account |
+| `x_unlike_post` | Removes that like |
 
 ## How a launch works
 
@@ -291,9 +293,9 @@ The Grok bot Rive lives at [`public/demo`](public/demo) and is served at
 
 ## Posting to X
 
-Anyone who adds the labs MCP can connect their own X account. labs stores that account's access and refresh tokens sealed, and the MCP publishes only a draft that same person's key has already prepared. There is no scheduler, no bulk posting, and no follow, like, or DM tooling.
+Anyone who adds the labs MCP can connect their own X account. labs stores that account's access and refresh tokens sealed, and the MCP publishes only a draft that same person's key has already prepared. There is no scheduler, no bulk posting, and no follow or DM tooling. `x_like_post` and `x_unlike_post` like or unlike one post at a time for that same account. Each successful like and unlike counts toward a per-account UTC-day cap.
 
-OAuth is the confidential-client user-context flow with PKCE (S256). The token request sends the client id and secret as Basic auth. Scopes: `tweet.read tweet.write users.read offline.access media.write`. Refresh tokens rotate. Every refresh stores the new refresh token.
+OAuth is the confidential-client user-context flow with PKCE (S256). The token request sends the client id and secret as Basic auth. Scopes: `tweet.read tweet.write users.read offline.access media.write like.write`. `like.write` is what X requires for `POST /2/users/:id/likes` and `DELETE /2/users/:id/likes/:tweet_id`. `like.read` only lists likes, so it is not requested. Refresh tokens rotate. Every refresh stores the new refresh token. A refresh of a token that predates `like.write` still succeeds, so posting keeps working. Liking does not, until that account connects again and the new grant includes `like.write`. Enable `like.write` on the X app before new connects, or the scope check rejects the grant.
 
 | Env | Purpose |
 | --- | --- |
@@ -305,6 +307,7 @@ OAuth is the confidential-client user-context flow with PKCE (S256). The token r
 | `X_CONSUMER_SECRET` | App API Key Secret. Signs the Account Activity CRC and webhook bodies. Not the OAuth client secret |
 | `X_REPLY_AUTHOR_DAILY_CAP` | Replies per author per UTC day. Default 5. 0 refuses those replies |
 | `X_REPLY_DAILY_CAP` | Replies per UTC day for the whole account. Default 30. 0 refuses replies |
+| `X_LIKE_DAILY_CAP` | Likes and unlikes per account per UTC day. Default 30. 0 refuses both |
 
 Callback to add on that X app, alongside the KOYN FX callback:
 
@@ -346,7 +349,7 @@ Connect an account:
 3. Call `x_connect_link`, or open [https://labs.levercoin.lol/x](https://labs.levercoin.lol/x), and sign in as the X account this client should post as.
 4. Copy the personal key shown once on `/x` into the MCP client's `Authorization` header.
 5. `x_connection_status` should report that @username.
-6. `x_prepare_post` returns a draft and the exact preview. `x_publish_post` with that draft id is what publishes it.
+6. `x_prepare_post` returns a draft and the exact preview. `x_publish_post` with that draft id is what publishes it. `x_like_post` and `x_unlike_post` take a post id or status URL and act immediately, one post per call.
 
 Media is a JPEG, PNG, WEBP, GIF, or MP4 (H.264 video, AAC audio). Images use `POST https://api.x.com/2/media/upload`. GIF and video use the chunked v2 flow: `POST /2/media/upload/initialize`, `POST /2/media/upload/{id}/append`, `POST /2/media/upload/{id}/finalize`, then `GET /2/media/upload?command=STATUS` until processing succeeds. Pass an https URL, or upload a file to `POST /api/x/media`. A file around 20MB is over the host's single-request body limit, so start a stage, `PUT` 4MB segments to `/api/x/media/<stageId>` with `x-segment-index`, then `POST /api/x/media/<stageId>/finish`, and pass the returned upload id as `media`. The cap on this server is 25MB.
 
@@ -399,7 +402,10 @@ If Account Activity is not on the app's plan, skip the webhook. `x_sync_mentions
 - X posting is per connected account, two steps (prepare, then publish), and
   one post at a time. Video is MP4 up to 25MB. Replies use those same two
   steps, with a per-author cap and a per-account daily cap. There is no auto-reply.
-  X tools and media uploads require `Authorization: Bearer <personal key>`.
+  Likes and unlikes are one post per call and share a per-account daily cap.
+  An account connected before `like.write` was requested has to reconnect
+  before either tool will like. X tools and media uploads require
+  `Authorization: Bearer <personal key>`.
 
 ## License
 
