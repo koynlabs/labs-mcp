@@ -148,11 +148,20 @@ export default function Home() {
                   <code>x_sync_mentions</code>
                   <span>Pull @mentions when the webhook is not registered.</span>
                 </li>
+                <li>
+                  <code>x_like_post</code>
+                  <span>Like one post by id or URL, as this account.</span>
+                </li>
+                <li>
+                  <code>x_unlike_post</code>
+                  <span>Remove that like.</span>
+                </li>
               </ul>
               <p className="card-note">
                 Images are JPEG, PNG, or WEBP, up to 5MB. GIF up to 15MB. An MP4 is H.264 video and AAC audio, up to
                 25MB. A reply is the same draft, on that mention&apos;s thread, and it counts against a per-author cap
-                and a daily cap.
+                and a daily cap. Likes use the same kind of daily cap. An account connected before likes were added
+                has to reconnect once.
               </p>
             </article>
 

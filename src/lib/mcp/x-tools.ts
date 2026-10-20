@@ -4,6 +4,7 @@ import { allow } from "../rate-limit";
 import { xKeyMessage } from "../x/api-key";
 import { xConfigFromEnv, XError } from "../x/config";
 import { xCallbackUrl, xConnectUrl, xWebhookUrl, X_SCOPES } from "../x/constants";
+import { accountCanLike, likeCapsFromEnv, LIKE_SCOPE_MESSAGE, setPostLike } from "../x/like";
 import { authorizeXRequest, connectionStatus, ensureAccessToken, type StoredXAccount } from "../x/oauth";
 import { preparePost, publishPost } from "../x/post";
 import { xStore } from "../x/store";
@@ -16,6 +17,8 @@ export const X_TOOL_NAMES = [
   "x_sync_mentions",
   "x_prepare_post",
   "x_publish_post",
+  "x_like_post",
+  "x_unlike_post",
 ] as const;
 
 const preparePostInput = z.object({
@@ -53,6 +56,14 @@ const publishPostInput = z.object({
   draft_id: z.string().uuid(),
 });
 
+const postRefInput = z.object({
+  post: z
+    .string()
+    .min(1)
+    .max(500)
+    .describe("Numeric post id, or an https://x.com or https://twitter.com URL whose path contains /status/<id>."),
+});
+
 function text(value: unknown) {
   return {
     content: [{ type: "text" as const, text: JSON.stringify(value, null, 2) }],
@@ -86,7 +97,7 @@ export function registerXTools(server: McpServer): void {
     {
       title: "X connection",
       description:
-        "Whether this personal key's X account is connected, and which @username posts will be published as. Does not post. Without a key, returns configured and connected false. " +
+        "Whether this personal key's X account is connected, and which @username posts will be published as. likeWrite is false when the stored token lacks like.write; call x_connect_link and reconnect to grant it. Does not post or like. Without a key, returns configured and connected false. " +
         KEY_NOTE,
       inputSchema: z.object({}),
     },
@@ -102,6 +113,7 @@ export function registerXTools(server: McpServer): void {
           });
         }
         const caps = replyCapsFromEnv();
+        const likes = likeCapsFromEnv();
         return text({
           ...connectionStatus(auth.account, configured),
           callbackUrl: xCallbackUrl(),
@@ -109,6 +121,8 @@ export function registerXTools(server: McpServer): void {
           consumerSecretConfigured: consumerSecretFromEnv() !== null,
           replyAuthorDailyCap: caps.authorDaily,
           replyDailyCap: caps.globalDaily,
+          likeWrite: accountCanLike(auth.account),
+          likeDailyCap: likes.daily,
         });
       } catch (error) {
         return failure(messageOf(error));
@@ -243,7 +257,8 @@ export function registerXTools(server: McpServer): void {
         "Returns the exact text, media, reply, and quote that x_publish_post will send.",
         "Show that preview to the user. Publish only after they confirm it.",
         "A reply counts against the per-author and global daily caps. There is no auto-reply.",
-        "One post at a time. No scheduling, no bulk posting, no likes, follows, or DMs.",
+        "One post at a time. No scheduling, no bulk posting, no follows, or DMs.",
+        "Liking is x_like_post, not this tool.",
         "The draft can only be published by this same key.",
         KEY_NOTE,
       ].join(" "),
@@ -286,7 +301,8 @@ export function registerXTools(server: McpServer): void {
         "The draft id is the only input. Text and media cannot be changed here.",
         "A video may still be processing; call again with the same draft id. Nothing is posted until X accepts it.",
         "Publishing a reply counts once against the daily caps. A repeat of the same draft does not count again.",
-        "No scheduling, no bulk posting, no auto-reply, no likes, follows, or DMs.",
+        "No scheduling, no bulk posting, no auto-reply, no follows, or DMs.",
+        "Liking is x_like_post, not this tool.",
         "A draft prepared by another key is refused.",
         KEY_NOTE,
       ].join(" "),
@@ -320,6 +336,62 @@ export function registerXTools(server: McpServer): void {
       }
     },
   );
+
+  server.registerTool(
+    "x_like_post",
+    {
+      title: "Like an X post",
+      description: [
+        "Likes one post as the connected X account. Call this only when the user asked to like that post.",
+        "post is a numeric post id or an https URL on x.com or twitter.com whose path contains /status/<id>.",
+        "Sends POST /2/users/:id/likes. Does not post, reply, follow, or send a DM.",
+        "One post per call. There is no bulk liking.",
+        "Each successful like and unlike counts toward that account's UTC-day cap.",
+        "If the stored token lacks like.write, this returns an error that says to call x_connect_link and reconnect. Existing accounts have to authorize again once. Posting and mentions keep working until then.",
+        KEY_NOTE,
+      ].join(" "),
+      inputSchema: postRefInput,
+    },
+    async ({ post }) => likeTool(post, "like"),
+  );
+
+  server.registerTool(
+    "x_unlike_post",
+    {
+      title: "Unlike an X post",
+      description: [
+        "Removes the connected account's like from one post. Call this only when the user asked to unlike that post.",
+        "post is a numeric post id or an https URL on x.com or twitter.com whose path contains /status/<id>.",
+        "Sends DELETE /2/users/:id/likes/:tweet_id. Does not post, reply, follow, or send a DM.",
+        "One post per call. Each successful unlike counts toward the same UTC-day cap as likes.",
+        "If the stored token lacks like.write, this returns an error that says to call x_connect_link and reconnect. Existing accounts have to authorize again once. Posting and mentions keep working until then.",
+        KEY_NOTE,
+      ].join(" "),
+      inputSchema: postRefInput,
+    },
+    async ({ post }) => likeTool(post, "unlike"),
+  );
 }
 
-export { preparePostInput, publishPostInput };
+async function likeTool(post: string, action: "like" | "unlike") {
+  try {
+    const caller = await requireCaller();
+    if ("error" in caller) return caller.error;
+    if (!accountCanLike(caller.account)) return failure(LIKE_SCOPE_MESSAGE);
+    if (!(await allow(`x:like:${caller.account.userId}`, 20, 600))) {
+      return failure("Too many like attempts. Wait a few minutes.");
+    }
+    const config = xConfigFromEnv();
+    if (!config) throw new XError("X is not configured. Set X_CLIENT_ID and X_CLIENT_SECRET.");
+    const result = await setPostLike(
+      { store: xStore, config, http: fetch, userId: caller.account.userId },
+      post,
+      action,
+    );
+    return text(result);
+  } catch (error) {
+    return failure(messageOf(error));
+  }
+}
+
+export { preparePostInput, publishPostInput, postRefInput };

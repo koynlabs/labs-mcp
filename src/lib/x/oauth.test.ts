@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { xConfigFromEnv, type XConfig } from "./config";
-import { OAUTH_TTL_SECONDS, X_SCOPES } from "./constants";
+import { OAUTH_TTL_SECONDS, X_REQUIRED_SCOPES, X_SCOPES } from "./constants";
 import {
   authorizationUrl,
   basicAuthorization,
@@ -25,6 +25,7 @@ import { openSecret, sealSecret } from "./seal";
 import { createMemoryXStore, KEYS, type XStore } from "./store";
 
 const SCOPE = X_SCOPES.join(" ");
+const POSTING_SCOPE = X_REQUIRED_SCOPES.join(" ");
 
 const config: XConfig = {
   clientId: "labs-client",
@@ -311,9 +312,85 @@ describe("granted scopes", () => {
     assert.deepEqual(revoked, ["refresh-plain"]);
     assert.equal(await readAccount(store, "1001"), null);
   });
+
+  it("revokes a new grant that can post but did not receive like.write", async () => {
+    const store = createMemoryXStore();
+    const started = await beginConnect(store, config, 1_000);
+    const revoked: string[] = [];
+    const http: XFetch = async (target, init) => {
+      if (target.endsWith("/oauth2/token")) {
+        return json({
+          ...tokenPair("access-plain", "refresh-plain"),
+          scope: POSTING_SCOPE,
+        });
+      }
+      if (target.endsWith("/oauth2/revoke")) {
+        revoked.push(form(init).get("token") ?? "");
+        return json({});
+      }
+      throw new Error(target);
+    };
+    const result = await finishConnect(store, config, { code: "c", state: started.state }, http, 2_000);
+    assert.deepEqual(result, { type: "error", code: "scope" });
+    assert.deepEqual(revoked, ["refresh-plain"]);
+    assert.equal(await readAccount(store, "1001"), null);
+  });
 });
 
 describe("token refresh rotation", () => {
+  it("refreshes a token from before like.write without dropping the connection", async () => {
+    const store = createMemoryXStore();
+    await writeAccount(store, {
+      userId: "1001",
+      username: "cyberpsychoxx78",
+      name: "Cyber",
+      scope: POSTING_SCOPE,
+      sealed: sealSecret(
+        JSON.stringify({ accessToken: "old-access", refreshToken: "old-refresh", expiresAt: 0, scope: POSTING_SCOPE }),
+        config.encryptionSecret,
+      ),
+      ownerCookieHash: "hash",
+      connectedAt: 1,
+    });
+    const http: XFetch = async () =>
+      json({
+        token_type: "bearer",
+        expires_in: 7200,
+        access_token: "still-posting",
+        refresh_token: "still-refresh",
+        scope: POSTING_SCOPE,
+      });
+    const fresh = await ensureAccessToken(store, config, http, "1001", 10_000);
+    assert.equal(fresh.accessToken, "still-posting");
+    assert.equal(fresh.account.scope.includes("like.write"), false);
+    assert.equal(unsealTokens(fresh.account, config.encryptionSecret).refreshToken, "still-refresh");
+  });
+
+  it("still rejects a refresh that lost tweet.write", async () => {
+    const store = createMemoryXStore();
+    await writeAccount(store, {
+      userId: "1001",
+      username: "cyberpsychoxx78",
+      name: "Cyber",
+      scope: POSTING_SCOPE,
+      sealed: sealSecret(
+        JSON.stringify({ accessToken: "old-access", refreshToken: "old-refresh", expiresAt: 0, scope: POSTING_SCOPE }),
+        config.encryptionSecret,
+      ),
+      ownerCookieHash: "hash",
+      connectedAt: 1,
+    });
+    const http: XFetch = async () =>
+      json({
+        token_type: "bearer",
+        expires_in: 7200,
+        access_token: "narrow",
+        refresh_token: "narrow-refresh",
+        scope: "users.read offline.access",
+      });
+    await assert.rejects(() => ensureAccessToken(store, config, http, "1001", 10_000), /tweet\.write/);
+  });
+
   it("persists the rotated refresh token and sends it on the next refresh", async () => {
     const store = createMemoryXStore();
     await writeAccount(store, {
