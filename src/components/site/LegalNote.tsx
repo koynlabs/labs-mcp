@@ -39,7 +39,7 @@ export default function LegalNote({ page }: { page: "terms" | "privacy" }) {
         </section>
       ))}
       <p className="legal-dated">
-        21 October 2026. Questions: <a href="mailto:labs@levercoin.lol">dev@levercoin.lol</a>
+        21 October 2026. Questions: <a href="mailto:labs@levercoin.lol">labs@levercoin.lol</a>
       </p>
     </>
   );
