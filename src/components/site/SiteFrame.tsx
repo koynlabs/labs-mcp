@@ -78,6 +78,10 @@ export function SiteFrame({
           <span className="sep">·</span>
           <a href={KOYNLABS_DISCORD_URL}>discord</a>
           <span className="sep">·</span>
+          <Link href="/terms">terms</Link>
+          <span className="sep">·</span>
+          <Link href="/privacy">privacy</Link>
+          <span className="sep">·</span>
           <Link href="/security">security</Link>
         </p>
       </footer>

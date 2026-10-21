@@ -1238,6 +1238,32 @@ button:disabled {
   margin-top: 1.5rem;
 }
 
+.legal {
+  max-width: 40rem;
+  padding-bottom: 3rem;
+}
+
+.legal section {
+  margin-top: 1.75rem;
+}
+
+.legal h2 {
+  margin: 0;
+  font-size: 1rem;
+  letter-spacing: 0;
+}
+
+.legal p {
+  max-width: 40rem;
+  margin: 0.5rem 0 0;
+  color: var(--muted);
+  line-height: 1.55;
+}
+
+.legal a {
+  color: var(--fg);
+}
+
 .page-intro {
   padding-top: 2.5rem;
 }

@@ -1,11 +1,16 @@
-import { labsMarkResponse } from "@/lib/mark-icon";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 
 export const runtime = "nodejs";
 
 /** Stable PNG URL for MCP clients that fetch serverInfo.icons. */
 export function GET() {
-  const response = labsMarkResponse();
-  response.headers.set("Cache-Control", "public, max-age=86400");
-  response.headers.set("Access-Control-Allow-Origin", "*");
-  return response;
+  const body = readFileSync(join(process.cwd(), "src/app/apple-icon.png"));
+  return new Response(body, {
+    headers: {
+      "Content-Type": "image/png",
+      "Cache-Control": "public, max-age=86400",
+      "Access-Control-Allow-Origin": "*",
+    },
+  });
 }
