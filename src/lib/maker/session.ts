@@ -20,7 +20,7 @@ export function approvalMessage(
   sessionPublicKey: string,
 ): string {
   return [
-    "labs.levercoin.lol maker session",
+    "labs.koyn.trade maker session",
     `venue: ${session.venue}`,
     `mint: ${session.mint}`,
     `maker: ${session.maker}`,

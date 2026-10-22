@@ -1,5 +1,5 @@
 export const SITE_URL = (
-  process.env.LABS_SITE_URL ?? "https://labs.levercoin.lol"
+  process.env.LABS_SITE_URL ?? "https://labs.koyn.trade"
 ).replace(/\/$/, "");
 
 /** Same value; named for the callers that build links rather than read config. */
@@ -12,7 +12,7 @@ export function siteHost(): string {
   try {
     return new URL(SITE_URL).host;
   } catch {
-    return "labs.levercoin.lol";
+    return "labs.koyn.trade";
   }
 }
 

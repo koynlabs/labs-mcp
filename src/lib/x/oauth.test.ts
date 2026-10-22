@@ -31,7 +31,7 @@ const config: XConfig = {
   clientId: "labs-client",
   clientSecret: "labs-client-secret-value",
   encryptionSecret: "x-token-encryption-key",
-  redirectUri: "https://labs.levercoin.lol/api/x/oauth/callback",
+  redirectUri: "https://labs.koyn.trade/api/x/oauth/callback",
 };
 
 function json(body: unknown, status = 200): Response {
