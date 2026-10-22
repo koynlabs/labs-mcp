@@ -210,7 +210,7 @@ describe("personal X keys", () => {
         clientId: "labs-client",
         clientSecret: "labs-client-secret-value",
         encryptionSecret: SECRET,
-        redirectUri: "https://labs.levercoin.lol/api/x/oauth/callback",
+        redirectUri: "https://labs.koyn.trade/api/x/oauth/callback",
       };
       const quiet: XFetch = async () => {
         throw new Error("cap check must not call X");
@@ -229,20 +229,20 @@ describe("personal X keys", () => {
         /does not exist/,
       );
 
-      const started = await withMcpAuthorization("Bearer " + keyA, async () => mediaPost(new Request("https://labs.levercoin.lol/api/x/media", {
+      const started = await withMcpAuthorization("Bearer " + keyA, async () => mediaPost(new Request("https://labs.koyn.trade/api/x/media", {
         method: "POST",
         headers: { "content-type": "application/json", authorization: `Bearer ${keyA}` },
         body: JSON.stringify({ filename: "a.mp4", contentType: "video/mp4", totalBytes: 4 }),
       })));
       assert.equal(started.status, 200);
       const stage = (await started.json()) as { stageId: string };
-      const blocked = await mediaPut(new Request(`https://labs.levercoin.lol/api/x/media/${stage.stageId}`, {
+      const blocked = await mediaPut(new Request(`https://labs.koyn.trade/api/x/media/${stage.stageId}`, {
         method: "PUT",
         headers: { authorization: `Bearer ${keyB}`, "x-segment-index": "0" },
         body: Buffer.from("abcd"),
       }), { params: Promise.resolve({ id: stage.stageId }) });
       assert.equal(blocked.status, 400);
-      const anonymous = await mediaFinish(new Request(`https://labs.levercoin.lol/api/x/media/${stage.stageId}/finish`, {
+      const anonymous = await mediaFinish(new Request(`https://labs.koyn.trade/api/x/media/${stage.stageId}/finish`, {
         method: "POST",
       }), { params: Promise.resolve({ id: stage.stageId }) });
       assert.equal(anonymous.status, 401);
@@ -252,7 +252,7 @@ describe("personal X keys", () => {
 
       const shared = newPersonalKey();
       process.env.LABS_X_API_KEY = shared;
-      const notShared = await mediaPost(new Request("https://labs.levercoin.lol/api/x/media", {
+      const notShared = await mediaPost(new Request("https://labs.koyn.trade/api/x/media", {
         method: "POST",
         headers: { "content-type": "application/json", authorization: `Bearer ${shared}` },
         body: JSON.stringify({ filename: "a.mp4", contentType: "video/mp4", totalBytes: 4 }),
@@ -269,7 +269,7 @@ describe("personal X keys", () => {
       assert.equal(stillB.structuredContent?.username, "@otheraccount");
 
       process.env.X_CONSUMER_SECRET = "consumer-secret";
-      const crc = await webhookGet(new Request("https://labs.levercoin.lol/api/x/webhook?crc_token=crc-token"));
+      const crc = await webhookGet(new Request("https://labs.koyn.trade/api/x/webhook?crc_token=crc-token"));
       assert.equal(crc.status, 200);
       const crcBody = await crc.json() as { response_token: string };
       assert.match(crcBody.response_token, /^sha256=/);

@@ -1,5 +1,5 @@
 <p align="center">
-  <a href="https://www.levercoin.lol">
+  <a href="https://www.koyn.trade">
     <img src="docs/assets/levercoin.svg" alt="LEVERCOIN" width="720" />
   </a>
 </p>
@@ -10,14 +10,14 @@
 </p>
 
 <p align="center">
-  <a href="https://labs.levercoin.lol/status"><img src="https://img.shields.io/endpoint?url=https%3A%2F%2Flabs.levercoin.lol%2Fapi%2Fstatus%2Fbadge%3Ffield%3Dstatus&style=flat-square&labelColor=070708" alt="status" /></a>
-  <a href="https://labs.levercoin.lol/status"><img src="https://img.shields.io/endpoint?url=https%3A%2F%2Flabs.levercoin.lol%2Fapi%2Fstatus%2Fbadge%3Ffield%3Dversion&style=flat-square&labelColor=070708" alt="live version" /></a>
-  <a href="https://labs.levercoin.lol/status"><img src="https://img.shields.io/endpoint?url=https%3A%2F%2Flabs.levercoin.lol%2Fapi%2Fstatus%2Fbadge%3Ffield%3Ddeployed&style=flat-square&labelColor=070708" alt="deployed commit" /></a>
+  <a href="https://labs.koyn.trade/status"><img src="https://img.shields.io/endpoint?url=https%3A%2F%2Flabs.koyn.trade%2Fapi%2Fstatus%2Fbadge%3Ffield%3Dstatus&style=flat-square&labelColor=070708" alt="status" /></a>
+  <a href="https://labs.koyn.trade/status"><img src="https://img.shields.io/endpoint?url=https%3A%2F%2Flabs.koyn.trade%2Fapi%2Fstatus%2Fbadge%3Ffield%3Dversion&style=flat-square&labelColor=070708" alt="live version" /></a>
+  <a href="https://labs.koyn.trade/status"><img src="https://img.shields.io/endpoint?url=https%3A%2F%2Flabs.koyn.trade%2Fapi%2Fstatus%2Fbadge%3Ffield%3Ddeployed&style=flat-square&labelColor=070708" alt="deployed commit" /></a>
   <a href="https://github.com/koynlabs/labs-mcp/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/koynlabs/labs-mcp/ci.yml?branch=main&style=flat-square&label=ci&labelColor=070708" alt="CI" /></a>
 </p>
 
 <p align="center">
-  <a href="https://labs.levercoin.lol/mcp"><img src="https://img.shields.io/badge/MCP-labs.levercoin.lol%2Fmcp-111111?style=flat-square&labelColor=070708" alt="MCP" /></a>
+  <a href="https://labs.koyn.trade/mcp"><img src="https://img.shields.io/badge/MCP-labs.koyn.trade%2Fmcp-111111?style=flat-square&labelColor=070708" alt="MCP" /></a>
   <a href="https://github.com/koynlabs/labs-mcp/commits/main"><img src="https://img.shields.io/github/last-commit/koynlabs/labs-mcp/main?style=flat-square&label=main&labelColor=070708&color=111111" alt="main commit" /></a>
   <a href="https://github.com/koynlabs/labs-mcp/deployments/Production"><img src="https://img.shields.io/github/deployments/koynlabs/labs-mcp/Production?style=flat-square&label=vercel&labelColor=070708&color=111111" alt="Vercel production" /></a>
   <a href="https://solana.com"><img src="https://img.shields.io/badge/chain-Solana-9945FF?style=flat-square&labelColor=070708" alt="Solana" /></a>
@@ -27,19 +27,19 @@
 <p align="center">
   <sub>
     Production is <code>main</code>, deployed by Vercel. The top row reads
-    <a href="https://labs.levercoin.lol/api/status">labs.levercoin.lol/api/status</a>,
+    <a href="https://labs.koyn.trade/api/status">labs.koyn.trade/api/status</a>,
     so the commit it shows is the one answering requests right now — match it to
-    <a href="https://labs.levercoin.lol/mcp"><code>serverInfo.version</code></a>
+    <a href="https://labs.koyn.trade/mcp"><code>serverInfo.version</code></a>
     and to a commit in this repo.
   </sub>
 </p>
 
 <p align="center">
-  <a href="https://www.levercoin.lol">Website</a>
+  <a href="https://www.koyn.trade">Website</a>
   ·
-  <a href="https://labs.levercoin.lol">labs</a>
+  <a href="https://labs.koyn.trade">labs</a>
   ·
-  <a href="https://labs.levercoin.lol/mcp">MCP</a>
+  <a href="https://labs.koyn.trade/mcp">MCP</a>
   ·
   <a href="https://x.com/LeverCoinonsol">X</a>
   ·
@@ -51,19 +51,19 @@
 ---
 
 <p align="center">
-  <a href="https://www.levercoin.lol/tapes/levercoin-3.mp4">
+  <a href="https://www.koyn.trade/tapes/levercoin-3.mp4">
     <img src="docs/assets/levercoin-poster.jpg" alt="Play the $LEVERCOIN tape" width="720" />
   </a>
 </p>
 
 <p align="center">
-  <a href="https://www.levercoin.lol/tapes/levercoin-3.mp4">▶ Watch the tape</a>
+  <a href="https://www.koyn.trade/tapes/levercoin-3.mp4">▶ Watch the tape</a>
   &nbsp;·&nbsp;
-  <a href="https://labs.levercoin.lol/demo/">▶ Play the Grok bot Rive</a>
+  <a href="https://labs.koyn.trade/demo/">▶ Play the Grok bot Rive</a>
 </p>
 
 <p align="center">
-  <a href="https://labs.levercoin.lol">
+  <a href="https://labs.koyn.trade">
     <img src="docs/assets/labs.svg" alt="labs" width="360" />
   </a>
 </p>
@@ -81,7 +81,7 @@
 ## Connect in 30 seconds
 
 ```
-https://labs.levercoin.lol/mcp
+https://labs.koyn.trade/mcp
 ```
 
 Streamable HTTP. No API key.
@@ -273,12 +273,12 @@ Three surfaces report the same commit, so nobody has to trust the badges:
 
 | Where | What it says |
 | --- | --- |
-| [`/status`](https://labs.levercoin.lol/status) | version, commit, tool count, whether Redis is backing launches, whether the quoter is on |
-| [`/api/status`](https://labs.levercoin.lol/api/status) | the same values as JSON, `no-store` |
-| [`/mcp`](https://labs.levercoin.lol/mcp) | `serverInfo.version` is `1.0.0+<shortsha>` on `initialize` |
+| [`/status`](https://labs.koyn.trade/status) | version, commit, tool count, whether Redis is backing launches, whether the quoter is on |
+| [`/api/status`](https://labs.koyn.trade/api/status) | the same values as JSON, `no-store` |
+| [`/mcp`](https://labs.koyn.trade/mcp) | `serverInfo.version` is `1.0.0+<shortsha>` on `initialize` |
 
 ```bash
-curl -s https://labs.levercoin.lol/api/status | jq '{version, sha, store}'
+curl -s https://labs.koyn.trade/api/status | jq '{version, sha, store}'
 ```
 
 Take the `sha` and open `https://github.com/koynlabs/labs-mcp/commit/<sha>`. If
@@ -289,7 +289,7 @@ booted with. It is deliberately not an HTTP probe of `/mcp`: that would pay a
 cold start on the heaviest route in the app every time a badge refreshed.
 
 The Grok bot Rive lives at [`public/demo`](public/demo) and is served at
-[`/demo`](https://labs.levercoin.lol/demo/) after deploy.
+[`/demo`](https://labs.koyn.trade/demo/) after deploy.
 
 ## Posting to X
 
@@ -302,7 +302,7 @@ OAuth is the confidential-client user-context flow with PKCE (S256). The token r
 | `X_CLIENT_ID` | X app client id. Reuse the KOYN FX app |
 | `X_CLIENT_SECRET` | X app client secret. Never commit it |
 | `X_TOKEN_ENCRYPTION_KEY` | Optional. AES-GCM key for the token bundle. Falls back to `X_CLIENT_SECRET` |
-| `LABS_SITE_URL` | Public origin baked into the callback. Production is `https://labs.levercoin.lol` |
+| `LABS_SITE_URL` | Public origin baked into the callback. Production is `https://labs.koyn.trade` |
 | `REDIS_URL` | Keeps the connection and the mention inbox across cold starts. Memory is only for local dev |
 | `X_CONSUMER_SECRET` | App API Key Secret. Signs the Account Activity CRC and webhook bodies. Not the OAuth client secret |
 | `X_REPLY_AUTHOR_DAILY_CAP` | Replies per author per UTC day. Default 5. 0 refuses those replies |
@@ -312,7 +312,7 @@ OAuth is the confidential-client user-context flow with PKCE (S256). The token r
 Callback to add on that X app, alongside the KOYN FX callback:
 
 ```
-https://labs.levercoin.lol/api/x/oauth/callback
+https://labs.koyn.trade/api/x/oauth/callback
 ```
 
 The MCP URL is public. Launches stay unauthenticated. X does not. There is no shared `LABS_X_API_KEY`. Connecting at `/x` issues a personal key for that X account. It is shown once on the success page and stored only as a SHA-256 hash (the one-time reveal row is sealed and deleted when the page renders). Signing in again as the same account rotates the key. Disconnect revokes the X token and deletes the key.
@@ -323,13 +323,13 @@ Every `x_*` tool except `x_connect_link`, and every `/api/x/media` upload, resol
 Authorization: Bearer <personal key>
 ```
 
-Send it on the HTTP request to `https://labs.levercoin.lol/mcp`. Do not pass the key as a tool argument, and do not log it. `x_connect_link` still returns the connect URL with no key. `x_connection_status` without a key returns `configured` and `connected: false` plus the message to visit `/x`. The webhook stays on X's CRC and body signature, and stores events for the connected user in `for_user_id`. OAuth start and callback stay open. Disconnect only succeeds for the browser cookie set when that account connected. One person's key cannot prepare, upload, or publish as someone else, and cannot publish another person's draft.
+Send it on the HTTP request to `https://labs.koyn.trade/mcp`. Do not pass the key as a tool argument, and do not log it. `x_connect_link` still returns the connect URL with no key. `x_connection_status` without a key returns `configured` and `connected: false` plus the message to visit `/x`. The webhook stays on X's CRC and body signature, and stores events for the connected user in `for_user_id`. OAuth start and callback stay open. Disconnect only succeeds for the browser cookie set when that account connected. One person's key cannot prepare, upload, or publish as someone else, and cannot publish another person's draft.
 
 ```json
 {
   "mcpServers": {
     "labs": {
-      "url": "https://labs.levercoin.lol/mcp",
+      "url": "https://labs.koyn.trade/mcp",
       "headers": {
         "Authorization": "Bearer <personal key from /x>"
       }
@@ -346,7 +346,7 @@ Connect an account:
 
 1. Set the env vars on the deployment. Do not put them in the repo.
 2. Add the callback above to the X app's allowed callback URLs.
-3. Call `x_connect_link`, or open [https://labs.levercoin.lol/x](https://labs.levercoin.lol/x), and sign in as the X account this client should post as.
+3. Call `x_connect_link`, or open [https://labs.koyn.trade/x](https://labs.koyn.trade/x), and sign in as the X account this client should post as.
 4. Copy the personal key shown once on `/x` into the MCP client's `Authorization` header.
 5. `x_connection_status` should report that @username.
 6. `x_prepare_post` returns a draft and the exact preview. `x_publish_post` with that draft id is what publishes it. `x_like_post` and `x_unlike_post` take a post id or status URL and act immediately, one post per call.
@@ -360,7 +360,7 @@ Disconnect from the browser that connected the account, at `/x`. That revokes th
 The webhook is:
 
 ```
-https://labs.levercoin.lol/api/x/webhook
+https://labs.koyn.trade/api/x/webhook
 ```
 
 X calls `GET /api/x/webhook?crc_token=...` when the webhook is registered, when it is revalidated, and about hourly. The response is `{"response_token":"sha256=<base64>"}`, where the digest is HMAC-SHA256 of `crc_token` using `X_CONSUMER_SECRET` (the app's API Key Secret). The same secret checks `x-twitter-webhooks-signature` on `POST` bodies. Inbound text is stored as data and is not treated as instructions.
@@ -372,7 +372,7 @@ curl --request POST \
   --url 'https://api.x.com/2/webhooks' \
   --header "Authorization: Bearer $BEARER_TOKEN" \
   --header 'Content-Type: application/json' \
-  --data '{"url":"https://labs.levercoin.lol/api/x/webhook"}'
+  --data '{"url":"https://labs.koyn.trade/api/x/webhook"}'
 ```
 
 Subscribe @cyberpsychoxx78 with OAuth 1.0a user context for that account (consumer key, consumer secret, and that account's access token). The labs OAuth 2.0 user token is not the credential this call uses:

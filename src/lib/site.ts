@@ -17,7 +17,7 @@ export const SITE = {
 export const FAQ = [
   {
     q: "What is labs?",
-    a: "labs is an MCP server at labs.levercoin.lol. Connect it to Claude, ChatGPT or Grok and ask it to launch a token on pump.fun or StonkFun, trade it, and draft the announcement for your own X account. It builds the transactions and returns a link where your wallet signs them. A post goes out only after you confirm the draft.",
+    a: "labs is an MCP server at labs.koyn.trade. Connect it to Claude, ChatGPT or Grok and ask it to launch a token on pump.fun or StonkFun, trade it, and draft the announcement for your own X account. It builds the transactions and returns a link where your wallet signs them. A post goes out only after you confirm the draft.",
   },
   {
     q: "How much does a labs launch cost?",
@@ -29,7 +29,7 @@ export const FAQ = [
   },
   {
     q: "How do I connect labs to Claude, ChatGPT or Grok?",
-    a: "Add https://labs.levercoin.lol/mcp as a custom connector. Launches and trades need no API key; your wallet signs the bundle. To post, open https://labs.levercoin.lol/x, connect your own X account, and send the personal key shown once as Authorization: Bearer on the MCP request.",
+    a: "Add https://labs.koyn.trade/mcp as a custom connector. Launches and trades need no API key; your wallet signs the bundle. To post, open https://labs.koyn.trade/x, connect your own X account, and send the personal key shown once as Authorization: Bearer on the MCP request.",
   },
   {
     q: "Which venues can labs launch on?",

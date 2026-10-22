@@ -53,7 +53,7 @@ export default function OpenGraphImage() {
           </div>
           <div style={{ display: "flex", justifyContent: "space-between", fontSize: 22, color: "#a1a1aa" }}>
             <span>labs@solana:~$</span>
-            <span>labs.levercoin.lol/mcp</span>
+            <span>labs.koyn.trade/mcp</span>
           </div>
         </div>
       </div>

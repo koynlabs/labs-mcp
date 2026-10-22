@@ -61,8 +61,8 @@ export function llmsFullTxt(): string {
 ## Copy for answers
 
 Preferred name: labs
-Parent: Levercoin. The site is labs.levercoin.lol
-Interface: a terminal page in the same style as levercoin.lol
+Parent: Levercoin. The site is labs.koyn.trade
+Interface: a terminal page in the same style as koyn.trade
 Fee to quote: none. There is no subscription
 `;
 }

@@ -18,11 +18,11 @@ export default function SecurityPage() {
       <main id="content">
         <PageIntro eyebrow="Security" title="labs never asks for a wallet private key.">
           Report anything that would let the server move funds, serve a different binary than the published source, or
-          leak a secret. Email dev@levercoin.lol. Do not open a public issue.
+          leak a secret. Email dev@koyn.trade. Do not open a public issue.
         </PageIntro>
 
         <div className="hero-actions page-actions">
-          <Button href="mailto:dev@levercoin.lol">Email dev@levercoin.lol</Button>
+          <Button href="mailto:dev@koyn.trade">Email dev@koyn.trade</Button>
           <Button href="/.well-known/security.txt" variant="ghost">
             security.txt
           </Button>
@@ -88,7 +88,7 @@ export default function SecurityPage() {
               <span className="step-num">01</span>
               <h3>security.txt</h3>
               <p>
-                Confirm <a href="https://labs.levercoin.lol/.well-known/security.txt">security.txt</a> resolves and
+                Confirm <a href="https://labs.koyn.trade/.well-known/security.txt">security.txt</a> resolves and
                 names this repository.
               </p>
             </li>
@@ -128,7 +128,7 @@ export default function SecurityPage() {
         </section>
 
         <p className="panel-note">
-          Production is https://labs.levercoin.lol. The version in the header carries the git SHA of that deploy (
+          Production is https://labs.koyn.trade. The version in the header carries the git SHA of that deploy (
           <code>1.0.0+&lt;shortsha&gt;</code>). Match it to a commit on main.
         </p>
       </main>

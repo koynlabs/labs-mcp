@@ -19,9 +19,9 @@ const swap: TradeIntent = {
 
 describe("tradeDisclosure", () => {
   it("shows caller, host, action, amounts, and a funds warning", () => {
-    const view = tradeDisclosure(swap, "labs.levercoin.lol");
+    const view = tradeDisclosure(swap, "labs.koyn.trade");
     assert.equal(view.caller, swap.wallet);
-    assert.equal(view.host, "labs.levercoin.lol");
+    assert.equal(view.host, "labs.koyn.trade");
     assert.equal(view.action, "Market swap");
     assert.deepEqual(view.amounts, [
       { label: "Spend", value: "1.5 SOL" },
@@ -37,11 +37,11 @@ describe("tradeDisclosure", () => {
   });
 
   it("names pump.fun or StonkFun only when the trade was labelled", () => {
-    const pump = tradeDisclosure({ ...swap, venue: "pump" }, "labs.levercoin.lol");
+    const pump = tradeDisclosure({ ...swap, venue: "pump" }, "labs.koyn.trade");
     assert.deepEqual(pump.amounts[0], { label: "Venue", value: "pump.fun" });
     const stonks = tradeDisclosure(
       { ...swap, venue: "stonks", inputMint: swap.outputMint, outputMint: WSOL_MINT },
-      "labs.levercoin.lol",
+      "labs.koyn.trade",
     );
     assert.deepEqual(stonks.amounts[0], { label: "Venue", value: "StonkFun" });
     assert.deepEqual(stonks.amounts[2], { label: "Receive", value: "SOL" });

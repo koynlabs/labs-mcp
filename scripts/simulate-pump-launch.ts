@@ -31,7 +31,7 @@ async function main() {
     creator: PAYER,
     name: "Sim Test",
     symbol: "SIM",
-    imageUrl: "https://labs.levercoin.lol/icon-180.png",
+    imageUrl: "https://labs.koyn.trade/icon-180.png",
     description: "simulation only, never sent",
     creatorBuySol: BUY_SOL,
     buyers: [],

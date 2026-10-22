@@ -73,7 +73,7 @@ export function DemoClient() {
       <p className="panel-note">
         <Link href="/">labs</Link>
         {" · "}
-        <a href="https://www.levercoin.lol">$LEVERCOIN</a>
+        <a href="https://www.koyn.trade">$KOYN</a>
         {" · "}
         <a href="/mcp">MCP</a>
       </p>

@@ -27,9 +27,9 @@ const bundle: LaunchBundle = {
 
 describe("launchDisclosure", () => {
   it("shows the creator, host, launch action, and SOL amounts", () => {
-    const view = launchDisclosure(bundle, "labs.levercoin.lol");
+    const view = launchDisclosure(bundle, "labs.koyn.trade");
     assert.equal(view.caller, "CreatorWallet");
-    assert.equal(view.host, "labs.levercoin.lol");
+    assert.equal(view.host, "labs.koyn.trade");
     assert.equal(view.action, "Launch on pump.fun");
     assert.equal(view.warning, FUNDS_WARNING);
     assert.deepEqual(
@@ -44,7 +44,7 @@ describe("launchDisclosure", () => {
         ...bundle,
         quoteMint: "Xs3eBt7uRfJX8QUs4suhyU8p2M6DoUDrJyWBa8LLZsg",
       },
-      "labs.levercoin.lol",
+      "labs.koyn.trade",
     );
     assert.deepEqual(
       view.amounts.map((line) => line.value),
