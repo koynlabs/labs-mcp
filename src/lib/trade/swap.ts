@@ -1,5 +1,20 @@
 import { JUPITER_SWAP } from "../config";
+import { isPublicKey } from "../solana";
 import { JupiterError, asRecord, errorMessage, jupiter, jupiterHeaders, str, upstreamStatus } from "./http";
+
+/**
+ * `/order` pays the Ultra referral project. Jupiter accepts 50–255 bps and
+ * keeps 20%. An account that is not a Solana address is ignored.
+ */
+export function ultraReferral(
+  env: Record<string, string | undefined> = process.env,
+): { account: string; feeBps: number } | null {
+  const account = env.JUPITER_ULTRA_REFERRAL_ACCOUNT?.trim() ?? "";
+  if (!isPublicKey(account)) return null;
+  const raw = env.JUPITER_REFERRAL_FEE_BPS?.trim();
+  const n = raw && /^\d+$/.test(raw) ? Number(raw) : 50;
+  return { account, feeBps: n >= 50 && n <= 255 ? n : 50 };
+}
 
 /**
  * Jupiter Ultra `/order`. Any mint Jupiter can route, including a pump.fun
@@ -16,6 +31,11 @@ export async function buildSwap(input: {
   url.searchParams.set("outputMint", input.outputMint);
   url.searchParams.set("amount", input.amount);
   url.searchParams.set("taker", input.taker);
+  const fee = ultraReferral();
+  if (fee) {
+    url.searchParams.set("referralAccount", fee.account);
+    url.searchParams.set("referralFee", String(fee.feeBps));
+  }
   const body = asRecord(await jupiter(url.toString()));
   const transaction = str(body?.transaction);
   const outAmount = str(body?.outAmount);
