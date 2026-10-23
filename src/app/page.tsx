@@ -4,6 +4,7 @@ import { Button } from "@/components/site/Button";
 import CopyField from "@/components/site/CopyField";
 import LaunchTranscript from "@/components/site/LaunchTranscript";
 import { Panel } from "@/components/site/Panel";
+import CryptoTape from "@/components/site/CryptoTape";
 import SiteChrome from "@/components/site/SiteChrome";
 import { LaunchIcon, MakerIcon, PerpsIcon, TradeIcon, XIcon } from "@/components/site/icons";
 import { SITE_URL } from "@/lib/config";
@@ -30,7 +31,7 @@ const STEPS = [
 
 export default function Home() {
   return (
-    <SiteChrome>
+    <SiteChrome tape={<CryptoTape />}>
       {/* Build-time values only: this page is prerendered, and reading request
           state or a store here would silently make it dynamic. */}
       <main id="content">
