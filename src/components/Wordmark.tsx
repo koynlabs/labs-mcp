@@ -9,7 +9,7 @@ const MARK = `
 export default function Wordmark() {
   return (
     <div className="wordmark">
-      <p>&lt; labs &gt;</p>
+      <p>&lt; LABS &gt;</p>
       <pre aria-label="LABS">{MARK}</pre>
     </div>
   );
