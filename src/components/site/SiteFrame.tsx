@@ -9,12 +9,14 @@ import { twitterProfile } from "@/lib/site-twitter";
 
 export function SiteFrame({
   children,
+  tape = null,
   version,
   shaShort,
   commitUrl,
   connectHref = "/x",
 }: {
   children: ReactNode;
+  tape?: ReactNode;
   version?: string;
   shaShort?: string;
   commitUrl?: string;
@@ -30,39 +32,42 @@ export function SiteFrame({
         <div className="mkt-glow" />
         <div className="mkt-grid" />
       </div>
-      <header className="mkt-bar">
-        <Link className="mkt-logo" href="/" aria-label="labs, home">
-          &lt; labs &gt;
-        </Link>
-        <p className="strip">
-          <span className="dot" aria-hidden="true" />
-          <span className="ok">live</span>
-          {version ? (
-            <>
-              <span className="sep">·</span>
-              <span>{version}</span>
-            </>
-          ) : null}
-          {shaShort && commitUrl ? (
-            <>
-              <span className="sep">·</span>
-              <a href={commitUrl}>{shaShort}</a>
-            </>
-          ) : null}
-          <span className="sep">·</span>
-          <Link href="/status">status</Link>
-        </p>
-        <nav className="mkt-nav" aria-label="Page">
-          <a href="/#flow">Flow</a>
-          <a href="/#tools">Tools</a>
-          <a href="https://koyn.trade/trade">DEX</a>
-          {connectHref ? (
-            <Button href={connectHref} size="sm" variant="ghost">
-              Connect X
-            </Button>
-          ) : null}
-        </nav>
-      </header>
+      <div className="mkt-top">
+        <header className="mkt-bar">
+          <Link className="mkt-logo" href="/" aria-label="labs, home">
+            &lt; labs &gt;
+          </Link>
+          <p className="strip">
+            <span className="dot" aria-hidden="true" />
+            <span className="ok">live</span>
+            {version ? (
+              <>
+                <span className="sep">·</span>
+                <span>{version}</span>
+              </>
+            ) : null}
+            {shaShort && commitUrl ? (
+              <>
+                <span className="sep">·</span>
+                <a href={commitUrl}>{shaShort}</a>
+              </>
+            ) : null}
+            <span className="sep">·</span>
+            <Link href="/status">status</Link>
+          </p>
+          <nav className="mkt-nav" aria-label="Page">
+            <a href="/#flow">Flow</a>
+            <a href="/#tools">Tools</a>
+            <a href="https://koyn.trade/trade">DEX</a>
+            {connectHref ? (
+              <Button href={connectHref} size="sm" variant="ghost">
+                Connect X
+              </Button>
+            ) : null}
+          </nav>
+        </header>
+        {tape}
+      </div>
       {children}
       <footer className="mkt-foot">
         <p>
