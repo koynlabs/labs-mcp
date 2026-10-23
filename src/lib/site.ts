@@ -3,7 +3,7 @@ import { twitterProfile } from "./site-twitter";
 
 export const SITE = {
   name: "labs",
-  title: "labs",
+  title: "LABS",
   url: SITE_URL,
   description:
     "Launch a token on pump.fun or StonkFun, trade it, and announce it on your X account from one assistant. Your wallet signs. A post goes out only after you confirm it.",
