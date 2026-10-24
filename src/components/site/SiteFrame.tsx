@@ -3,6 +3,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { Button } from "@/components/site/Button";
+import TerminalDoor from "@/components/site/TerminalDoor";
 import { KOYNLABS_DISCORD_URL, KOYNLABS_TELEGRAM_URL } from "@/lib/community";
 import { GITHUB_REPO_URL } from "@/lib/revision";
 import { twitterProfile } from "@/lib/site-twitter";
@@ -58,6 +59,7 @@ export function SiteFrame({
           <nav className="mkt-nav" aria-label="Page">
             <a href="/#flow">Flow</a>
             <a href="/#tools">Tools</a>
+            <TerminalDoor />
             <a href="https://koyn.trade/trade">DEX</a>
             {connectHref ? (
               <Button href={connectHref} size="sm" variant="ghost">
