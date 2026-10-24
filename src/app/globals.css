@@ -1490,3 +1490,291 @@ button:disabled {
     transform: none;
   }
 }
+
+.labs-motion {
+  --labs-bar: 7.25rem;
+}
+
+.labs-stage {
+  box-sizing: border-box;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 2.5rem 3.5rem;
+  align-items: center;
+  min-height: calc(100svh - var(--labs-bar));
+  padding: 1.5rem 0;
+  scroll-margin-top: var(--labs-bar);
+}
+
+.labs-copy {
+  min-width: 0;
+}
+
+.labs-land .lede,
+.labs-head .lede {
+  max-width: none;
+  margin-bottom: 0;
+}
+
+.labs-land h1 {
+  max-width: none;
+  font-size: clamp(2.05rem, 3.1vw, 3.05rem);
+  line-height: 1.08;
+}
+
+.labs-land h2 {
+  max-width: 16ch;
+  font-size: clamp(2rem, 3.2vw, 2.9rem);
+  letter-spacing: -0.04em;
+  line-height: 1.05;
+}
+
+.labs-hero .wordmark {
+  padding: 0 0 0.85rem;
+}
+
+.labs-hero .wordmark pre {
+  font-size: 8px;
+  max-width: 100%;
+}
+
+.labs-aside {
+  min-width: 0;
+  will-change: transform;
+}
+
+.labs-hero .term {
+  will-change: transform;
+}
+
+.labs-pin {
+  box-sizing: border-box;
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr);
+  gap: 1rem;
+  height: calc(100svh - var(--labs-bar));
+  padding: 1.25rem 0 1.5rem;
+  scroll-margin-top: var(--labs-bar);
+}
+
+.labs-head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 2rem;
+  align-items: end;
+}
+
+.labs-step {
+  margin: 0 0 0.15rem;
+  color: var(--accent);
+  font-size: 0.85rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.labs-progress {
+  height: 1px;
+  background: var(--line);
+}
+
+.labs-progress span {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+  transform: scaleX(0);
+  transform-origin: left center;
+  will-change: transform;
+}
+
+.labs-window {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.labs-track {
+  display: flex;
+  width: calc(var(--panels, 1) * 100%);
+  height: 100%;
+  will-change: transform;
+}
+
+.labs-panel {
+  box-sizing: border-box;
+  display: grid;
+  flex: 0 0 calc(100% / var(--panels, 1));
+  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+  gap: 2rem;
+  align-items: center;
+  width: calc(100% / var(--panels, 1));
+  min-width: 0;
+  min-height: 100%;
+  padding: 1.5rem 1.75rem;
+  overflow: auto;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--card);
+}
+
+.labs-index {
+  margin: 0 0 0.75rem;
+  color: var(--accent);
+  font-size: clamp(2.6rem, 4.5vw, 4.2rem);
+  font-weight: 500;
+  letter-spacing: -0.05em;
+  line-height: 0.85;
+}
+
+.labs-panel h3 {
+  font-size: clamp(1.45rem, 2.2vw, 2rem);
+}
+
+.labs-panel p,
+.labs-panel li {
+  margin: 0;
+  color: #d4d4d8;
+}
+
+.labs-panel .tool-lines {
+  margin-top: 0;
+}
+
+.labs-panel .card-note {
+  margin-top: 0.85rem;
+}
+
+.labs-stack {
+  display: grid;
+  grid-template-rows: 1fr 1fr;
+  gap: 0.85rem;
+  align-self: stretch;
+  min-width: 0;
+}
+
+.labs-connect .labs-copy,
+.labs-trust .labs-copy {
+  align-self: center;
+}
+
+.labs-stack .panel {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 0;
+}
+
+.labs-stack article {
+  will-change: transform;
+}
+
+.labs-bands {
+  display: grid;
+  grid-template-rows: repeat(4, minmax(0, 1fr));
+  gap: 0.75rem;
+  align-self: stretch;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.labs-band {
+  display: grid;
+  grid-template-columns: 6.5rem minmax(0, 1fr);
+  gap: 1rem;
+  align-items: center;
+  min-height: 0;
+  padding: 1rem 1.15rem;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--card);
+  will-change: transform;
+}
+
+.labs-band-label {
+  color: var(--accent);
+  font-size: 1.05rem;
+  font-weight: 500;
+  letter-spacing: -0.03em;
+}
+
+.labs-band a {
+  color: var(--fg);
+}
+
+@media (max-width: 799px) {
+  .labs-stage {
+    grid-template-columns: 1fr;
+    min-height: 0;
+    padding: 3rem 0;
+  }
+
+  .labs-pin {
+    height: auto;
+  }
+
+  .labs-head {
+    grid-template-columns: 1fr;
+  }
+
+  .labs-step,
+  .labs-progress {
+    display: none;
+  }
+
+  .labs-track {
+    display: grid;
+    width: auto;
+    height: auto;
+    gap: 0.85rem;
+    will-change: auto;
+  }
+
+  .labs-panel,
+  .labs-band {
+    display: grid;
+    grid-template-columns: 1fr;
+    width: auto;
+    min-height: 0;
+    flex: none;
+  }
+
+  .labs-stack,
+  .labs-bands {
+    grid-template-rows: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .labs-aside,
+  .labs-hero .term,
+  .labs-track,
+  .labs-band,
+  .labs-stack article,
+  .labs-progress span {
+    will-change: auto;
+  }
+
+  .labs-pin {
+    height: auto;
+  }
+
+  .labs-head {
+    grid-template-columns: 1fr;
+  }
+
+  .labs-step,
+  .labs-progress {
+    display: none;
+  }
+
+  .labs-track {
+    display: grid;
+    width: auto;
+    height: auto;
+    gap: 0.85rem;
+  }
+
+  .labs-panel {
+    width: auto;
+    flex: none;
+  }
+}
