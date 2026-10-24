@@ -274,7 +274,7 @@ export function runCommand(raw: string): CommandResult | { clear: true } {
   if (key === "status") {
     return {
       lines: [
-        { text: "host       koyn-terminal", tone: "accent" },
+        { text: "host       labs-terminal", tone: "accent" },
         { text: `chain      ${token.chain}` },
         { text: `launch     ${displayLaunch()}` },
         { text: "quote      xStock" },

@@ -1,23 +1,21 @@
-import { DESK_ORIGIN } from "@/config/token";
-
 export type Tape = {
+  /** short slug used by `play <id>` */
   id: string;
+  /** one-liner shown in the status line and `tapes` listing */
   title: string;
+  /** same-origin video path under public/tapes */
   src: string;
 };
 
-const FILES = [
-  { id: "rot-1", title: "koyn brainrot vol. 1", file: "/tapes/koyn-1.mp4" },
-  { id: "rot-2", title: "koyn brainrot vol. 2", file: "/tapes/koyn-2.mp4" },
-  { id: "rot-3", title: "koyn brainrot vol. 3", file: "/tapes/koyn-3.mp4" },
+/**
+ * /dev/brainrot — the MP4s live in public/tapes and are served by this site.
+ */
+export const tapes: Tape[] = [
+  { id: "rot-1", title: "koyn brainrot vol. 1", src: "/tapes/levercoin-1.mp4" },
+  { id: "rot-2", title: "koyn brainrot vol. 2", src: "/tapes/levercoin-2.mp4" },
+  { id: "rot-3", title: "koyn brainrot vol. 3", src: "/tapes/levercoin-3.mp4" },
+  { id: "rot-4", title: "koyn brainrot vol. 4", src: "/tapes/levercoin-4.mp4" },
 ];
-
-/** Playback stays on the desk. The launcher only points at those files. */
-export const tapes: Tape[] = FILES.map((tape) => ({
-  id: tape.id,
-  title: tape.title,
-  src: `${DESK_ORIGIN}${tape.file}`,
-}));
 
 export function findTape(query: string | undefined): Tape | null {
   if (!tapes.length) return null;
