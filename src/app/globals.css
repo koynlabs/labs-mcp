@@ -23,6 +23,7 @@ body {
   color: var(--fg);
   font-family: var(--font-ibm-plex-mono), ui-monospace, monospace;
   line-height: 1.6;
+  overflow-x: clip;
   -webkit-font-smoothing: antialiased;
 }
 
@@ -478,9 +479,10 @@ button:disabled {
   --card: rgb(14 14 16 / 0.9);
   position: relative;
   z-index: 1;
+  --mkt-gutter: 1.25rem;
   max-width: 72rem;
   margin: 0 auto;
-  padding: 0.75rem 1.25rem 4.5rem;
+  padding: 0.75rem var(--mkt-gutter) 4.5rem;
 }
 
 .mkt-atmo {
@@ -531,7 +533,9 @@ button:disabled {
   position: sticky;
   top: 0;
   z-index: 4;
-  margin: 0 -1.25rem;
+  width: 100vw;
+  margin-left: calc(50% - 50vw);
+  margin-right: calc(50% - 50vw);
 }
 
 .mkt-bar {
@@ -539,7 +543,7 @@ button:disabled {
   flex-wrap: wrap;
   align-items: center;
   gap: 0.75rem 1.25rem;
-  padding: 0.85rem 1.25rem;
+  padding: 0.85rem max(var(--mkt-gutter), calc((100vw - 72rem) / 2 + var(--mkt-gutter)));
   border-bottom: 1px solid var(--line);
   background: rgb(7 7 8 / 0.84);
   backdrop-filter: blur(14px);
@@ -558,7 +562,7 @@ button:disabled {
 .ct-label {
   flex: none;
   margin: 0;
-  padding-left: 1.25rem;
+  padding-left: max(var(--mkt-gutter), calc((100vw - 72rem) / 2 + var(--mkt-gutter)));
   color: var(--muted);
   font-size: 0.75rem;
   letter-spacing: 0.14em;
@@ -1239,22 +1243,7 @@ button:disabled {
 
 @media (min-width: 720px) {
   .mkt {
-    padding-left: 2rem;
-    padding-right: 2rem;
-  }
-
-  .mkt-top {
-    margin-left: -2rem;
-    margin-right: -2rem;
-  }
-
-  .mkt-bar {
-    padding-left: 2rem;
-    padding-right: 2rem;
-  }
-
-  .ct-label {
-    padding-left: 2rem;
+    --mkt-gutter: 2rem;
   }
 
   .hero .wordmark pre {
