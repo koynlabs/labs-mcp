@@ -32,7 +32,7 @@
     "react-dom": "^19.3.0",
     "tweetnacl": "^1.0.3",
     "workflow": "^4.8.9",
-    "zod": "^4.6.5"
+    "zod": "^4.6.6"
   },
   "devDependencies": {
     "@types/bn.js": "^5.2.0",
