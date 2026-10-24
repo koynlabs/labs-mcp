@@ -280,7 +280,7 @@ export default function Terminal() {
   return (
     <section
       className={expanded ? "term-shell is-expanded" : "term-shell"}
-      aria-label="koyn-terminal"
+      aria-label="labs-terminal"
       onClick={() => inputRef.current?.focus()}
     >
       <div className="term-bar">
@@ -289,7 +289,7 @@ export default function Terminal() {
           <i />
           <i />
         </span>
-        <span>koyn-terminal</span>
+        <span>labs-terminal</span>
         <span className="term-host">{HOST}</span>
         <button
           type="button"
