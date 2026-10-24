@@ -15,7 +15,7 @@
   },
   "dependencies": {
     "@gsap/react": "^2.1.2",
-    "@modelcontextprotocol/server": "^2.1.0",
+    "@modelcontextprotocol/server": "^2.4.0",
     "@pump-fun/pump-sdk": "^2.0.0",
     "@raydium-io/raydium-sdk-v2": "^0.2.73-alpha",
     "@solana/spl-token": "^0.4.15",
