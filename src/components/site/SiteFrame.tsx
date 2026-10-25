@@ -36,7 +36,7 @@ export function SiteFrame({
       <div className="mkt-top">
         <header className="mkt-bar">
           <Link className="mkt-logo" href="/" aria-label="labs, home">
-            &lt; labs &gt;
+            &lt; LABS &gt;
           </Link>
           <p className="strip">
             <span className="dot" aria-hidden="true" />
