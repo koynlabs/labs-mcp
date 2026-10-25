@@ -60,7 +60,6 @@ export function SiteFrame({
             <a href="/#flow">Flow</a>
             <a href="/#tools">Tools</a>
             <TerminalDoor />
-            <a href="https://koyn.trade/trade">DEX</a>
             {connectHref ? (
               <Button href={connectHref} size="sm" variant="ghost">
                 Connect X
