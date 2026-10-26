@@ -36,7 +36,7 @@ export function SiteFrame({
       <div className="mkt-top">
         <header className="mkt-bar">
           <Link className="mkt-logo" href="/" aria-label="labs, home">
-            &lt; labs &gt;
+            &lt; LABS &gt;
           </Link>
           <p className="strip">
             <span className="dot" aria-hidden="true" />
@@ -60,7 +60,6 @@ export function SiteFrame({
             <a href="/#flow">Flow</a>
             <a href="/#tools">Tools</a>
             <TerminalDoor />
-            <a href="https://koyn.trade/trade">DEX</a>
             {connectHref ? (
               <Button href={connectHref} size="sm" variant="ghost">
                 Connect X

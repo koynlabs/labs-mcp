@@ -1,72 +1,19 @@
-<p align="center">
-  <a href="https://www.koyn.trade">
-    <img src="docs/assets/levercoin.svg" alt="LEVERCOIN" width="720" />
-  </a>
-</p>
+**Launch a token from Claude, ChatGPT or Grok.**  
+Your wallet signs every transaction. The server never holds the key.
 
-<p align="center">
-  <strong>Launch a token from Claude, ChatGPT or Grok.</strong><br />
-  Your wallet signs every transaction. The server never holds the key.
-</p>
+![status](https://img.shields.io/endpoint?url=https%3A%2F%2Flabs.koyn.trade%2Fapi%2Fstatus%2Fbadge%3Ffield%3Dstatus&style=flat-square&labelColor=070708)![live version](https://img.shields.io/endpoint?url=https%3A%2F%2Flabs.koyn.trade%2Fapi%2Fstatus%2Fbadge%3Ffield%3Dversion&style=flat-square&labelColor=070708)![deployed commit](https://img.shields.io/endpoint?url=https%3A%2F%2Flabs.koyn.trade%2Fapi%2Fstatus%2Fbadge%3Ffield%3Ddeployed&style=flat-square&labelColor=070708)![CI](https://img.shields.io/github/actions/workflow/status/koynlabs/labs-mcp/ci.yml?branch=main&style=flat-square&label=ci&labelColor=070708)
 
-<p align="center">
-  <a href="https://labs.koyn.trade/status"><img src="https://img.shields.io/endpoint?url=https%3A%2F%2Flabs.koyn.trade%2Fapi%2Fstatus%2Fbadge%3Ffield%3Dstatus&style=flat-square&labelColor=070708" alt="status" /></a>
-  <a href="https://labs.koyn.trade/status"><img src="https://img.shields.io/endpoint?url=https%3A%2F%2Flabs.koyn.trade%2Fapi%2Fstatus%2Fbadge%3Ffield%3Dversion&style=flat-square&labelColor=070708" alt="live version" /></a>
-  <a href="https://labs.koyn.trade/status"><img src="https://img.shields.io/endpoint?url=https%3A%2F%2Flabs.koyn.trade%2Fapi%2Fstatus%2Fbadge%3Ffield%3Ddeployed&style=flat-square&labelColor=070708" alt="deployed commit" /></a>
-  <a href="https://github.com/koynlabs/labs-mcp/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/koynlabs/labs-mcp/ci.yml?branch=main&style=flat-square&label=ci&labelColor=070708" alt="CI" /></a>
-</p>
+![MCP](https://img.shields.io/badge/MCP-labs.koyn.trade%2Fmcp-111111?style=flat-square&labelColor=070708)![main commit](https://img.shields.io/github/last-commit/koynlabs/labs-mcp/main?style=flat-square&label=main&labelColor=070708&color=111111)![Vercel production](https://img.shields.io/github/deployments/koynlabs/labs-mcp/Production?style=flat-square&label=vercel&labelColor=070708&color=111111)![Solana](https://img.shields.io/badge/chain-Solana-9945FF?style=flat-square&labelColor=070708)![MIT](https://img.shields.io/badge/license-MIT-111111?style=flat-square&labelColor=070708)
 
-<p align="center">
-  <a href="https://labs.koyn.trade/mcp"><img src="https://img.shields.io/badge/MCP-labs.koyn.trade%2Fmcp-111111?style=flat-square&labelColor=070708" alt="MCP" /></a>
-  <a href="https://github.com/koynlabs/labs-mcp/commits/main"><img src="https://img.shields.io/github/last-commit/koynlabs/labs-mcp/main?style=flat-square&label=main&labelColor=070708&color=111111" alt="main commit" /></a>
-  <a href="https://github.com/koynlabs/labs-mcp/deployments/Production"><img src="https://img.shields.io/github/deployments/koynlabs/labs-mcp/Production?style=flat-square&label=vercel&labelColor=070708&color=111111" alt="Vercel production" /></a>
-  <a href="https://solana.com"><img src="https://img.shields.io/badge/chain-Solana-9945FF?style=flat-square&labelColor=070708" alt="Solana" /></a>
-  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-111111?style=flat-square&labelColor=070708" alt="MIT" /></a>
-</p>
+Production is `main`, deployed by Vercel. The top row reads [labs.koyn.trade/api/status](https://labs.koyn.trade/api/status), so the commit it shows is the one answering requests right now — match it to `serverInfo.version` and to a commit in this repo.
 
-<p align="center">
-  <sub>
-    Production is <code>main</code>, deployed by Vercel. The top row reads
-    <a href="https://labs.koyn.trade/api/status">labs.koyn.trade/api/status</a>,
-    so the commit it shows is the one answering requests right now — match it to
-    <a href="https://labs.koyn.trade/mcp"><code>serverInfo.version</code></a>
-    and to a commit in this repo.
-  </sub>
-</p>
-
-<p align="center">
-  <a href="https://www.koyn.trade">Website</a>
-  ·
-  <a href="https://labs.koyn.trade">labs</a>
-  ·
-  <a href="https://labs.koyn.trade/mcp">MCP</a>
-  ·
-  <a href="https://x.com/LeverCoinonsol">X</a>
-  ·
-  <a href="https://t.me/LeverCoinonsol">Telegram</a>
-  ·
-  <a href="https://www.stonkfun.xyz/token/GJx6KxLzEeB5cQh7Bmo85M2N6s6bVM63VEUjT2tfe6mg">Buy on StonkFun</a>
-</p>
+[Dex](https://www.koyn.trade) · [Launcher](https://labs.koyn.trade) · [MCP](https://labs.koyn.trade/mcp) · [X](https://x.com/labsmcp) · [Telegram Mini App](https://t.me/koynlabs_bot?startapp.) · [Discord](https://https://discord.com/activities/1563600895420407942?referrer_id=316245976245600256) 
 
 ---
 
-<p align="center">
-  <a href="https://www.koyn.trade/tapes/levercoin-3.mp4">
-    <img src="docs/assets/levercoin-poster.jpg" alt="Play the $LEVERCOIN tape" width="720" />
-  </a>
-</p>
+ [▶ Play the Grok bot Rive](https://labs.koyn.trade/demo/)
 
-<p align="center">
-  <a href="https://www.koyn.trade/tapes/levercoin-3.mp4">▶ Watch the tape</a>
-  &nbsp;·&nbsp;
-  <a href="https://labs.koyn.trade/demo/">▶ Play the Grok bot Rive</a>
-</p>
-
-<p align="center">
-  <a href="https://labs.koyn.trade">
-    <img src="docs/assets/labs.svg" alt="labs" width="360" />
-  </a>
-</p>
+![labs](docs/assets/labs.svg)
 
 ## Why people use it
 
@@ -179,8 +126,10 @@ requests with a block page, so metadata is resolved one of three ways:
 
 1. a `metadataUri` you pass in, used as-is;
 2. pinned to IPFS via Pinata, if `LABS_PINATA_JWT` is set — **use this in
+
    production**;
 3. otherwise served by labs at `/api/metadata/<id>`, which only lasts as long as
+
    this deployment does.
 
 The URI is written into the token permanently, so option 3 returns a warning, and
@@ -392,20 +341,20 @@ If Account Activity is not on the app's plan, skip the webhook. `x_sync_mentions
 - Three extra buyer wallets per launch.
 - A launch has to be paired with an xStock, and holder fee distribution has to be enabled on that venue.
 - The quoter supports pump.fun only. StonkFun quoting is refused rather than
-  guessed at, because an existing LaunchLab pool's state is not in the
-  launch-time pricing response.
+guessed at, because an existing LaunchLab pool's state is not in the
+launch-time pricing response.
 - Market buys, sells, and trigger orders go through Jupiter for both pump.fun
-  and StonkFun. There is no pump-sdk sell.
+and StonkFun. There is no pump-sdk sell.
 - A launch is refused before you sign if the create transaction fails simulation.
-  Buys that follow the create in the same bundle spend a mint that does not
-  exist yet, so they cannot be simulated on their own.
+Buys that follow the create in the same bundle spend a mint that does not
+exist yet, so they cannot be simulated on their own.
 - X posting is per connected account, two steps (prepare, then publish), and
-  one post at a time. Video is MP4 up to 25MB. Replies use those same two
-  steps, with a per-author cap and a per-account daily cap. There is no auto-reply.
-  Likes and unlikes are one post per call and share a per-account daily cap.
-  An account connected before `like.write` was requested has to reconnect
-  before either tool will like. X tools and media uploads require
-  `Authorization: Bearer <personal key>`.
+one post at a time. Video is MP4 up to 25MB. Replies use those same two
+steps, with a per-author cap and a per-account daily cap. There is no auto-reply.
+Likes and unlikes are one post per call and share a per-account daily cap.
+An account connected before `like.write` was requested has to reconnect
+before either tool will like. X tools and media uploads require
+`Authorization: Bearer <personal key>`.
 
 ## License
 

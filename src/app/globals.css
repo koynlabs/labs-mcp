@@ -15,6 +15,7 @@
 html,
 body {
   min-height: 100%;
+  overflow-x: clip;
 }
 
 body {
@@ -23,7 +24,6 @@ body {
   color: var(--fg);
   font-family: var(--font-ibm-plex-mono), ui-monospace, monospace;
   line-height: 1.6;
-  overflow-x: clip;
   -webkit-font-smoothing: antialiased;
 }
 
@@ -490,6 +490,7 @@ button:disabled {
   position: fixed;
   inset: 0;
   z-index: 0;
+  overflow: hidden;
 }
 
 .mkt-glow {
@@ -1532,6 +1533,7 @@ button:disabled {
 
 .labs-aside {
   min-width: 0;
+  overflow-x: clip;
   will-change: transform;
 }
 
@@ -1642,6 +1644,7 @@ button:disabled {
   gap: 0.85rem;
   align-self: stretch;
   min-width: 0;
+  overflow-x: clip;
 }
 
 .labs-connect .labs-copy,
@@ -1667,6 +1670,7 @@ button:disabled {
   align-self: stretch;
   margin: 0;
   padding: 0;
+  overflow-x: clip;
   list-style: none;
 }
 

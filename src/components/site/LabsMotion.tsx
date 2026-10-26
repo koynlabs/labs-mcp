@@ -38,7 +38,7 @@ export default function LabsMotion({ children }: { children: ReactNode }) {
         .from(".labs-hero h1", { y: 48, autoAlpha: 0, duration: 0.8 }, 0.14)
         .from(".labs-hero .lede", { y: 24, autoAlpha: 0, duration: 0.55 }, 0.26)
         .from(".labs-hero .hero-actions", { y: 16, autoAlpha: 0, duration: 0.45 }, 0.36)
-        .from(".labs-hero .term", { x: 64, autoAlpha: 0, duration: 0.9 }, 0.12);
+        .from(".labs-hero .term", { x: narrow ? 0 : 64, y: narrow ? 24 : 0, autoAlpha: 0, duration: 0.9 }, 0.12);
 
       gsap.to(".labs-hero .labs-copy", {
         y: -64,
@@ -61,7 +61,7 @@ export default function LabsMotion({ children }: { children: ReactNode }) {
         },
       });
 
-      const shift = narrow ? 24 : 72;
+      const shift = 72;
       gsap.from(".labs-connect .labs-copy", {
         y: 48,
         autoAlpha: 0,
@@ -97,7 +97,8 @@ export default function LabsMotion({ children }: { children: ReactNode }) {
         },
       });
       gsap.from(".labs-band", {
-        x: shift,
+        x: narrow ? 0 : shift,
+        y: narrow ? 24 : 0,
         autoAlpha: 0,
         stagger: 0.08,
         ease: "none",
