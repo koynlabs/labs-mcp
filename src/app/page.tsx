@@ -64,7 +64,6 @@ export default function Home() {
               </div>
             </div>
             <div className="labs-aside">
-              <GrokRive className="labs-rive" />
               <LaunchTranscript />
             </div>
           </section>

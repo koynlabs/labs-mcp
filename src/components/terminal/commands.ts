@@ -2,7 +2,7 @@ import { deskHref, deskPath, displayLaunch, displayOrPending, hasMint, PENDING, 
 import { SITE_URL } from "@/lib/config";
 import { KOYNLABS_DISCORD_URL, KOYNLABS_TELEGRAM_URL } from "@/lib/community";
 
-const HERO_LEAD = "A Solana desk.";
+const HERO_LEAD = "Agentic Solana desk.";
 const HERO_BODY =
   "Organic score ranks the board. A momentum ring on the logo follows 24-hour volume, and the newest print sets its pace. Market, limit, and DCA settle from your wallet. The same desk, and the labs launcher, attach to Claude.";
 const LABS_MCP_URL = `${SITE_URL}/mcp`;
