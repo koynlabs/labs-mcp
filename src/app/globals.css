@@ -502,7 +502,7 @@ button:disabled {
   --foot: 2rem;
   max-width: 72rem;
   margin: 0 auto;
-  padding: 0.75rem var(--mkt-gutter) var(--foot);
+  padding: 0 var(--mkt-gutter) var(--foot);
 }
 
 .mkt-atmo {
@@ -1678,19 +1678,6 @@ button:disabled {
   text-wrap: balance;
 }
 
-/* The Grok face on the hero. One canvas, the same file as /demo. */
-.labs-rive {
-  display: block;
-  width: 100%;
-  height: auto;
-  aspect-ratio: 3 / 2;
-  max-height: 34svh;
-  margin: 0 0 0.85rem;
-  object-fit: contain;
-  background: transparent;
-  border: 0;
-}
-
 .labs-hero .wordmark {
   padding: 0 0 0.85rem;
 }
@@ -1709,7 +1696,6 @@ button:disabled {
   will-change: transform;
 }
 
-/* The face leads; the transcript takes what is left and scrolls its own lines. */
 .labs-hero .term {
   display: flex;
   flex-direction: column;
