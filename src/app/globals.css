@@ -1,11 +1,30 @@
 :root {
   color-scheme: dark;
-  --bg: #070708;
-  --fg: #e4e4e7;
-  --muted: #a1a1aa;
-  --line: #27272a;
+  /* The same ink as the KOYN desk. Panels are glass over it; hairlines are light, not grey. */
+  --ink: #04050f;
+  --bg: var(--ink);
+  --fg: #e8e9f2;
+  --muted: #9ea3bd;
+  --panel: rgb(255 255 255 / 0.045);
+  --panel-2: rgb(255 255 255 / 0.085);
+  --panel-solid: #10162a;
+  --glass-edge: rgb(255 255 255 / 0.11);
+  --glass-shine: rgb(255 255 255 / 0.2);
+  --glass-blur: 10px;
+  /* One clear glass, the same as the KOYN desk. Fill is white light over the field; never an ink tint. */
+  --glass-fill: rgb(255 255 255 / 0.045);
+  --glass-fill-2: rgb(255 255 255 / 0.09);
+  --glass-shadow:
+    inset 0 1px 0 var(--glass-shine),
+    inset 0 -1px 0 rgb(255 255 255 / 0.03),
+    0 14px 36px rgb(0 0 0 / 0.38);
+  --hair: rgb(255 255 255 / 0.09);
+  --line: var(--hair);
   --ok: #4ade80;
   --bad: #f87171;
+  /* The voice. Sentences are large; numbers stay small. */
+  --voice-xl: clamp(2.7rem, 4.8vw, 4.4rem);
+  --voice-lg: clamp(2rem, 3.4vw, 3.1rem);
 }
 
 * {
@@ -59,7 +78,7 @@ body {
 .crt-bg-dots {
   position: absolute;
   inset: 0;
-  opacity: 0.3;
+  opacity: 0.2;
   background-image: radial-gradient(circle at 1px 1px, rgba(200, 200, 200, 0.18) 1px, transparent 0);
   background-size: 14px 14px;
 }
@@ -67,13 +86,13 @@ body {
 .crt-bg-term {
   position: absolute;
   inset: 0;
-  opacity: 0.8;
+  opacity: 0.42;
 }
 
 .crt-bg-veil {
   position: absolute;
   inset: 0;
-  background: radial-gradient(ellipse at 50% 8%, rgb(7 7 8 / 0.2), rgb(7 7 8 / 0.46) 74%);
+  background: radial-gradient(ellipse at 50% 8%, rgb(4 5 15 / 0.38), rgb(4 5 15 / 0.66) 74%);
 }
 
 .faulty-terminal,
@@ -286,7 +305,7 @@ code {
 }
 
 pre {
-  background: #131317;
+  background: rgb(255 255 255 / 0.05);
   border: 1px solid var(--line);
   border-radius: 8px;
   padding: 0.85rem 1rem;
@@ -304,7 +323,7 @@ pre {
   width: 100%;
   height: auto;
   margin: 1.25rem 0;
-  background: #0a0a0b;
+  background: var(--panel);
   border: 1px solid var(--line);
 }
 
@@ -476,7 +495,7 @@ button:disabled {
 .mkt {
   --accent: var(--ok);
   --accent-ink: #05210f;
-  --card: rgb(14 14 16 / 0.9);
+  --card: var(--glass-fill);
   position: relative;
   z-index: 1;
   --mkt-gutter: 1.25rem;
@@ -537,6 +556,14 @@ button:disabled {
   width: 100vw;
   margin-left: calc(50% - 50vw);
   margin-right: calc(50% - 50vw);
+  /* The bar and the tape are one sheet of the same clear glass as the panels. */
+  background: var(--glass-fill);
+  box-shadow:
+    inset 0 1px 0 var(--glass-shine),
+    inset 0 -1px 0 var(--glass-edge),
+    0 14px 36px rgb(0 0 0 / 0.38);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.35);
+  backdrop-filter: blur(var(--glass-blur)) saturate(1.35);
 }
 
 .mkt-bar {
@@ -545,18 +572,19 @@ button:disabled {
   align-items: center;
   gap: 0.75rem 1.25rem;
   padding: 0.85rem max(var(--mkt-gutter), calc((100vw - 72rem) / 2 + var(--mkt-gutter)));
-  border-bottom: 1px solid var(--line);
-  background: rgb(7 7 8 / 0.84);
-  backdrop-filter: blur(14px);
+  border-bottom: 1px solid var(--glass-edge);
+  background: transparent;
 }
 
+/* A second pane under the bar. The sheet above already blurs, so this one only carries light. */
 .ct-tape {
   display: flex;
   align-items: center;
   gap: 0.75rem;
   overflow: hidden;
-  border-bottom: 1px solid var(--line);
-  background: rgb(7 7 8 / 0.94);
+  border-bottom: 1px solid var(--glass-edge);
+  background: rgb(255 255 255 / 0.02);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.08);
   padding: 0.45rem 0;
 }
 
@@ -864,7 +892,7 @@ button:disabled {
   height: 2.35rem;
   border: 1px solid rgb(74 222 128 / 0.45);
   border-radius: 999px;
-  background: #070708;
+  background: var(--panel-solid);
   color: var(--accent);
   font-size: 0.72rem;
 }
@@ -894,10 +922,51 @@ button:disabled {
 .panel,
 .trust-grid article,
 .stats > div {
-  border: 1px solid var(--line);
+  border: 1px solid var(--glass-edge);
   border-radius: 14px;
-  background: var(--card);
+  background: var(--glass-fill);
+  box-shadow: var(--glass-shadow);
   padding: 1.15rem 1.15rem 1.2rem;
+}
+
+/* Liquid glass: the field shows through the shells. Blur on shells only, never on list rows. */
+.card,
+.panel,
+.trust-grid article,
+.stats > div,
+.labs-panel,
+.labs-band,
+.term,
+.term-shell,
+.term-stage,
+.land-term-dialog,
+.mkt .facts li,
+.mkt .caps,
+.mkt .note {
+  backdrop-filter: blur(var(--glass-blur)) saturate(1.35);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.35);
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  :root {
+    --glass-fill: var(--panel-solid);
+    --glass-fill-2: #182038;
+  }
+
+  .card,
+  .panel,
+  .trust-grid article,
+  .stats > div,
+  .labs-panel,
+  .labs-band,
+  .term,
+  .term-shell,
+  .term-stage,
+  .land-term-dialog,
+  .mkt-top {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
 }
 
 .card-kicker {
@@ -991,7 +1060,7 @@ button:disabled {
   padding: 0.35rem 0.35rem 0.35rem 0.85rem;
   border: 1px solid var(--line);
   border-radius: 10px;
-  background: #101012;
+  background: rgb(255 255 255 / 0.05);
 }
 
 .copy-field input {
@@ -1109,7 +1178,7 @@ button:disabled {
   overflow: hidden;
   border: 1px solid var(--line);
   border-radius: 14px;
-  background: rgb(10 10 12 / 0.9);
+  background: var(--glass-fill);
   box-shadow:
     0 0 0 1px rgb(74 222 128 / 0.05),
     0 30px 80px rgb(0 0 0 / 0.35);
@@ -1509,17 +1578,36 @@ button:disabled {
   margin-bottom: 0;
 }
 
+/* Headlines speak in the desk's voice: large, tight, one sentence. */
 .labs-land h1 {
   max-width: none;
-  font-size: clamp(2.05rem, 3.1vw, 3.05rem);
-  line-height: 1.08;
+  font-size: clamp(2.3rem, 3.7vw, 3.5rem);
+  font-weight: 500;
+  letter-spacing: -0.045em;
+  line-height: 1;
+  text-wrap: balance;
 }
 
 .labs-land h2 {
   max-width: 16ch;
-  font-size: clamp(2rem, 3.2vw, 2.9rem);
+  font-size: var(--voice-lg);
+  font-weight: 500;
   letter-spacing: -0.04em;
   line-height: 1.05;
+  text-wrap: balance;
+}
+
+/* The Grok face on the hero. One canvas, the same file as /demo. */
+.labs-rive {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 3 / 2;
+  max-height: 34svh;
+  margin: 0 0 0.85rem;
+  object-fit: contain;
+  background: transparent;
+  border: 0;
 }
 
 .labs-hero .wordmark {
@@ -1532,13 +1620,28 @@ button:disabled {
 }
 
 .labs-aside {
+  display: flex;
+  flex-direction: column;
   min-width: 0;
+  max-height: calc(100svh - var(--labs-bar, 112px) - 3rem);
   overflow-x: clip;
   will-change: transform;
 }
 
+/* The face leads; the transcript takes what is left and scrolls its own lines. */
 .labs-hero .term {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
   will-change: transform;
+}
+
+.labs-hero .term .term-lines {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: thin;
 }
 
 .labs-pin {
@@ -1797,7 +1900,7 @@ button:disabled {
   padding: 0;
   border: 1px solid var(--line);
   border-radius: 12px;
-  background: var(--bg);
+  background: var(--glass-fill);
   color: var(--fg);
 }
 
@@ -1838,7 +1941,7 @@ button:disabled {
   overflow: hidden;
   border: 1px solid var(--line);
   border-radius: 14px;
-  background: rgb(10 10 12 / 0.9);
+  background: var(--glass-fill);
   color: var(--fg);
   font-size: 12.5px;
   line-height: 1.45;
@@ -1997,7 +2100,7 @@ button:disabled {
   min-height: 8rem;
   flex-direction: column;
   border-bottom: 1px solid var(--line);
-  background: rgb(7 7 8 / 0.94);
+  background: var(--glass-fill);
 }
 
 .term-stage.is-full {
@@ -2063,7 +2166,7 @@ button:disabled {
   height: 100%;
   min-height: 0;
   flex-direction: column;
-  background: #070708;
+  background: var(--panel-solid);
 }
 
 .hm-board,
