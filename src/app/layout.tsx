@@ -52,7 +52,7 @@ export const metadata: Metadata = {
     description: SITE.ogDescription,
     ...(SITE.x ? { site: SITE.x.at, creator: SITE.x.at } : {}),
   },
-  other: { "theme-color": "#070708" },
+  other: { "theme-color": "#04050f" },
 };
 
 export default function RootLayout({

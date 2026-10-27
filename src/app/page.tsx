@@ -8,8 +8,10 @@ import LabsMotion from "@/components/site/LabsMotion";
 import { Panel } from "@/components/site/Panel";
 import CryptoTape from "@/components/site/CryptoTape";
 import SiteChrome from "@/components/site/SiteChrome";
+import GrokRive from "@/components/site/GrokRive";
 import { LaunchIcon, MakerIcon, PerpsIcon, TradeIcon, XIcon } from "@/components/site/icons";
 import { SITE_URL } from "@/lib/config";
+import { KOYN_DESK_URL, KOYN_PERPS_URL } from "@/lib/koyn";
 
 const MCP_URL = `${SITE_URL}/mcp`;
 
@@ -56,9 +58,13 @@ export default function Home() {
                 <Button href="/x" variant="ghost">
                   Connect X
                 </Button>
+                <Button href={KOYN_DESK_URL} variant="ghost">
+                  Trade on KOYN
+                </Button>
               </div>
             </div>
             <div className="labs-aside">
+              <GrokRive className="labs-rive" />
               <LaunchTranscript />
             </div>
           </section>
@@ -225,6 +231,10 @@ export default function Home() {
                       <span>A limit, stop, take-profit/stop, or DCA, through Jupiter.</span>
                     </li>
                   </ul>
+                  <p className="card-note">
+                    The board and the chart live on the <a href={KOYN_DESK_URL}>KOYN desk</a>. These tools read the
+                    same listings.
+                  </p>
                 </article>
 
                 <article className="labs-panel" data-label="04 Perps">
@@ -259,6 +269,9 @@ export default function Home() {
                       <span>Set or cancel a take profit, stop, or working limit.</span>
                     </li>
                   </ul>
+                  <p className="card-note">
+                    Positions are also on <a href={KOYN_PERPS_URL}>KOYN perps</a>.
+                  </p>
                 </article>
 
                 <article className="labs-panel" data-label="05 Maker">

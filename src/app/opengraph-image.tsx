@@ -13,7 +13,7 @@ export default function OpenGraphImage() {
           height: "100%",
           display: "flex",
           flexDirection: "column",
-          backgroundColor: "#070708",
+          backgroundColor: "#04050f",
           color: "#f4f4f5",
           fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
         }}
