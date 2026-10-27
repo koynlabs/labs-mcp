@@ -14,6 +14,9 @@ export const SITE = {
   x: twitterProfile(),
 } as const;
 
+export const DISCLAIMER =
+  "High-risk investment. You can lose all of your money. Not financial advice. Not for UK persons.";
+
 export const FAQ = [
   {
     q: "What is labs?",

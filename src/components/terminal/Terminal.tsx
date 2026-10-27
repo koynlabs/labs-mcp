@@ -8,7 +8,6 @@ import {
   useRef,
   useState,
 } from "react";
-import { hasMint, token } from "@/config/token";
 import type { Tape } from "@/config/tapes";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -49,7 +48,6 @@ export default function Terminal() {
   const [history, setHistory] = useState<HistoryItem[]>([{ kind: "boot" }]);
   const [value, setValue] = useState("");
   const [caret, setCaret] = useState(0);
-  const [copied, setCopied] = useState(false);
   const [cmdLog, setCmdLog] = useState<string[]>([]);
   const [cmdIndex, setCmdIndex] = useState(-1);
   const scroller = useRef<HTMLDivElement>(null);
@@ -77,18 +75,6 @@ export default function Terminal() {
     if (window.matchMedia("(max-width: 800px)").matches) return;
     inputRef.current?.focus();
   }, [booted]);
-
-  const copyMint = useCallback(async (text?: string) => {
-    const payload = (text ?? token.mint).trim();
-    if (!payload) return;
-    try {
-      await navigator.clipboard.writeText(payload);
-      setCopied(true);
-      window.setTimeout(() => setCopied(false), 1600);
-    } catch {
-      setCopied(false);
-    }
-  }, []);
 
   const submit = useCallback(
     (raw: string) => {
@@ -182,11 +168,10 @@ export default function Terminal() {
       }
       setHistory((prev) => [...prev, ...next]);
 
-      if (result.copied) void copyMint(result.copied);
       if (result.openUrl) window.open(result.openUrl, "_blank", "noopener,noreferrer");
       if (result.navigate) router.push(result.navigate);
     },
-    [copyMint, router],
+    [router],
   );
 
   const closeStage = useCallback(() => {
@@ -291,17 +276,6 @@ export default function Terminal() {
         </span>
         <span>labs-terminal</span>
         <span className="term-host">{HOST}</span>
-        <button
-          type="button"
-          className="term-copy"
-          disabled={!hasMint()}
-          onClick={(e) => {
-            e.stopPropagation();
-            void copyMint();
-          }}
-        >
-          {copied ? "copied" : hasMint() ? "copy ca" : "pending"}
-        </button>
       </div>
 
       <div className="term-body">
@@ -311,11 +285,7 @@ export default function Terminal() {
         {history.map((item, i) => {
           if (item.kind === "boot") {
             return (
-              <BootSequence
-                key="boot"
-                onComplete={finishBoot}
-                onCopyMint={() => void copyMint()}
-              />
+              <BootSequence key="boot" onComplete={finishBoot} />
             );
           }
           if (item.kind === "input") {

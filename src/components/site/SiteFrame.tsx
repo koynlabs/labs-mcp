@@ -4,8 +4,10 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { Button } from "@/components/site/Button";
 import TerminalDoor from "@/components/site/TerminalDoor";
+import { DESK_ORIGIN } from "@/config/token";
 import { KOYNLABS_DISCORD_URL, KOYNLABS_TELEGRAM_URL } from "@/lib/community";
 import { GITHUB_REPO_URL } from "@/lib/revision";
+import { DISCLAIMER } from "@/lib/site";
 import { twitterProfile } from "@/lib/site-twitter";
 
 export function SiteFrame({
@@ -71,25 +73,52 @@ export function SiteFrame({
       </div>
       {children}
       <footer className="mkt-foot">
-        <p>
-          source <a href={GITHUB_REPO_URL}>github.com/koynlabs/labs-mcp</a>
+        <nav className="foot-links" aria-label="Social">
+          <a href={`${DESK_ORIGIN}/docs`}>docs</a>
+          <span>
+            <span className="sep">·</span>
+            <Link href="/terms">terms</Link>
+          </span>
+          <span>
+            <span className="sep">·</span>
+            <Link href="/privacy">privacy</Link>
+          </span>
+          <span>
+            <span className="sep">·</span>
+            <Link href="/security">security</Link>
+          </span>
           {x ? (
-            <>
+            <span>
               <span className="sep">·</span>
-              <a href={x.url}>x {x.at}</a>
-            </>
+              <a href={x.url} target="_blank" rel="noopener noreferrer">
+                x
+              </a>
+            </span>
           ) : null}
-          <span className="sep">·</span>
-          <a href={KOYNLABS_TELEGRAM_URL}>telegram</a>
-          <span className="sep">·</span>
-          <a href={KOYNLABS_DISCORD_URL}>discord</a>
-          <span className="sep">·</span>
-          <Link href="/terms">terms</Link>
-          <span className="sep">·</span>
-          <Link href="/privacy">privacy</Link>
-          <span className="sep">·</span>
-          <Link href="/security">security</Link>
-        </p>
+          <span>
+            <span className="sep">·</span>
+            <a href={KOYNLABS_TELEGRAM_URL} target="_blank" rel="noopener noreferrer">
+              telegram
+            </a>
+          </span>
+          <span>
+            <span className="sep">·</span>
+            <a href={KOYNLABS_DISCORD_URL} target="_blank" rel="noopener noreferrer">
+              discord
+            </a>
+          </span>
+          <span>
+            <span className="sep">·</span>
+            <a href={DESK_ORIGIN}>koyn</a>
+          </span>
+          <span>
+            <span className="sep">·</span>
+            <a href={GITHUB_REPO_URL} target="_blank" rel="noopener noreferrer">
+              github
+            </a>
+          </span>
+        </nav>
+        <p className="disclaimer">{DISCLAIMER}</p>
       </footer>
     </div>
   );
