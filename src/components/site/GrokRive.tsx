@@ -39,8 +39,7 @@ function loadRuntime(): Promise<RiveCtor | null> {
 }
 
 /**
- * The Grok face Grok exported for the tool chat. One canvas per page: the hero on the landing,
- * or the demo page. It is never rendered on the MCP route or the signing pages.
+ * The Grok face Grok exported for the tool chat. The demo page is the only place it mounts.
  */
 export default function GrokRive({ className = "rive", label = "Grok bot talking to labs over MCP" }: { className?: string; label?: string }) {
   const canvas = useRef<HTMLCanvasElement>(null);

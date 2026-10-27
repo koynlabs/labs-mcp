@@ -8,7 +8,6 @@ import LabsMotion from "@/components/site/LabsMotion";
 import { Panel } from "@/components/site/Panel";
 import CryptoTape from "@/components/site/CryptoTape";
 import SiteChrome from "@/components/site/SiteChrome";
-import GrokRive from "@/components/site/GrokRive";
 import { LaunchIcon, MakerIcon, PerpsIcon, TradeIcon, XIcon } from "@/components/site/icons";
 import { SITE_URL } from "@/lib/config";
 import { KOYN_DESK_URL, KOYN_PERPS_URL } from "@/lib/koyn";
