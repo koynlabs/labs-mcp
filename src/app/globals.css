@@ -499,9 +499,10 @@ button:disabled {
   position: relative;
   z-index: 1;
   --mkt-gutter: 1.25rem;
+  --foot: 2rem;
   max-width: 72rem;
   margin: 0 auto;
-  padding: 0.75rem var(--mkt-gutter) 4.5rem;
+  padding: 0.75rem var(--mkt-gutter) var(--foot);
 }
 
 .mkt-atmo {
@@ -1271,19 +1272,99 @@ button:disabled {
 }
 
 .mkt-foot {
-  margin-top: 4rem;
-  padding-top: 1.25rem;
-  border-top: 1px solid var(--line);
+  position: fixed;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 5;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  height: var(--foot, 2rem);
+  margin: 0;
+  padding: 0 var(--mkt-gutter, 1.25rem);
+  border-top: 1px solid var(--glass-edge);
+  background: var(--glass-fill);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.06);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.35);
+  backdrop-filter: blur(var(--glass-blur)) saturate(1.35);
   color: var(--muted);
-  font-size: 0.75rem;
+  font-size: 0.7rem;
+  text-align: left;
+  white-space: nowrap;
 }
 
-.mkt-foot p {
+.mkt-foot p,
+.foot-links {
   margin: 0;
+}
+
+.foot-links {
+  display: flex;
+  flex: none;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+.foot-links .sep {
+  margin: 0 0.35rem;
+  opacity: 0.55;
 }
 
 .mkt-foot a {
   color: inherit;
+  text-decoration: none;
+}
+
+.mkt-foot .disclaimer {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin: 0;
+  overflow: hidden;
+  line-height: 1.5;
+  text-align: right;
+  text-overflow: ellipsis;
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .mkt-foot {
+    background: var(--ink);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+
+@media (max-width: 1079px) {
+  .mkt {
+    padding-bottom: 0;
+  }
+
+  .mkt-foot {
+    position: static;
+    flex-wrap: wrap;
+    height: auto;
+    min-width: 0;
+    margin-top: 1.5rem;
+    padding: 0.55rem var(--mkt-gutter, 1.25rem);
+    white-space: normal;
+  }
+
+  .mkt-foot .foot-links {
+    flex: 1 1 100%;
+    min-width: 0;
+  }
+
+  .mkt-foot .disclaimer {
+    flex-basis: 100%;
+    min-width: 0;
+    overflow: visible;
+    text-align: left;
+    text-overflow: clip;
+    white-space: normal;
+  }
 }
 
 .panel .btn-lg {
