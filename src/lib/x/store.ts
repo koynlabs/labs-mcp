@@ -34,9 +34,14 @@ export function createMemoryXStore(clock: () => number = Date.now): XStore {
       });
     },
     async setNx(key, value, ttlSeconds) {
-      const current = await store.get(key);
-      if (current !== null) return false;
-      await store.set(key, value, ttlSeconds);
+      // No await between the check and the write. Redis SET NX is atomic;
+      // this keeps two in-flight callers from both winning in memory.
+      const row = rows.get(key);
+      if (row && row.expiresAt > clock()) return false;
+      rows.set(key, {
+        value,
+        expiresAt: ttlSeconds ? clock() + ttlSeconds * 1000 : Number.MAX_SAFE_INTEGER,
+      });
       return true;
     },
     async del(key) {
