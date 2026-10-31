@@ -3,7 +3,11 @@
 import { useEffect, useState } from "react";
 import type { CtPost } from "@/lib/x/trends";
 
-const POLL_MS = 60_000;
+/**
+ * The CDN holds the payload for an hour. This only checks for that copy.
+ * A hidden tab does not poll. Neither one calls X on its own.
+ */
+const POLL_MS = 10 * 60 * 1000;
 
 export default function CryptoTape() {
   const [posts, setPosts] = useState<CtPost[]>([]);
@@ -20,6 +24,7 @@ export default function CryptoTape() {
   useEffect(() => {
     let cancel = false;
     async function load() {
+      if (cancel || document.hidden) return;
       try {
         const res = await fetch("/api/x/trends");
         if (!res.ok) return;
@@ -31,9 +36,14 @@ export default function CryptoTape() {
     }
     void load();
     const timer = window.setInterval(() => void load(), POLL_MS);
+    function onVisibility() {
+      if (!document.hidden) void load();
+    }
+    document.addEventListener("visibilitychange", onVisibility);
     return () => {
       cancel = true;
       window.clearInterval(timer);
+      document.removeEventListener("visibilitychange", onVisibility);
     };
   }, []);
 

@@ -257,6 +257,10 @@ OAuth is the confidential-client user-context flow with PKCE (S256). The token r
 | `X_REPLY_AUTHOR_DAILY_CAP` | Replies per author per UTC day. Default 5. 0 refuses those replies |
 | `X_REPLY_DAILY_CAP` | Replies per UTC day for the whole account. Default 30. 0 refuses replies |
 | `X_LIKE_DAILY_CAP` | Likes and unlikes per account per UTC day. Default 30. 0 refuses both |
+| `X_TAPE_ENABLED` | Homepage Crypto Twitter strip. Default on. `0`, `false`, `off`, or `no` skips the X search |
+| `X_TAPE_DAILY_CAP` | Paid recent-search calls for that strip per UTC day. Default 24. `0` skips the call |
+
+The homepage strip reads `GET /api/x/trends`. Recent search is pay-per-use, so that route is cached at the CDN for an hour and the search itself runs from Redis at most once an hour, and at most `X_TAPE_DAILY_CAP` times per UTC day. A failed search (including HTTP 402 or 429) serves the last saved posts and does not try again until that hour passes. HTTP 402 also stops further searches until the next UTC day. On Vercel the cap is global only when Redis is set. Without Redis there, the strip does not call X.
 
 Callback to add on that X app, alongside the KOYN FX callback:
 
