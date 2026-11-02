@@ -68,6 +68,8 @@ Then: *“Launch a token on pump.fun called …”*
 | `x_publish_post` | Publishes exactly that draft and returns the post URL |
 | `x_like_post` | Likes one post by id or status URL as the connected account |
 | `x_unlike_post` | Removes that like |
+| `x_follow_user` | Follows one account by @username or user id |
+| `x_unfollow_user` | Unfollows that account |
 
 ## How a launch works
 
@@ -242,9 +244,9 @@ The Grok bot Rive lives at [`public/demo`](public/demo) and is served at
 
 ## Posting to X
 
-Anyone who adds the labs MCP can connect their own X account. labs stores that account's access and refresh tokens sealed, and the MCP publishes only a draft that same person's key has already prepared. There is no scheduler, no bulk posting, and no follow or DM tooling. `x_like_post` and `x_unlike_post` like or unlike one post at a time for that same account. Each successful like and unlike counts toward a per-account UTC-day cap.
+Anyone who adds the labs MCP can connect their own X account. labs stores that account's access and refresh tokens sealed, and the MCP publishes only a draft that same person's key has already prepared. There is no scheduler, no bulk posting, and no DM tooling. `x_like_post` and `x_unlike_post` like or unlike one post at a time for that same account. Each successful like and unlike counts toward a per-account UTC-day cap. `x_follow_user` and `x_unfollow_user` follow or unfollow one account at a time. A numeric user id is a single write. An @username is one user lookup, then that write. There is no bulk follow, no auto-follow, and no follow loop. Follows and unfollows have separate UTC-day caps.
 
-OAuth is the confidential-client user-context flow with PKCE (S256). The token request sends the client id and secret as Basic auth. Scopes: `tweet.read tweet.write users.read offline.access media.write like.write`. `like.write` is what X requires for `POST /2/users/:id/likes` and `DELETE /2/users/:id/likes/:tweet_id`. `like.read` only lists likes, so it is not requested. Refresh tokens rotate. Every refresh stores the new refresh token. A refresh of a token that predates `like.write` still succeeds, so posting keeps working. Liking does not, until that account connects again and the new grant includes `like.write`. Enable `like.write` on the X app before new connects, or the scope check rejects the grant.
+OAuth is the confidential-client user-context flow with PKCE (S256). The token request sends the client id and secret as Basic auth. Scopes requested at authorize time: `tweet.read tweet.write users.read offline.access media.write like.write follows.write`. `like.write` is what X requires for `POST /2/users/:id/likes` and `DELETE /2/users/:id/likes/:tweet_id`. `follows.write` is what X requires for `POST /2/users/:id/following` and `DELETE /2/users/:source_user_id/following/:target_user_id`. Those follow writes also list `tweet.read` and `users.read`, which are already requested. `like.read` only lists likes and `follows.read` only lists follow relationships, so neither is requested. The X developer portal does not toggle OAuth 2.0 scopes one by one. App permissions of Read and write, already required for posting and likes, is what covers `follows.write`. Nothing in the app settings has to change to add it. Refresh tokens rotate. Every refresh stores the new refresh token. A refresh of a token that predates `like.write` or `follows.write` still succeeds, so posting keeps working. Liking or following does not, until that account connects again and the new grant includes the missing scope. A new connect that is not granted `follows.write` is revoked and not stored.
 
 | Env | Purpose |
 | --- | --- |
@@ -257,6 +259,8 @@ OAuth is the confidential-client user-context flow with PKCE (S256). The token r
 | `X_REPLY_AUTHOR_DAILY_CAP` | Replies per author per UTC day. Default 5. 0 refuses those replies |
 | `X_REPLY_DAILY_CAP` | Replies per UTC day for the whole account. Default 30. 0 refuses replies |
 | `X_LIKE_DAILY_CAP` | Likes and unlikes per account per UTC day. Default 30. 0 refuses both |
+| `X_FOLLOW_DAILY_CAP` | Follows per account per UTC day. Default 10. 0 refuses follows |
+| `X_UNFOLLOW_DAILY_CAP` | Unfollows per account per UTC day. Default 10. 0 refuses unfollows |
 | `X_TAPE_ENABLED` | Homepage Crypto Twitter strip. Default on. `0`, `false`, `off`, or `no` skips the X search |
 | `X_TAPE_DAILY_CAP` | Paid recent-search calls for that strip per UTC day. Default 24. `0` skips the call |
 
@@ -302,7 +306,7 @@ Connect an account:
 3. Call `x_connect_link`, or open [https://labs.koyn.trade/x](https://labs.koyn.trade/x), and sign in as the X account this client should post as.
 4. Copy the personal key shown once on `/x` into the MCP client's `Authorization` header.
 5. `x_connection_status` should report that @username.
-6. `x_prepare_post` returns a draft and the exact preview. `x_publish_post` with that draft id is what publishes it. `x_like_post` and `x_unlike_post` take a post id or status URL and act immediately, one post per call.
+6. `x_prepare_post` returns a draft and the exact preview. `x_publish_post` with that draft id is what publishes it. `x_like_post` and `x_unlike_post` take a post id or status URL and act immediately, one post per call. `x_follow_user` and `x_unfollow_user` take one @username or user id and act immediately.
 
 Media is a JPEG, PNG, WEBP, GIF, or MP4 (H.264 video, AAC audio). Images use `POST https://api.x.com/2/media/upload`. GIF and video use the chunked v2 flow: `POST /2/media/upload/initialize`, `POST /2/media/upload/{id}/append`, `POST /2/media/upload/{id}/finalize`, then `GET /2/media/upload?command=STATUS` until processing succeeds. Pass an https URL, or upload a file to `POST /api/x/media`. A file around 20MB is over the host's single-request body limit, so start a stage, `PUT` 4MB segments to `/api/x/media/<stageId>` with `x-segment-index`, then `POST /api/x/media/<stageId>/finish`, and pass the returned upload id as `media`. The cap on this server is 25MB.
 
@@ -356,9 +360,10 @@ exist yet, so they cannot be simulated on their own.
 one post at a time. Video is MP4 up to 25MB. Replies use those same two
 steps, with a per-author cap and a per-account daily cap. There is no auto-reply.
 Likes and unlikes are one post per call and share a per-account daily cap.
-An account connected before `like.write` was requested has to reconnect
-before either tool will like. X tools and media uploads require
-`Authorization: Bearer <personal key>`.
+Follows and unfollows are one account per call, with separate daily caps.
+An account connected before `like.write` or `follows.write` was requested
+has to reconnect before the tool that needs that scope will run. X tools
+and media uploads require `Authorization: Bearer <personal key>`.
 
 ## License
 

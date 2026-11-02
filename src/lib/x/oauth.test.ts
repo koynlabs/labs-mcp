@@ -71,7 +71,10 @@ describe("PKCE and OAuth state", () => {
     assert.equal(url.origin + url.pathname, "https://x.com/i/oauth2/authorize");
     assert.equal(url.searchParams.get("code_challenge_method"), "S256");
     assert.equal(url.searchParams.get("state"), started.state);
-    for (const scope of X_SCOPES) assert.equal(url.searchParams.get("scope")?.includes(scope), true);
+    const requested = url.searchParams.get("scope")?.split(" ") ?? [];
+    for (const scope of X_SCOPES) assert.equal(requested.includes(scope), true);
+    assert.equal(requested.includes("follows.read"), false);
+    assert.equal(requested.includes("follows.write"), true);
     assert.equal(started.url.includes(config.clientSecret), false);
 
     const pending = JSON.parse((await store.get(KEYS.oauth(started.state))) ?? "{}") as { verifier: string };
@@ -313,6 +316,31 @@ describe("granted scopes", () => {
     assert.equal(await readAccount(store, "1001"), null);
   });
 
+  it("revokes a new grant that has like.write but not follows.write", async () => {
+    const store = createMemoryXStore();
+    const started = await beginConnect(store, config, 1_000);
+    const revoked: string[] = [];
+    const granted = [...X_REQUIRED_SCOPES, "like.write"].join(" ");
+    const http: XFetch = async (target, init) => {
+      if (target.endsWith("/oauth2/token")) {
+        return json({
+          ...tokenPair("access-plain", "refresh-plain"),
+          scope: granted,
+        });
+      }
+      if (target.endsWith("/oauth2/revoke")) {
+        revoked.push(form(init).get("token") ?? "");
+        return json({});
+      }
+      throw new Error(target);
+    };
+    const result = await finishConnect(store, config, { code: "c", state: started.state }, http, 2_000);
+    assert.deepEqual(result, { type: "error", code: "scope" });
+    assert.deepEqual(revoked, ["refresh-plain"]);
+    assert.equal(await readAccount(store, "1001"), null);
+    assert.equal(granted.includes("follows.write"), false);
+  });
+
   it("revokes a new grant that can post but did not receive like.write", async () => {
     const store = createMemoryXStore();
     const started = await beginConnect(store, config, 1_000);
@@ -363,6 +391,7 @@ describe("token refresh rotation", () => {
     const fresh = await ensureAccessToken(store, config, http, "1001", 10_000);
     assert.equal(fresh.accessToken, "still-posting");
     assert.equal(fresh.account.scope.includes("like.write"), false);
+    assert.equal(fresh.account.scope.includes("follows.write"), false);
     assert.equal(unsealTokens(fresh.account, config.encryptionSecret).refreshToken, "still-refresh");
   });
 

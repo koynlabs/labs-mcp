@@ -24,7 +24,8 @@ const ERRORS: Record<string, string> = {
   state: "That sign-in expired or did not match. Start again.",
   denied: "X authorization was declined.",
   token: "X did not return a usable token. Start again.",
-  scope: "X did not grant tweet.write, media.write, offline.access, or like.write. Add those scopes and start again.",
+  scope:
+    "X did not grant tweet.write, media.write, offline.access, like.write, or follows.write. Add those scopes and start again.",
   disconnect: "Disconnect only works in the browser that connected this account.",
   revoke: "Disconnected here. X did not confirm the revoke. Remove labs from the account's connected apps if it still appears.",
 };
@@ -176,7 +177,8 @@ export default async function XPage({
           </ul>
           <p className="panel-note">
             Media can be an https URL or a file uploaded to <code>/api/x/media</code>. A video is an MP4, H.264 and
-            AAC, up to 25MB. <Link href="/">Back to labs</Link>.
+            AAC, up to 25MB. An account that connected before a scope on this list was added has to connect again to
+            grant it. <Link href="/">Back to labs</Link>.
           </p>
         </section>
       </main>
