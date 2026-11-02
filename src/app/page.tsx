@@ -195,12 +195,20 @@ export default function Home() {
                         <code>x_unlike_post</code>
                         <span>Remove that like.</span>
                       </li>
+                      <li>
+                        <code>x_follow_user</code>
+                        <span>Follow one account by @username or user id.</span>
+                      </li>
+                      <li>
+                        <code>x_unfollow_user</code>
+                        <span>Unfollow that account.</span>
+                      </li>
                     </ul>
                     <p className="card-note">
                       Images are JPEG, PNG, or WEBP, up to 5MB. GIF up to 15MB. An MP4 is H.264 video and AAC audio, up
                       to 25MB. A reply is the same draft, on that mention&apos;s thread, and it counts against a
-                      per-author cap and a daily cap. Likes use the same kind of daily cap. An account connected before
-                      likes were added has to reconnect once.
+                      per-author cap and a daily cap. Likes and follows each use a daily cap. An account connected
+                      before likes or follows were added has to reconnect once.
                     </p>
                   </div>
                 </article>

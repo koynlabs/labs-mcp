@@ -2,8 +2,9 @@ import { SITE_URL } from "../config";
 
 /**
  * Scopes a stored token must keep so posting, media upload, and refresh still
- * work. like.write is not in this list: a token issued before likes existed
- * has to keep refreshing, or existing accounts could no longer post.
+ * work. like.write and follows.write are not in this list: a token issued
+ * before those scopes were requested has to keep refreshing, or existing
+ * accounts could no longer post.
  */
 export const X_REQUIRED_SCOPES = [
   "tweet.read",
@@ -20,8 +21,17 @@ export const X_REQUIRED_SCOPES = [
  */
 export const X_LIKE_SCOPE = "like.write";
 
+/**
+ * Follow and unfollow on behalf of the user. X API v2: POST /2/users/:id/following
+ * and DELETE /2/users/:source_user_id/following/:target_user_id. Those writes
+ * also list tweet.read and users.read, which are already required.
+ * follows.read only lists followers and following, so the connect flow does
+ * not request it.
+ */
+export const X_FOLLOW_SCOPE = "follows.write";
+
 /** Confidential-client OAuth 2.0 with PKCE. Each connected account acts only as itself. */
-export const X_SCOPES = [...X_REQUIRED_SCOPES, X_LIKE_SCOPE] as const;
+export const X_SCOPES = [...X_REQUIRED_SCOPES, X_LIKE_SCOPE, X_FOLLOW_SCOPE] as const;
 
 export const X_AUTHORIZE_URL = "https://x.com/i/oauth2/authorize";
 export const X_TOKEN_URL = "https://api.x.com/2/oauth2/token";
@@ -67,6 +77,12 @@ export const DEFAULT_GLOBAL_DAILY_CAP = 30;
 
 /** Likes and unlikes per account per UTC day. 0 refuses both. Same scale as the reply cap. */
 export const DEFAULT_LIKE_DAILY_CAP = 30;
+
+/** Follows per account per UTC day. 0 refuses follows. Separate from unfollows. */
+export const DEFAULT_FOLLOW_DAILY_CAP = 10;
+
+/** Unfollows per account per UTC day. 0 refuses unfollows. Separate from follows. */
+export const DEFAULT_UNFOLLOW_DAILY_CAP = 10;
 
 /** Polls inside one publish call. A later publish resumes the same draft. */
 export const MEDIA_MAX_POLLS = 8;

@@ -316,9 +316,10 @@ export async function refreshGrant(
   // Rotation invalidates the refresh token we just sent. Keep the previous
   // one only when X did not issue a replacement.
   const scope = next.scope || previousScope;
-  // A refresh echoes the scopes originally granted. Requiring like.write here
-  // would reject every token connected before that scope was requested, and
-  // posting would stop. New connects still require it in exchangeCode.
+  // A refresh echoes the scopes originally granted. Requiring like.write or
+  // follows.write here would reject every token connected before that scope
+  // was requested, and posting would stop. New connects still require both
+  // in exchangeCode.
   if (next.scope) assertScopes(next.scope, X_REQUIRED_SCOPES);
   return {
     accessToken: next.accessToken,

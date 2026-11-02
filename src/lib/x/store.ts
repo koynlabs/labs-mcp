@@ -172,6 +172,8 @@ export const KEYS = {
   replied: (userId: string, id: string) => `x:replied:${userId}:${id}`,
   replyDay: (userId: string, day: string) => `x:reply-day:${userId}:${day}`,
   likeDay: (userId: string, day: string) => `x:like-day:${userId}:${day}`,
+  followDay: (userId: string, day: string) => `x:follow-day:${userId}:${day}`,
+  unfollowDay: (userId: string, day: string) => `x:unfollow-day:${userId}:${day}`,
   replyAuthorDay: (userId: string, authorId: string, day: string) => `x:reply-author:${userId}:${authorId}:${day}`,
   mentionsSince: (userId: string) => `x:mentions-since:${userId}`,
 };

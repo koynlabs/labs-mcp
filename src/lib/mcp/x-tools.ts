@@ -4,6 +4,7 @@ import { allow } from "../rate-limit";
 import { xKeyMessage } from "../x/api-key";
 import { xConfigFromEnv, XError } from "../x/config";
 import { xCallbackUrl, xConnectUrl, xWebhookUrl, X_SCOPES } from "../x/constants";
+import { accountCanFollow, followCapsFromEnv, FOLLOW_SCOPE_MESSAGE, setFollow } from "../x/follow";
 import { accountCanLike, likeCapsFromEnv, LIKE_SCOPE_MESSAGE, setPostLike } from "../x/like";
 import { authorizeXRequest, connectionStatus, ensureAccessToken, type StoredXAccount } from "../x/oauth";
 import { preparePost, publishPost } from "../x/post";
@@ -19,6 +20,8 @@ export const X_TOOL_NAMES = [
   "x_publish_post",
   "x_like_post",
   "x_unlike_post",
+  "x_follow_user",
+  "x_unfollow_user",
 ] as const;
 
 const preparePostInput = z.object({
@@ -64,6 +67,16 @@ const postRefInput = z.object({
     .describe("Numeric post id, or an https://x.com or https://twitter.com URL whose path contains /status/<id>."),
 });
 
+const userRefInput = z.object({
+  user: z
+    .string()
+    .min(1)
+    .max(300)
+    .describe(
+      "One X account: @username, a numeric user id, or an https://x.com or https://twitter.com profile URL. Not a list.",
+    ),
+});
+
 function text(value: unknown) {
   return {
     content: [{ type: "text" as const, text: JSON.stringify(value, null, 2) }],
@@ -97,7 +110,7 @@ export function registerXTools(server: McpServer): void {
     {
       title: "X connection",
       description:
-        "Whether this personal key's X account is connected, and which @username posts will be published as. likeWrite is false when the stored token lacks like.write; call x_connect_link and reconnect to grant it. Does not post or like. Without a key, returns configured and connected false. " +
+        "Whether this personal key's X account is connected, and which @username posts will be published as. likeWrite is false when the stored token lacks like.write. followsWrite is false when it lacks follows.write. Call x_connect_link and reconnect to grant a missing scope. Does not post, like, or follow. Without a key, returns configured and connected false. " +
         KEY_NOTE,
       inputSchema: z.object({}),
     },
@@ -114,6 +127,7 @@ export function registerXTools(server: McpServer): void {
         }
         const caps = replyCapsFromEnv();
         const likes = likeCapsFromEnv();
+        const follows = followCapsFromEnv();
         return text({
           ...connectionStatus(auth.account, configured),
           callbackUrl: xCallbackUrl(),
@@ -123,6 +137,9 @@ export function registerXTools(server: McpServer): void {
           replyDailyCap: caps.globalDaily,
           likeWrite: accountCanLike(auth.account),
           likeDailyCap: likes.daily,
+          followsWrite: accountCanFollow(auth.account),
+          followDailyCap: follows.followDaily,
+          unfollowDailyCap: follows.unfollowDaily,
         });
       } catch (error) {
         return failure(messageOf(error));
@@ -257,8 +274,8 @@ export function registerXTools(server: McpServer): void {
         "Returns the exact text, media, reply, and quote that x_publish_post will send.",
         "Show that preview to the user. Publish only after they confirm it.",
         "A reply counts against the per-author and global daily caps. There is no auto-reply.",
-        "One post at a time. No scheduling, no bulk posting, no follows, or DMs.",
-        "Liking is x_like_post, not this tool.",
+        "One post at a time. No scheduling, no bulk posting, and no DMs.",
+        "Liking is x_like_post. Following is x_follow_user. Neither happens here.",
         "The draft can only be published by this same key.",
         KEY_NOTE,
       ].join(" "),
@@ -301,8 +318,8 @@ export function registerXTools(server: McpServer): void {
         "The draft id is the only input. Text and media cannot be changed here.",
         "A video may still be processing; call again with the same draft id. Nothing is posted until X accepts it.",
         "Publishing a reply counts once against the daily caps. A repeat of the same draft does not count again.",
-        "No scheduling, no bulk posting, no auto-reply, no follows, or DMs.",
-        "Liking is x_like_post, not this tool.",
+        "No scheduling, no bulk posting, no auto-reply, and no DMs.",
+        "Liking is x_like_post. Following is x_follow_user. Neither happens here.",
         "A draft prepared by another key is refused.",
         KEY_NOTE,
       ].join(" "),
@@ -371,6 +388,44 @@ export function registerXTools(server: McpServer): void {
     },
     async ({ post }) => likeTool(post, "unlike"),
   );
+
+  server.registerTool(
+    "x_follow_user",
+    {
+      title: "Follow an X account",
+      description: [
+        "Follows one X account as the connected account. Call this only when the user asked to follow that account.",
+        "user is an @username, a numeric user id, or an https profile URL on x.com or twitter.com.",
+        "A user id follows with one write and no lookup. A username costs one GET /2/users/by/username, then POST /2/users/:id/following.",
+        "One account per call. There is no bulk follow, no auto-follow, and no follow loop.",
+        "Each successful follow counts toward that account's UTC-day follow cap, separate from unfollows.",
+        "Does not post, reply, like, or send a DM.",
+        "If the stored token lacks follows.write, this returns an error that says to call x_connect_link and reconnect. Existing accounts have to authorize again once. Posting, mentions, and likes keep working until then.",
+        KEY_NOTE,
+      ].join(" "),
+      inputSchema: userRefInput,
+    },
+    async ({ user }) => followTool(user, "follow"),
+  );
+
+  server.registerTool(
+    "x_unfollow_user",
+    {
+      title: "Unfollow an X account",
+      description: [
+        "Unfollows one X account as the connected account. Call this only when the user asked to unfollow that account.",
+        "user is an @username, a numeric user id, or an https profile URL on x.com or twitter.com.",
+        "A user id unfollows with one write and no lookup. A username costs one GET /2/users/by/username, then DELETE /2/users/:id/following/:target_user_id.",
+        "One account per call. There is no bulk unfollow and no unfollow loop.",
+        "Each successful unfollow counts toward that account's UTC-day unfollow cap, separate from follows.",
+        "Does not post, reply, like, or send a DM.",
+        "If the stored token lacks follows.write, this returns an error that says to call x_connect_link and reconnect. Existing accounts have to authorize again once. Posting, mentions, and likes keep working until then.",
+        KEY_NOTE,
+      ].join(" "),
+      inputSchema: userRefInput,
+    },
+    async ({ user }) => followTool(user, "unfollow"),
+  );
 }
 
 async function likeTool(post: string, action: "like" | "unlike") {
@@ -394,4 +449,25 @@ async function likeTool(post: string, action: "like" | "unlike") {
   }
 }
 
-export { preparePostInput, publishPostInput, postRefInput };
+async function followTool(user: string, action: "follow" | "unfollow") {
+  try {
+    const caller = await requireCaller();
+    if ("error" in caller) return caller.error;
+    if (!accountCanFollow(caller.account)) return failure(FOLLOW_SCOPE_MESSAGE);
+    if (!(await allow(`x:follow:${caller.account.userId}`, 20, 600))) {
+      return failure("Too many follow attempts. Wait a few minutes.");
+    }
+    const config = xConfigFromEnv();
+    if (!config) throw new XError("X is not configured. Set X_CLIENT_ID and X_CLIENT_SECRET.");
+    const result = await setFollow(
+      { store: xStore, config, http: fetch, userId: caller.account.userId },
+      user,
+      action,
+    );
+    return text(result);
+  } catch (error) {
+    return failure(messageOf(error));
+  }
+}
+
+export { preparePostInput, publishPostInput, postRefInput, userRefInput };
