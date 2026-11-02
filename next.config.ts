@@ -22,9 +22,7 @@ const nextConfig: NextConfig = {
       { source: "/api/maker/:path*", headers: privateHeaders },
       { source: "/maker/:path*", headers: privateHeaders },
       { source: "/x", headers: privateHeaders },
-      // Private X routes only. /api/x/trends is the public homepage strip:
-      // no-store on that path would override s-maxage and every visitor would
-      // hit origin. Add new authenticated /api/x routes here.
+      // Authenticated X routes. Add new ones here.
       { source: "/api/x/webhook", headers: privateHeaders },
       { source: "/api/x/disconnect", headers: privateHeaders },
       { source: "/api/x/oauth/:path*", headers: privateHeaders },

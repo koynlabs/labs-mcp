@@ -12,14 +12,12 @@ import { twitterProfile } from "@/lib/site-twitter";
 
 export function SiteFrame({
   children,
-  tape = null,
   version,
   shaShort,
   commitUrl,
   connectHref = "/x",
 }: {
   children: ReactNode;
-  tape?: ReactNode;
   version?: string;
   shaShort?: string;
   commitUrl?: string;
@@ -69,7 +67,6 @@ export function SiteFrame({
             ) : null}
           </nav>
         </header>
-        {tape}
       </div>
       {children}
       <footer className="mkt-foot">

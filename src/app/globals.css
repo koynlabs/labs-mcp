@@ -557,7 +557,7 @@ button:disabled {
   width: 100vw;
   margin-left: calc(50% - 50vw);
   margin-right: calc(50% - 50vw);
-  /* The bar and the tape are one sheet of the same clear glass as the panels. */
+  /* The bar is one sheet of the same clear glass as the panels. */
   background: var(--glass-fill);
   box-shadow:
     inset 0 1px 0 var(--glass-shine),
@@ -575,117 +575,6 @@ button:disabled {
   padding: 0.85rem max(var(--mkt-gutter), calc((100vw - 72rem) / 2 + var(--mkt-gutter)));
   border-bottom: 1px solid var(--glass-edge);
   background: transparent;
-}
-
-/* A second pane under the bar. The sheet above already blurs, so this one only carries light. */
-.ct-tape {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  overflow: hidden;
-  border-bottom: 1px solid var(--glass-edge);
-  background: rgb(255 255 255 / 0.02);
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.08);
-  padding: 0.45rem 0;
-}
-
-.ct-label {
-  flex: none;
-  margin: 0;
-  padding-left: max(var(--mkt-gutter), calc((100vw - 72rem) / 2 + var(--mkt-gutter)));
-  color: var(--muted);
-  font-size: 0.75rem;
-  letter-spacing: 0.14em;
-}
-
-.ct-viewport {
-  overflow: hidden;
-  flex: 1;
-  min-width: 0;
-}
-
-.ct-viewport:has(.is-still) {
-  overflow-x: auto;
-}
-
-.ct-track {
-  display: flex;
-  width: max-content;
-  gap: 0.6rem;
-  padding-right: 0.6rem;
-  animation: ct-scroll 90s linear infinite;
-}
-
-.ct-track:hover {
-  animation-play-state: paused;
-}
-
-.ct-track.is-still {
-  animation: none;
-  flex-wrap: nowrap;
-}
-
-.ct-card {
-  display: flex;
-  align-items: center;
-  gap: 0.55rem;
-  width: 22rem;
-  padding: 0.35rem 0.55rem;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: rgb(255 255 255 / 0.03);
-  color: inherit;
-  text-decoration: none;
-}
-
-.ct-avatar,
-.ct-avatar-empty {
-  width: 1.75rem;
-  height: 1.75rem;
-  border-radius: 999px;
-  object-fit: cover;
-  flex: none;
-}
-
-.ct-avatar-empty {
-  background: rgb(255 255 255 / 0.08);
-}
-
-.ct-copy {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-  flex: 1;
-  gap: 0.1rem;
-}
-
-.ct-handle {
-  color: var(--muted);
-  font-size: 0.75rem;
-}
-
-.ct-text {
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-  font-size: 0.82rem;
-}
-
-.ct-photo {
-  width: 2.4rem;
-  height: 2.4rem;
-  object-fit: cover;
-  border-radius: 4px;
-  flex: none;
-}
-
-@keyframes ct-scroll {
-  from {
-    transform: translateX(0);
-  }
-  to {
-    transform: translateX(-50%);
-  }
 }
 
 .mkt-logo {
