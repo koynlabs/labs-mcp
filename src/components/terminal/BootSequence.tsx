@@ -7,8 +7,8 @@ import AsciiWordmark from "./AsciiWordmark";
 const BOOT_LINES = [
   { id: "host", text: "labs-terminal 0.9.19" },
   { id: "mount", text: "mounting /dev/launcher ... ok" },
-  { id: "launch", text: "launch:" },
-  { id: "agent", text: "agent:" },
+  { id: "launch", text: "launch token:" },
+  { id: "agent", text: "trade agent:" },
 ] as const;
 
 const LABS_MCP_URL = `${SITE_URL}/mcp`;

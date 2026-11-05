@@ -195,8 +195,8 @@ export function runCommand(raw: string): CommandResult | { clear: true } {
     return {
       lines: [
         { text: "host       labs-terminal", tone: "accent" },
-        { text: `launch     ${LABS_MCP_URL}` },
-        { text: `agent      ${TRADE_MCP_URL}` },
+        { text: `launch token    ${LABS_MCP_URL}` },
+        { text: `trade agent      ${TRADE_MCP_URL}` },
       ],
     };
   }
