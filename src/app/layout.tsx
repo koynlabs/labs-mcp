@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Analytics } from "@vercel/analytics/next";
 import { IBM_Plex_Mono } from "next/font/google";
 import CrtBackground from "@/components/CrtBackground";
 import JsonLd from "@/components/JsonLd";
@@ -67,6 +68,7 @@ export default function RootLayout({
         <CrtBackground />
         {children}
         <div className="crt-scanlines" aria-hidden="true" />
+        <Analytics />
       </body>
     </html>
   );

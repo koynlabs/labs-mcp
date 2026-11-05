@@ -21,6 +21,7 @@
     "@solana/spl-token": "^0.4.15",
     "@solana/web3.js": "^1.99.0",
     "@upstash/redis": "^1.39.0",
+    "@vercel/analytics": "^2.0.1",
     "bn.js": "^5.2.5",
     "bs58": "^6.0.0",
     "gsap": "^3.15.0",
