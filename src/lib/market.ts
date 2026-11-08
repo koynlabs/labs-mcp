@@ -1,6 +1,15 @@
 import { LAMPORTS_PER_SOL, PublicKey } from "@solana/web3.js";
-import { PUMP, STONKS } from "./config";
+import { PINATA, STONKS } from "./config";
+import {
+  PUMP_PROGRAM,
+  bondingCurveAddress,
+  curvePrice,
+  decodeCurve,
+  decodeMetadataAccount,
+  decodeMint,
+} from "./market/pump-account";
 import { connection } from "./solana";
+import { fetchPublicBuffer, SsrfError } from "./ssrf";
 import type { Venue } from "./types";
 
 export type TokenInfo = {
@@ -25,122 +34,90 @@ export type TokenInfo = {
   source: string;
 };
 
-/**
- * pump.fun reads go through the free read-only pump.fun MCP over HTTP. It takes
- * no key and signs nothing, so it is safe to depend on for prices and curve
- * state. Launch transactions are deliberately not delegated to any MCP.
- */
-async function callPumpRead<T>(
-  tool: string,
-  args: Record<string, unknown>,
-): Promise<T | null> {
-  const response = await fetch(PUMP.readMcp, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Accept: "application/json, text/event-stream",
-    },
-    body: JSON.stringify({
-      jsonrpc: "2.0",
-      id: 1,
-      method: "tools/call",
-      params: { name: tool, arguments: args },
-    }),
-  });
-  if (!response.ok) {
-    throw new Error(`pump.fun read MCP failed (${response.status})`);
+function metadataHttpUrl(uri: string): string | null {
+  const trimmed = uri.trim();
+  if (trimmed.startsWith("ipfs://")) {
+    const path = trimmed.slice("ipfs://".length).replace(/^ipfs\//, "");
+    return path ? `${PINATA.gateway}/${path}` : null;
   }
-
-  const text = await response.text();
-  // The endpoint answers as SSE; take the last data frame either way.
-  const payload =
-    text.startsWith("event:") || text.includes("\ndata:")
-      ? text
-          .split("\n")
-          .filter((line) => line.startsWith("data:"))
-          .map((line) => line.slice(5).trim())
-          .at(-1)
-      : text;
-  if (!payload) throw new Error("pump.fun read MCP returned nothing");
-
-  const body = JSON.parse(payload) as {
-    result?: { structuredContent?: T; content?: { text?: string }[] };
-    error?: { message?: string };
-  };
-  if (body.error) throw new Error(body.error.message ?? "pump.fun read failed");
-
-  const structured = body.result?.structuredContent;
-  if (structured) return structured;
-  const raw = body.result?.content?.[0]?.text;
-  return raw ? (JSON.parse(raw) as T) : null;
+  if (trimmed.startsWith("https://") || trimmed.startsWith("http://")) return trimmed;
+  return null;
 }
 
-type PumpDetails = {
-  name?: string;
-  symbol?: string;
-  decimals?: number;
-  supply?: string;
-};
-
-type PumpCurve = {
-  complete?: boolean;
-  graduationPercent?: number;
-  virtualSolReserves?: string;
-  virtualTokenReserves?: string;
-};
+/** Name and symbol from the JSON at a mint's metadata URI. Missing fields stay unset. */
+async function metadataJson(uri: string): Promise<{ name?: string; symbol?: string }> {
+  const url = metadataHttpUrl(uri);
+  if (!url) return {};
+  try {
+    const { body } = await fetchPublicBuffer(url, {
+      maxBytes: 256_000,
+      accept: "application/json",
+      label: "token metadata",
+    });
+    const json = JSON.parse(body.toString("utf8")) as { name?: unknown; symbol?: unknown };
+    const name = typeof json.name === "string" && json.name.trim() ? json.name.trim() : undefined;
+    const symbol = typeof json.symbol === "string" && json.symbol.trim() ? json.symbol.trim() : undefined;
+    return { ...(name ? { name } : {}), ...(symbol ? { symbol } : {}) };
+  } catch (err) {
+    if (err instanceof SsrfError || err instanceof SyntaxError) return {};
+    return {};
+  }
+}
 
 /**
  * Price comes off the bonding curve's virtual reserves rather than an indexer's
- * USD figure, because that ratio *is* the price a trade executes at. The
- * indexer's `price_usd` is null on fresh mints, which is exactly when a launch
- * needs it.
+ * USD figure, because that ratio *is* the price a trade executes at.
  */
-function curvePrice(curve: PumpCurve, decimals: number): number | undefined {
-  const sol = Number(curve.virtualSolReserves);
-  const token = Number(curve.virtualTokenReserves);
-  if (!sol || !token) return undefined;
-  const price = sol / LAMPORTS_PER_SOL / (token / 10 ** decimals);
-  return Number.isFinite(price) && price > 0 ? price : undefined;
-}
-
 async function pumpInfo(mint: string): Promise<TokenInfo> {
-  const details =
-    (await callPumpRead<PumpDetails>("get_token_details", { mint })) ?? {};
-  const decimals = details.decimals ?? 6;
-
-  let curve: PumpCurve | null = null;
-  let note: string | undefined;
+  let mintKey: PublicKey;
   try {
-    curve = await callPumpRead<PumpCurve>("get_bonding_curve", { mint });
+    mintKey = new PublicKey(mint);
   } catch {
-    // The curve account is closed once a token graduates, and it never existed
-    // for mints that were not launched on pump.fun at all.
-    note =
-      "no bonding curve for this mint: it has either graduated to an AMM or was not launched on pump.fun";
+    throw new Error(`${mint} is not a Solana address`);
+  }
+  const curveKey = bondingCurveAddress(mintKey);
+  const [mintInfo, curveInfo] = await connection().getMultipleAccountsInfo([mintKey, curveKey]);
+  if (!mintInfo) throw new Error(`no mint account for ${mint}`);
+  const facts = decodeMint(mintInfo.data);
+  if (!facts) throw new Error(`could not read the mint ${mint}`);
+
+  let name = facts.name;
+  let symbol = facts.symbol;
+  let uri = facts.uri;
+  if ((!name || !symbol) && facts.metadataAccount && facts.metadataAccount !== mint) {
+    const metaInfo = await connection().getAccountInfo(new PublicKey(facts.metadataAccount));
+    const meta = metaInfo ? decodeMetadataAccount(metaInfo.data) : null;
+    name = name ?? meta?.name;
+    symbol = symbol ?? meta?.symbol;
+    uri = uri ?? meta?.uri;
+  }
+  if ((!name || !symbol) && uri) {
+    const json = await metadataJson(uri);
+    name = name ?? json.name;
+    symbol = symbol ?? json.symbol;
   }
 
-  const priceQuote = curve ? curvePrice(curve, decimals) : undefined;
-  const supply = Number(details.supply);
+  const curve =
+    curveInfo && curveInfo.owner.equals(PUMP_PROGRAM) ? decodeCurve(curveInfo.data) : null;
+  const note = curve
+    ? undefined
+    : "no bonding curve for this mint: it has either graduated to an AMM or was not launched on pump.fun";
+  const priceQuote = curve ? curvePrice(curve, facts.decimals) : undefined;
+  const supply = Number(facts.supply);
   const marketCapQuote =
-    priceQuote && Number.isFinite(supply)
-      ? priceQuote * (supply / 10 ** decimals)
-      : undefined;
+    priceQuote != null && Number.isFinite(supply) ? priceQuote * (supply / 10 ** facts.decimals) : undefined;
 
   return {
     venue: "pump",
     mint,
-    name: details.name,
-    symbol: details.symbol,
+    ...(name ? { name } : {}),
+    ...(symbol ? { symbol } : {}),
     quoteSymbol: "SOL",
-    priceQuote,
-    marketCapQuote,
-    graduated: curve ? Boolean(curve.complete) : undefined,
-    graduationProgress:
-      curve?.graduationPercent !== undefined
-        ? curve.graduationPercent / 100
-        : undefined,
-    note,
-    source: PUMP.readMcp,
+    ...(priceQuote != null ? { priceQuote } : {}),
+    ...(marketCapQuote != null ? { marketCapQuote } : {}),
+    ...(curve ? { graduated: curve.complete, graduationProgress: curve.progress } : {}),
+    ...(note ? { note } : {}),
+    source: `bonding-curve:${curveKey.toBase58()}`,
   };
 }
 

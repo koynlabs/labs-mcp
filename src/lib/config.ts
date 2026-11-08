@@ -79,8 +79,6 @@ export const PUMP = {
   lookupTable:
     process.env.LABS_PUMP_LUT?.trim() ||
     "Hyif6eWb8x88RVrvjPfabsgRYnwkVnyByEXTVTXbUcyP",
-  /** Read-only pump.fun data: bonding curve, token details, holders. */
-  readMcp: process.env.PUMP_READ_MCP_URL ?? "https://three.ws/api/pump-fun-mcp",
 };
 
 /**
