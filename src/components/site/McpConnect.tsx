@@ -113,7 +113,9 @@ export default function McpConnect({
 const HARNESS_CSS = `
 .mcp-harness {
   width: min(32rem, calc(100vw - 2rem));
+  height: fit-content;
   max-height: min(40rem, calc(100vh - 2rem));
+  margin: auto;
   padding: 0;
   border: 1px solid var(--glass-edge);
   border-radius: 0;
