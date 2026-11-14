@@ -3,6 +3,7 @@ import Link from "next/link";
 import Wordmark from "@/components/Wordmark";
 import { Button } from "@/components/site/Button";
 import CopyField from "@/components/site/CopyField";
+import McpConnect from "@/components/site/McpConnect";
 import LaunchTranscript from "@/components/site/LaunchTranscript";
 import LabsMotion from "@/components/site/LabsMotion";
 import { Panel } from "@/components/site/Panel";
@@ -322,9 +323,9 @@ export default function Home() {
                   <span>01</span> Add the MCP
                 </p>
                 <CopyField value={MCP_URL} label="MCP URL" />
+                <McpConnect name="Labs" url={MCP_URL} className="btn btn-primary" />
                 <p className="panel-note">
-                  Claude: Settings → Connectors → Add custom connector. ChatGPT: Settings → Connectors → Advanced →
-                  Add. Grok: add it as a custom MCP server. Launches and trades need no API key.
+                  Choose the app. You still confirm before anything is added. Launches and trades need no API key.
                 </p>
               </Panel>
               <Panel accent>
