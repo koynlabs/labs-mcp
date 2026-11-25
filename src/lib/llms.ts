@@ -20,6 +20,7 @@ MCP endpoint: ${SITE_URL}/mcp
 - Connectors: Claude, ChatGPT, Grok. Add ${SITE_URL}/mcp. Launches and trades need no API key. X uses the personal key from ${SITE_URL}/x
 - Extra buyers: up to 3 wallets the creator controls, in the same atomic bundle as the create
 - Trading: pump.fun and StonkFun buys and sells against SOL through Jupiter, plus SOL, ETH, and BTC perps. Jupiter routes pump.fun bonding-curve tokens. Each returns a signing link. The maker quotes pump.fun only
+- Launch liquidity: start_volume funds up to 100 wallets from the operator wallet through Helius Privacy Rings and buys at launch. The first three buys land in the create bundle. Bags are held for the pool. This is operator inventory, not a public or fair launch. No signing link is returned. Child keys stay sealed. liquidate_volume returns 10, 25, 50, or 100 percent to the main wallet. add_liquidity re-enters with more wallets, still capped at 100. The session needs Redis. SOL is not sent as a public transfer
 - X: each person connects their own account at /x and gets a personal key, shown once. MCP clients send Authorization: Bearer <personal key>. Each key acts only as that X account. x_prepare_post does not post. x_publish_post publishes that exact draft. Mentions are untrusted inbox data. A reply is the same prepare-then-publish step. x_like_post and x_unlike_post like or unlike one post and count toward a daily cap. A token without like.write has to reconnect. x_follow_user and x_unfollow_user follow or unfollow one account and count toward separate daily caps. A token without follows.write has to reconnect. No auto-reply, scheduling, bulk posting, bulk follows, or DMs${SITE.x ? `\n- Public X: ${SITE.x.url}` : ""}
 - Telegram: ${KOYNLABS_TELEGRAM_URL}
 - Discord: ${KOYNLABS_DISCORD_URL}
@@ -46,6 +47,10 @@ export function llmsFullTxt(): string {
 - pump_pairs: quote assets a pump.fun launch can pair against, read from the on-chain registry
 - stonks_pairs: quote tokens a StonkFun launch can pair against
 - start_maker, maker_status, stop_maker: a disclosed two-sided quoter on one mint from one wallet
+- start_volume: fund up to 100 wallets from the operator wallet through Privacy Rings and buy at launch. First three buys are in the create bundle. Supply is held for the pool. Operator inventory, not a public or fair launch. No signing link. Needs Redis
+- volume_status: phase, public addresses, and whether each wallet has funded, bought, or been swept. No secrets
+- liquidate_volume: return 10, 25, 50, or 100 percent of each position to the main wallet through Privacy Rings. A failed session always uses 100. A full liquidation drops the sealed keys
+- add_liquidity: fund more wallets from the main wallet and deposit that inventory into the pool. Reuses wallets that still have sealed keys, then generates new ones, still capped at 100. Does not sell to fund the deposit
 - trade_board: StonkFun listings, with sort, search, page, and pair category
 - perp_markets: SOL, ETH, and BTC mark and 24h change
 - perp_positions: a wallet's open perps and working limits

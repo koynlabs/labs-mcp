@@ -44,6 +44,16 @@ export function PerpsIcon(props: IconProps) {
   );
 }
 
+export function LiquidityIcon(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path {...stroke} d="M4 8c2.4 1.6 4.6 1.6 8 0s5.6-1.6 8 0" />
+      <path {...stroke} d="M4 12c2.4 1.6 4.6 1.6 8 0s5.6-1.6 8 0" />
+      <path {...stroke} d="M4 16c2.4 1.6 4.6 1.6 8 0s5.6-1.6 8 0" />
+    </Svg>
+  );
+}
+
 export function MakerIcon(props: IconProps) {
   return (
     <Svg {...props}>

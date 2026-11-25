@@ -6,9 +6,9 @@ export const SITE = {
   title: "LABS",
   url: SITE_URL,
   description:
-    "Launch a token on pump.fun or StonkFun, trade it, and announce it on your X account from one assistant. Your wallet signs. A post goes out only after you confirm it.",
+    "Launch a token on pump.fun or StonkFun, fund its pool from up to 100 wallets through Privacy Rings, trade it, and announce it on your X account from one assistant. Your wallet signs the launch, the trade, and the perp. A post goes out only after you confirm it.",
   ogDescription:
-    "Launch a token on pump.fun or StonkFun and announce it on your X account. Your wallet signs. A post goes out only after you confirm.",
+    "Launch a token on pump.fun or StonkFun, fund the pool through Privacy Rings, and announce it on your X account. Your wallet signs. A post goes out only after you confirm.",
   locale: "en_US",
   /** Public X profile. Null when NEXT_PUBLIC_TWITTER is unset or a placeholder. */
   x: twitterProfile(),
@@ -20,7 +20,7 @@ export const DISCLAIMER =
 export const FAQ = [
   {
     q: "What is labs?",
-    a: "labs is an MCP server at labs.koyn.trade. Connect it to Claude, ChatGPT or Grok and ask it to launch a token on pump.fun or StonkFun, trade it, and draft the announcement for your own X account. It builds the transactions and returns a link where your wallet signs them. A post goes out only after you confirm the draft.",
+    a: "labs is an MCP server at labs.koyn.trade. Connect it to Claude, ChatGPT or Grok and ask it to launch a token on pump.fun or StonkFun, fund launch liquidity, trade it, and draft the announcement for your own X account. A launch, a trade, and a perp return a link where your wallet signs. Launch liquidity uses the operator wallet and returns no signing link. A post goes out only after you confirm the draft.",
   },
   {
     q: "How much does a labs launch cost?",
@@ -28,7 +28,7 @@ export const FAQ = [
   },
   {
     q: "Does labs hold my private key?",
-    a: "No. labs never asks for a wallet private key. Your wallet signs every transaction. labs generates the new token's mint key, seals it until you have signed, and uses it only to co-sign the create. That key holds no funds. A maker session can also hold the throwaway quoting key you generate in the browser, and that key is capped and expires. An X connection seals that account's tokens. Each person gets a personal key at /x, shown once, and a post is published only after they confirm the draft.",
+    a: "labs never asks for your wallet private key. Your wallet signs a launch, a trade, and a perp. labs generates the new token's mint key, seals it until you have signed, and uses it only to co-sign the create. That key holds no funds. Launch liquidity signs from the operator wallet in the server environment. It generates up to 100 child wallets and seals those keys. They are not returned. A maker session can also hold the throwaway quoting key you generate in the browser, and that key is capped and expires. An X connection seals that account's tokens. Each person gets a personal key at /x, shown once, and a post is published only after they confirm the draft.",
   },
   {
     q: "How do I connect labs to Claude, ChatGPT or Grok?",
@@ -41,5 +41,9 @@ export const FAQ = [
   {
     q: "Can labs trade, or only launch?",
     a: "It can market-swap a pump.fun or StonkFun mint against SOL, place a limit, stop, take-profit/stop, or DCA through Jupiter, and open or close SOL, ETH, and BTC perps. Jupiter routes pump.fun bonding-curve tokens. Each one returns a link where your wallet signs.",
+  },
+  {
+    q: "What is launch liquidity?",
+    a: "start_volume funds up to 100 wallets from the operator wallet through Helius Privacy Rings and buys at launch. The first three buys land in the create bundle. The rest buy immediately after. That supply is held for the pool. It is operator inventory, not a public or fair launch, and no signing link is returned. liquidate_volume returns 10, 25, 50, or 100 percent to the main wallet. A failed session always uses 100. add_liquidity sends more wallets back in, still capped at 100. The session needs Redis.",
   },
 ] as const;

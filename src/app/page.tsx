@@ -8,7 +8,7 @@ import LaunchTranscript from "@/components/site/LaunchTranscript";
 import LabsMotion from "@/components/site/LabsMotion";
 import { Panel } from "@/components/site/Panel";
 import SiteChrome from "@/components/site/SiteChrome";
-import { LaunchIcon, MakerIcon, PerpsIcon, TradeIcon, XIcon } from "@/components/site/icons";
+import { LaunchIcon, LiquidityIcon, MakerIcon, PerpsIcon, TradeIcon, XIcon } from "@/components/site/icons";
 import { SITE_URL } from "@/lib/config";
 import { KOYN_DESK_URL, KOYN_PERPS_URL } from "@/lib/koyn";
 
@@ -22,11 +22,16 @@ const STEPS = [
   },
   { n: "02", title: "Sign", text: "Your wallet signs. labs does not hold that key." },
   { n: "03", title: "Lands", text: "The assistant checks who signed and whether the bundle landed." },
-  { n: "04", title: "Draft", text: "The assistant drafts the announcement as your X account, with art or an MP4." },
-  { n: "05", title: "Confirm", text: "You confirm that exact text and media. Nothing is posted before this." },
-  { n: "06", title: "Live on X", text: "The draft goes live on your account." },
   {
-    n: "07",
+    n: "04",
+    title: "Liquidity",
+    text: "The operator wallet can fund up to 100 wallets through Privacy Rings. They buy at launch and hold that supply for the pool.",
+  },
+  { n: "05", title: "Draft", text: "The assistant drafts the announcement as your X account, with art or an MP4." },
+  { n: "06", title: "Confirm", text: "You confirm that exact text and media. Nothing is posted before this." },
+  { n: "07", title: "Live on X", text: "The draft goes live on your account." },
+  {
+    n: "08",
     title: "Replies",
     text: "Mentions come in. The assistant drafts replies on those threads. Replies are capped. Nothing replies on its own.",
   },
@@ -48,9 +53,10 @@ export default function Home() {
               </h1>
               <p className="lede">
                 From one conversation. Connect labs to Claude, ChatGPT or Grok. The assistant builds the launch and
-                returns a link where your wallet signs. With your own X account connected, that same assistant drafts
-                the announcement — text, an image, or an MP4 — and posts it only after you confirm the preview. There
-                is no launch fee and no subscription.
+                returns a link where your wallet signs. It can also fund launch liquidity through Privacy Rings: up to
+                100 wallets buy at launch and hold that supply for the pool. With your own X account connected, that
+                same assistant drafts the announcement — text, an image, or an MP4 — and posts it only after you confirm
+                the preview. There is no launch fee and no subscription.
               </p>
               <div className="hero-actions">
                 <Button href="#connect">Add the MCP</Button>
@@ -112,7 +118,7 @@ export default function Home() {
               <span />
             </div>
             <div className="labs-window">
-              <div className="labs-track" style={{ "--panels": 5 } as CSSProperties}>
+              <div className="labs-track" style={{ "--panels": 6 } as CSSProperties}>
                 <article className="labs-panel" data-label="01 Launch">
                   <div>
                     <p className="labs-index">01</p>
@@ -151,9 +157,47 @@ export default function Home() {
                   </ul>
                 </article>
 
-                <article className="labs-panel" data-label="02 X">
+                <article className="labs-panel" data-label="02 Liquidity">
                   <div>
                     <p className="labs-index">02</p>
+                    <div className="card-kicker">
+                      <span className="card-icon">
+                        <LiquidityIcon />
+                      </span>
+                      <h3>Liquidity</h3>
+                    </div>
+                  </div>
+                  <div>
+                    <ul className="tool-lines">
+                      <li>
+                        <code>start_volume</code>
+                        <span>Fund up to 100 wallets through Privacy Rings and buy at launch.</span>
+                      </li>
+                      <li>
+                        <code>volume_status</code>
+                        <span>Phase, public addresses, and whether each wallet has funded, bought, or been swept.</span>
+                      </li>
+                      <li>
+                        <code>liquidate_volume</code>
+                        <span>Return 10, 25, 50, or 100 percent of each position to the main wallet.</span>
+                      </li>
+                      <li>
+                        <code>add_liquidity</code>
+                        <span>Fund more wallets, still capped at 100, and send them back into the pool.</span>
+                      </li>
+                    </ul>
+                    <p className="card-note">
+                      This is the operator&apos;s launch inventory, not a public or fair launch. The first three buys
+                      land in the create bundle. The rest buy immediately after. Bags are held for the pool. No signing
+                      link is returned, and the child keys stay sealed. SOL moves through Helius Privacy Rings. A
+                      session needs Redis.
+                    </p>
+                  </div>
+                </article>
+
+                <article className="labs-panel" data-label="03 X">
+                  <div>
+                    <p className="labs-index">03</p>
                     <div className="card-kicker">
                       <span className="card-icon">
                         <XIcon />
@@ -213,9 +257,9 @@ export default function Home() {
                   </div>
                 </article>
 
-                <article className="labs-panel" data-label="03 Trade">
+                <article className="labs-panel" data-label="04 Trade">
                   <div>
-                    <p className="labs-index">03</p>
+                    <p className="labs-index">04</p>
                     <div className="card-kicker">
                       <span className="card-icon">
                         <TradeIcon />
@@ -243,9 +287,9 @@ export default function Home() {
                   </p>
                 </article>
 
-                <article className="labs-panel" data-label="04 Perps">
+                <article className="labs-panel" data-label="05 Perps">
                   <div>
-                    <p className="labs-index">04</p>
+                    <p className="labs-index">05</p>
                     <div className="card-kicker">
                       <span className="card-icon">
                         <PerpsIcon />
@@ -280,9 +324,9 @@ export default function Home() {
                   </p>
                 </article>
 
-                <article className="labs-panel" data-label="05 Maker">
+                <article className="labs-panel" data-label="06 Maker">
                   <div>
-                    <p className="labs-index">05</p>
+                    <p className="labs-index">06</p>
                     <div className="card-kicker">
                       <span className="card-icon">
                         <MakerIcon />
@@ -353,8 +397,9 @@ export default function Home() {
               <li className="labs-band">
                 <span className="labs-band-label">Wallet</span>
                 <span>
-                  labs never asks for a wallet private key. Your wallet signs every transaction, and that signature is
-                  what authorises the launch, the trade, and the perp.
+                  labs never asks for your wallet private key. Your wallet signs the launch, the trade, and the perp.
+                  Launch liquidity is the operator wallet: it funds generated wallets through Privacy Rings, those keys
+                  stay sealed, and that supply is held for the pool.
                 </span>
               </li>
               <li className="labs-band">

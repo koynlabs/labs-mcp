@@ -5,7 +5,7 @@ const SECTIONS = [
   {
     id: "labs",
     title: "What labs does",
-    text: "labs builds a launch, a trade, or a post and hands it back for you to confirm. Your wallet signs every transaction. A post goes out only after you confirm the draft. labs does not hold your funds and does not ask for a wallet private key.",
+    text: "labs builds a launch, a trade, launch liquidity, or a post and hands the user-signed work back for you to confirm. Your wallet signs a launch, a trade, and a perp. Launch liquidity is funded by the operator wallet through Privacy Rings. A post goes out only after you confirm the draft. labs does not ask for your wallet private key.",
   },
   {
     id: "risk",
@@ -15,12 +15,12 @@ const SECTIONS = [
   {
     id: "keep",
     title: "What we keep",
-    text: "The public wallet address on a signing link, so the transaction can be built for that wallet. A launch also creates a mint key, sealed until you have signed. That key holds no funds. Connecting X stores that account's tokens, sealed. The personal key from /x is shown once and kept only as a hash. A post is published only after you confirm the draft.",
+    text: "The public wallet address on a signing link, so the transaction can be built for that wallet. A launch also creates a mint key, sealed until you have signed. That key holds no funds. A volume session stores the public addresses of its wallets and seals the child keys. Those keys are not returned. Connecting X stores that account's tokens, sealed. The personal key from /x is shown once and kept only as a hash. A post is published only after you confirm the draft.",
   },
   {
     id: "dont",
     title: "What we don't",
-    text: "We do not ask for a wallet private key. We do not sell what we see. The tools, the venues, and this note can change. If you keep using labs, you are on the current version.",
+    text: "We do not ask for your wallet private key. We do not sell what we see. The tools, the venues, and this note can change. If you keep using labs, you are on the current version.",
   },
 ] as const;
 
@@ -39,7 +39,7 @@ export default function LegalNote({ page }: { page: "terms" | "privacy" }) {
         </section>
       ))}
       <p className="legal-dated">
-        21 October 2026. Questions: <a href="mailto:labs@koyn.trade">labs@koyn.trade</a>
+        25 November 2026. Questions: <a href="mailto:labs@koyn.trade">labs@koyn.trade</a>
       </p>
     </>
   );
