@@ -52,6 +52,10 @@ Then: *“Launch a token on pump.fun called …”*
 | `start_maker` | Opens a two-sided quoting session |
 | `maker_status` | Position, last bid and ask, fills, time left |
 | `stop_maker` | Ends a session, needs the maker wallet's signature |
+| `start_volume` | Funds up to 100 agent wallets through Privacy Rings and buys at launch |
+| `volume_status` | Phase, wallets, and whether keys are still sealed |
+| `liquidate_volume` | Sells 10, 25, 50, or 100 percent and returns SOL to the main wallet |
+| `add_liquidity` | Funds more wallets, up to 100, and sends them back in |
 | `trade_board` | StonkFun listings, with sort, search, page, and pair category |
 | `perp_markets` | SOL, ETH, and BTC mark and 24h change |
 | `perp_positions` | A wallet's open perps and working limits |
@@ -197,6 +201,16 @@ It expires, and `stop_maker` discards it early.
 The same secret seals a Jupiter trigger session after the wallet signs the
 challenge. The browser never receives that bearer. Set `LABS_SESSION_SECRET` in
 Vercel before deploying, or limit, stop, take-profit, and DCA signing fails closed.
+
+## Volume
+
+`start_volume` is the operator's launch inventory, not a disclosed quoter and not a public or fair launch. The agent wallet in `LABS_AGENT_KEYPAIR` generates up to 100 child wallets and seals their keys with `LABS_SESSION_SECRET`. No signing link is returned.
+
+SOL moves through Helius Privacy Rings. The deposit and the withdrawal show the amount. The transfer between the two shielded balances does not. A URL that is not the Helius mainnet or devnet RPC is refused, and nothing is sent as a public transfer. A `/v1/spr` method URL is accepted and used as the RPC root. Set `HELIUS_PRIVACY_URL`.
+
+The first three buys ride in the create bundle. The rest buy immediately after. Bags are held for the pool. Sells happen only on `liquidate_volume`, at 10, 25, 50, or 100 percent. A failed session always uses 100. Proceeds go back to the main wallet through Rings. A full liquidation drops the sealed keys. `add_liquidity` re-enters with more wallets, still capped at 100, funded from the main wallet.
+
+The session needs Redis. `start_maker` is unchanged.
 
 ## Running it
 

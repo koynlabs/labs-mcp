@@ -18,6 +18,7 @@ import { getBundle, getSession, isPersistent } from "../store";
 import { isPublicKey } from "../solana";
 import { makerSession } from "../../../workflows/maker";
 import { registerTradeTools } from "./trade-tools";
+import { registerVolumeTools } from "./volume-tools";
 import { registerXTools } from "./x-tools";
 
 const venue = z.enum(["pump", "stonks"]);
@@ -432,6 +433,7 @@ export function registerTools(server: McpServer): void {
     },
   );
 
+  registerVolumeTools(server);
   registerTradeTools(server);
   registerXTools(server);
 }
