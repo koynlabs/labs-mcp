@@ -1,12 +1,12 @@
 import { redisConfigured, withRedis } from "./redis";
-import type { LaunchBundle, MakerSession, TradeIntent } from "./types";
+import type { LaunchBundle, MakerSession, TradeIntent, VolumeSession } from "./types";
 
 /**
  * Launch bundles and maker sessions outlive a single request, so they cannot
  * live in module memory on Vercel. Redis is used when configured; the in-memory
  * fallback exists so `next dev` works without a database.
  */
-type Row = LaunchBundle | MakerSession | TradeIntent;
+type Row = LaunchBundle | MakerSession | TradeIntent | VolumeSession;
 
 /**
  * Route handlers and server components are bundled apart, so a module-level
@@ -60,6 +60,10 @@ export function getSession(id: string) {
 
 export function getTrade(id: string) {
   return read<TradeIntent>("trade", id);
+}
+
+export function getVolume(id: string) {
+  return read<VolumeSession>("volume", id);
 }
 
 export function isPersistent(): boolean {

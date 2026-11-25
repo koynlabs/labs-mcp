@@ -121,6 +121,58 @@ export type MakerSession = {
   createdAt: number;
 };
 
+export type VolumeRole = "bundle" | "follow_on";
+
+export type VolumePhase =
+  | "funding"
+  | "buying"
+  | "holding"
+  | "depositing"
+  | "managing"
+  | "liquidating"
+  | "swept"
+  | "failed";
+
+export type VolumeChild = {
+  publicKey: string;
+  /** Child secret, sealed with LABS_SESSION_SECRET. Never returned by a tool. */
+  sealedSecret: string;
+  sol: number;
+  role: VolumeRole;
+  lpRaw: string;
+  funded: boolean;
+  bought: boolean;
+  swept: boolean;
+  /** Set to the session pass once this wallet has been liquidated for that request. */
+  settledPass?: number;
+};
+
+/**
+ * Creator-controlled supply for one launch. Child keys stay sealed. Sells
+ * happen only while `phase` is `liquidating`, and the SOL returns to `main`.
+ */
+export type VolumeSession = {
+  id: string;
+  kind: "volume";
+  venue: Venue;
+  main: string;
+  name: string;
+  symbol: string;
+  imageUrl: string;
+  description?: string;
+  count: number;
+  solPerWallet: number;
+  children: VolumeChild[];
+  phase: VolumePhase;
+  mint?: string;
+  launchId?: string;
+  liquidatePercent?: 10 | 25 | 50 | 100;
+  /** Increments on each liquidate or re-enter so a wallet is processed once per request. */
+  pass?: number;
+  error?: string;
+  createdAt: number;
+};
+
 export type PerpAsset = "SOL" | "ETH" | "BTC";
 export type PerpSide = "long" | "short";
 
