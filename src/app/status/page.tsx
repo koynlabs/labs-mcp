@@ -64,8 +64,8 @@ export default function StatusPage() {
 
         <p className="lede x-follow">
           {status.store === "redis"
-            ? "Launch bundles and maker sessions are stored in Redis, so they survive a redeploy."
-            : "No Redis is configured, so launch bundles live in memory and maker sessions cannot start."}
+            ? "Launch bundles, maker sessions, and volume sessions are stored in Redis, so they survive a redeploy."
+            : "No Redis is configured, so launch bundles live in memory. Maker sessions and volume sessions cannot start."}
         </p>
 
         <section className="band" aria-labelledby="tools-status-title">

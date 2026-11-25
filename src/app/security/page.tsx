@@ -9,7 +9,7 @@ import { GITHUB_REPO_URL } from "@/lib/revision";
 export const metadata: Metadata = {
   title: "Security",
   description:
-    "How labs handles wallet keys, mint keys, and X tokens, and how to report a problem.",
+    "How labs handles wallet keys, mint keys, launch-liquidity keys, and X tokens, and how to report a problem.",
 };
 
 export default function SecurityPage() {
@@ -34,8 +34,15 @@ export default function SecurityPage() {
         <div className="trust-grid">
           <Panel title="Wallet">
             <p>
-              Your wallet signs every transaction. That signature is what authorises the launch, the trade, and the
-              perp. labs does not ask for the private key.
+              Your wallet signs a launch, a trade, and a perp. That signature is what authorises those. labs does not
+              ask for your private key.
+            </p>
+          </Panel>
+          <Panel title="Launch liquidity">
+            <p>
+              A volume session signs from <code>LABS_AGENT_KEYPAIR</code>, an operator key that stays in the
+              environment. Child keys are generated here and sealed with <code>LABS_SESSION_SECRET</code>. The tools
+              do not return them. SOL moves through Helius Privacy Rings.
             </p>
           </Panel>
           <Panel title="Mint">
@@ -55,7 +62,8 @@ export default function SecurityPage() {
             <p>
               Anything that would let the server move funds, serve a different binary than{" "}
               <a href={GITHUB_REPO_URL}>github.com/koynlabs/labs-mcp</a>, or leak <code>LABS_PINATA_JWT</code>,{" "}
-              <code>LABS_SESSION_SECRET</code>, a personal X key, <code>X_CLIENT_SECRET</code>,{" "}
+              <code>LABS_SESSION_SECRET</code>, <code>LABS_AGENT_KEYPAIR</code>,{" "}
+              <code>HELIUS_PRIVACY_URL</code>, a personal X key, <code>X_CLIENT_SECRET</code>,{" "}
               <code>X_CONSUMER_SECRET</code>, <code>X_TOKEN_ENCRYPTION_KEY</code>, or Redis credentials.
             </p>
           </Panel>

@@ -18,6 +18,10 @@ export const TOOL_NAMES = [
   "start_maker",
   "maker_status",
   "stop_maker",
+  "start_volume",
+  "volume_status",
+  "liquidate_volume",
+  "add_liquidity",
   "trade_board",
   "perp_markets",
   "perp_positions",
@@ -47,7 +51,7 @@ export type Status = {
   mcpUrl: string;
   tools: number;
   toolNames: string[];
-  /** Launch bundles and maker sessions survive a redeploy only with Redis. */
+  /** Launch bundles, maker sessions, and volume sessions survive a redeploy only with Redis. */
   store: "redis" | "memory";
   maker: "enabled" | "disabled";
   /** Always 0. Kept so older clients still see the field. */

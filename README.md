@@ -1,5 +1,5 @@
 **Launch a token from Claude, ChatGPT or Grok.**  
-Your wallet signs every transaction. The server never holds the key.
+Your wallet signs a launch, a trade, and a perp. Launch liquidity signs from the operator wallet.
 
 ![status](https://img.shields.io/endpoint?url=https%3A%2F%2Flabs.koyn.trade%2Fapi%2Fstatus%2Fbadge%3Ffield%3Dstatus&style=flat-square&labelColor=070708)![live version](https://img.shields.io/endpoint?url=https%3A%2F%2Flabs.koyn.trade%2Fapi%2Fstatus%2Fbadge%3Ffield%3Dversion&style=flat-square&labelColor=070708)![deployed commit](https://img.shields.io/endpoint?url=https%3A%2F%2Flabs.koyn.trade%2Fapi%2Fstatus%2Fbadge%3Ffield%3Ddeployed&style=flat-square&labelColor=070708)![CI](https://img.shields.io/github/actions/workflow/status/koynlabs/labs-mcp/ci.yml?branch=main&style=flat-square&label=ci&labelColor=070708)
 
@@ -19,7 +19,7 @@ Production is `main`, deployed by Vercel. The top row reads [labs.koyn.trade/api
 
 | | |
 | --- | --- |
-| 🔑 **Your keys stay yours** | Every create and buy is built unsigned. You sign in Phantom. labs cannot move the funds. |
+| 🔑 **Your keys stay yours** | A launch, a trade, and a perp are built unsigned. You sign in Phantom. Launch liquidity uses the operator wallet, and its child keys stay sealed. |
 | ⚡ **One atomic bundle** | The create and the opening buys land together on Jito, or none of it does. |
 | 🪙 **No launch fee** | labs does not add a treasury payment. You pay the network, and any buy you include. |
 | 🤖 **Talk to it** | No dashboard to learn. Ask your assistant for a launch. It hands back a signing link. |
