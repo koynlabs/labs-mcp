@@ -13,6 +13,23 @@ const publicHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+  // The volume step bundles @lightprotocol/hasher.rs. Its wasm URLs are bare
+  // names, so Turbopack cannot find the files in dist/. The build script copies
+  // them beside the bundle; this alias covers the same request if a bundle is
+  // still unpatched. The trace keeps those files in the workflow function.
+  outputFileTracingIncludes: {
+    "/.well-known/workflow/**": [
+      "./node_modules/@lightprotocol/hasher.rs/dist/**/*.wasm",
+    ],
+  },
+  turbopack: {
+    resolveAlias: {
+      "light_wasm_hasher_bg.wasm":
+        "./node_modules/@lightprotocol/hasher.rs/dist/light_wasm_hasher_bg.wasm",
+      "hasher_wasm_simd_bg.wasm":
+        "./node_modules/@lightprotocol/hasher.rs/dist/hasher_wasm_simd_bg.wasm",
+    },
+  },
   async headers() {
     return [
       { source: "/:path*", headers: publicHeaders },
